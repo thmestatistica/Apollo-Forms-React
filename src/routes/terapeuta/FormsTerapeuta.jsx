@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom'
 
-function PacienteForms() {
+function FormsTerapeuta() {
   return (
     <div>
       <Outlet />
@@ -8,4 +8,4 @@ function PacienteForms() {
   )
 }
 
-export default PacienteForms
+export default FormsTerapeuta

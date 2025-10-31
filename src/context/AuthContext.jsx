@@ -63,10 +63,14 @@ export const AuthProvider = ({ children }) => {
         // Redireciona para o dashboard apropriado
         if (type === 'terapeuta') {
             // Exemplo de redirecionamento
-            navigate('/terapeuta/dashboard', { replace: true });
+            navigate('/forms-terapeuta/tela-inicial', { replace: true });
         } else if (type === 'paciente') {
             // Exemplo de redirecionamento
-            navigate('/paciente/dashboard', { replace: true });
+            navigate('/forms-paciente/tela-inicial', { replace: true });
+        } else {
+            // Tipo desconhecido, redireciona para a home
+            console.warn('Tipo de usuário desconhecido durante o login:', type);
+            navigate('/', { replace: true });
         }
     };
 

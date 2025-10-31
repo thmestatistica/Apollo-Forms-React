@@ -19,7 +19,7 @@ export const ProtectedRoute = ({ allowedRoles }) => {
     // Verifica se há restrição de roles e se o usuário tem a role correta
     if (allowedRoles && !allowedRoles.includes(user.role)) {
         // Autenticado, mas com role incorreta: redireciona para o painel apropriado ou uma página de erro
-        const redirectPath = user.role === 'terapeuta' ? '/terapeuta/dashboard' : '/paciente/dashboard';
+        const redirectPath = user.role === 'terapeuta' ? '/forms-terapeuta/tela-inicial' : '/forms-paciente/tela-inicial';
         return <Navigate to={redirectPath} replace />;
     }
 

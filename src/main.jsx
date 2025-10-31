@@ -15,15 +15,15 @@ import HomeForms from './routes/HomeForms.jsx'
 import { ProtectedRoute } from './components/auth/ProtectRoutes.jsx'
 
 // Componentes de Login (Públicos)
-import LoginMedico from './routes/medico/LoginMedico.jsx'
+import LoginTerapeuta from './routes/terapeuta/LoginTerapeuta.jsx'
 import LoginPaciente from './routes/paciente/LoginPaciente.jsx'
 
 // Componentes de Forms (Protegidos)
-import FormsMedico from './routes/medico/Formsmedico.jsx'
+import FormsTerapeuta from './routes/terapeuta/FormsTerapeuta.jsx'
 import PacienteForms from './routes/paciente/PacienteForms.jsx'
 
 // Componentes de Telas Iniciais (Protegidos)
-import TelaInicialMedico from './routes/medico/TelaInicialMedico.jsx'
+import TelaInicialTerapeuta from './routes/terapeuta/TelaInicialTerapeuta.jsx'
 import TelaInicialPaciente from './routes/paciente/TelaInicialPaciente.jsx'
 
 // --- Configuração simples das Rotas com createBrowserRouter ---
@@ -39,20 +39,20 @@ const router = createBrowserRouter([
         { element: <HomeForms/>, path: '/' },
 
         // Rotas de Login Específicas
-        { element: <LoginMedico/>, path: '/login/medico'},  
+        { element: <LoginTerapeuta/>, path: '/login/terapeuta'},  
         { element: <LoginPaciente/>, path: '/login/paciente'},
 
-        // --- 1. Rota de Layout Protegida para MÉDICOS ---
-        // Usa o ProtectedRoute para checar o role 'medico'
+        // --- 1. Rota de Layout Protegida para TERAPEUTAS ---
+        // Usa o ProtectedRoute para checar o role 'terapeuta'
         {
-            element: <ProtectedRoute allowedRoles={['medico']}/>,
+            element: <ProtectedRoute allowedRoles={['terapeuta']}/>,
             children: [
-                // O FormsMedico é o elemento pai, e usa <Outlet>
+                // O FormsTerapeuta é o elemento pai, e usa <Outlet>
                 {
-                    element: <FormsMedico />,
-                    path: '/forms-medico',
+                    element: <FormsTerapeuta />,
+                    path: '/forms-terapeuta',
                     children: [
-                        { element: <TelaInicialMedico />, path: 'tela-inicial' },
+                        { element: <TelaInicialTerapeuta />, path: 'tela-inicial' },
                     ]
                 }
             ]
@@ -65,7 +65,7 @@ const router = createBrowserRouter([
             children: [
                 {
                     element: <PacienteForms />,
-                    path: '/forms-pacientes',
+                    path: '/forms-paciente',
                     children: [
                         { element: <TelaInicialPaciente />, path: 'tela-inicial' },
                     ]
