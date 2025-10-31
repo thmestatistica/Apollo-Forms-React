@@ -1,5 +1,5 @@
 // Importa o hook de autenticação e componentes do React Router
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuth';
 // Importa componentes para navegação e roteamento
 // Navigate: componente para redirecionamento
 // Outlet: componente que renderiza a rota filha correspondente

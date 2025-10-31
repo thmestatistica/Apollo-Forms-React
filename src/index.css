@@ -1,9 +1,6 @@
 /* Importando fonte do Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap');
 
-/* 1. Reset de CSS (substitui @tailwind base) */
-@import "tailwindcss/preflight";
-
 /* Importando Tailwind */
 @import "tailwindcss";
 
@@ -13,7 +10,10 @@
   --color-apollo-100: #FFFFFF;
   --color-apollo-200: #5A2779;
   --color-apollo-300: #E0AC00;
-  --color-apollo-400: #F0F2F6;
+  --color-apollo-400: #ec6c63;
+  --color-apollo-500: #3BBBCE;
+  --color-apollo-600: #1A2240;
+  --color-apollo-700: #F0F2F6;
 
   /* Fonte */
   --font-apollo: 'Space Grotesk', sans-serif;

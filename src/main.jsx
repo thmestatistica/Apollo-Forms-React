@@ -12,7 +12,7 @@ import Error from './routes/error/Error.jsx'
 import HomeForms from './routes/HomeForms.jsx'
 
 // Importando ProtectedRoute para rotas protegidas
-import { ProtectedRoute } from './components/ProtectRoutes.jsx'
+import { ProtectedRoute } from './components/auth/ProtectRoutes.jsx'
 
 // Componentes de Login (Públicos)
 import LoginMedico from './routes/medico/LoginMedico.jsx'
