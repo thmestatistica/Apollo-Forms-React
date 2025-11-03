@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 // Importando a função de máscara de CPF
 import { cpfMask } from '../../utils/mask/cpfMask';
-import LinkLogin from '../../components/home/LinkLogin';
+// Importando o Link do react-router-dom para navegação
 import { Link } from 'react-router-dom';
 
 
