@@ -27,8 +27,6 @@ import TelaInicialTerapeuta from './routes/terapeuta/TelaInicialTerapeuta.jsx'
 import TelaInicialPaciente from './routes/paciente/TelaInicialPaciente.jsx'
 
 // --- Configuração simples das Rotas com createBrowserRouter ---
-// Removi temporariamente as rotas protegidas (componentes referenciados
-// não estavam importados/implementados e causavam erros em tempo de execução).
 const router = createBrowserRouter([
   {
     element: <App />,

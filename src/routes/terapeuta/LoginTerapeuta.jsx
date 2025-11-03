@@ -5,7 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 // Importando o Link do react-router-dom para navegação
 import { Link } from 'react-router-dom';
 // Importando o componente de exibição de erros
-import ErroGen from '../../components/error/ErroGen';
+import ErroGen from '../../components/info/ErroGen';
 // Importando a função de requisição de login  (API)
 // import { listarTerapeutas } from '../../utils/terapeutas/terapeutasUtils';
 
@@ -33,7 +33,7 @@ const LoginTerapeuta = () => {
         //     }
         // });
 
-        if (username === 'terapeuta' && password === 'senha123') {
+        if (username === 'admin' && password === '123') {
             // Simula dados do terapeuta
             const terapeutaData = { id: 1, username: 'terapeuta' };
             login(terapeutaData, 'terapeuta');
