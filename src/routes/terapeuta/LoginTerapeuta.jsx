@@ -4,8 +4,10 @@ import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 // Importando o Link do react-router-dom para navegação
 import { Link } from 'react-router-dom';
+// Importando o componente de exibição de erros
+import ErroGen from '../../components/error/ErroGen';
 // Importando a função de requisição de login  (API)
-import { listarTerapeutas } from '../../utils/terapeutas/terapeutasUtils';
+// import { listarTerapeutas } from '../../utils/terapeutas/terapeutasUtils';
 
 const LoginTerapeuta = () => {
     // Acessa a função de login do AuthContext
@@ -21,15 +23,23 @@ const LoginTerapeuta = () => {
         e.preventDefault();
         setError(''); // Limpa erros anteriores
 
-        const terapeutas = await listarTerapeutas();
+        // const terapeutas = await listarTerapeutas();
 
-        terapeutas.forEach(terapeuta => {
-            if (terapeuta.username === username && terapeuta.password === password) {
-              login({ id: terapeuta.id, username }, 'terapeuta');
-            } else {
-              setError('Credenciais inválidas. Tente novamente.');
-            }
-        });
+        // terapeutas.forEach(terapeuta => {
+        //     if (terapeuta.username === username && terapeuta.password === password) {
+        //       login({ id: terapeuta.id, username }, 'terapeuta');
+        //     } else {
+        //       setError('Credenciais inválidas. Tente novamente.');
+        //     }
+        // });
+
+        if (username === 'terapeuta' && password === 'senha123') {
+            // Simula dados do terapeuta
+            const terapeutaData = { id: 1, username: 'terapeuta' };
+            login(terapeutaData, 'terapeuta');
+        } else {
+            setError('Credenciais inválidas. Tente novamente.');
+        }
     };
 
     return (
@@ -58,7 +68,7 @@ const LoginTerapeuta = () => {
                                 className='border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-apollo-400'
                             />
                         </div>
-                        {error && <p className='text-red-500'>{error}</p>}
+                        <ErroGen error={error} />
                         <button type="submit" className='bg-apollo-500 text-white p-2 rounded-md font-bold hover:bg-apollo-600 transition-colors duration-300 cursor-pointer'>Entrar</button>
                     </form>
 
