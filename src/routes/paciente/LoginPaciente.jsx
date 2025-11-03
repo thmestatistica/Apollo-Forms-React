@@ -64,7 +64,7 @@ const LoginPaciente = () => {
                             />
                         </div>
                         {error && <p className='text-red-500'>{error}</p>}
-                        <button type="submit" className='bg-apollo-500 text-white p-2 rounded-md font-bold hover:bg-apollo-600 transition-colors duration-300'>Entrar</button>
+                        <button type="submit" className='bg-apollo-500 text-white p-2 rounded-md font-bold hover:bg-apollo-600 transition-colors duration-300 cursor-pointer'>Entrar</button>
                     </form>
 
                     <Link to='/' className='text-apollo-200 hover:underline hover:underline-offset-4'>← Voltar para a página inicial</Link>
