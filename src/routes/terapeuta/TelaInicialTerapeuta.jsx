@@ -6,6 +6,9 @@
  */
 // Componentes
 import { useAuth } from "../../hooks/useAuth.jsx";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useFormContext } from "../../hooks/useFormContext";
 import AgenPag from "../../components/agenda/AgenPag.jsx";
 import InfoGen from "../../components/info/InfoGen";
 import EvoPag from "../../components/pendencias/EvoPag.jsx";
@@ -17,6 +20,20 @@ import { isHoje } from "../../utils/verify/verify_utils.js";
 const TelaInicialTerapeuta = () => {
 
   const { logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { openModal, pendenciaSelecionada } = useFormContext();
+
+  // Reabre o modal ao voltar da tela de formulário, mantendo a pendência selecionada
+  useEffect(() => {
+    if (location.state?.reopenModal && pendenciaSelecionada) {
+      // Reabre usando a última pendência selecionada
+      openModal(pendenciaSelecionada);
+      // Limpa o state para evitar reabrir em futuras navegações
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state?.reopenModal]);
 
   // Exemplo de agendamentos recebidos do backend
   const agendamentos = [

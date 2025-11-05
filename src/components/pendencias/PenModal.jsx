@@ -21,9 +21,9 @@ const PenModal = ({ penData }) => {
 
   // Opções disponíveis
   const escalasDisponiveis = [
-    { value: "TUG", label: "TUG - Timed Up and Go" },
-    { value: "Berg", label: "Berg Balance Scale" },
-    { value: "Fugl-Meyer", label: "Fugl-Meyer Assessment" },
+    { id: 1, value: "TUG", label: "TUG - Timed Up and Go", tipo_form: "Escala" },
+    { id: 2, value: "Berg", label: "Berg Balance Scale", tipo_form: "Escala" },
+    { id: 3, value: "Fugl-Meyer", label: "Fugl-Meyer Assessment", tipo_form: "Escala" },
   ];
 
   // Escalas do agendamento atual (carregadas do contexto)
@@ -47,10 +47,13 @@ const PenModal = ({ penData }) => {
     escalasAtuais.includes(opt.value)
   );
 
-  /** Ir para página de evolução */
-  const handleEvoluir = () => {
+  /** Navegar para formulário específico */
+  const handleNavForm = (id, tipo_form) => {
     closeModal();
-    navigate("/evolucao");
+    // Envia os dados da pendência para o formulário via state
+    navigate(`/forms-terapeuta/formulario/${tipo_form}/${id}` , {
+      state: { pendencia: penData }
+    });
   };
 
   return (
@@ -151,8 +154,6 @@ const PenModal = ({ penData }) => {
               }),
             }}
           />
-
-
           <ul className="mt-4 flex flex-col gap-2">
             {selectedValues.map((escala) => (
               <li
@@ -163,6 +164,7 @@ const PenModal = ({ penData }) => {
                 <button
                   className="bg-apollo-200 hover:bg-apollo-300 text-white py-1 px-3 rounded-lg text-sm transition"
                   type="button"
+                  onClick={() => handleNavForm(escala.id, escala.tipo_form)}
                 >
                   Preencher {escala.value}
                 </button>
@@ -173,10 +175,10 @@ const PenModal = ({ penData }) => {
       )}
 
       <button
-        onClick={handleEvoluir}
+        onClick={() => handleNavForm(penData["AgendamentoID"])}
         className="mt-6 bg-apollo-500 hover:bg-apollo-600 text-white font-semibold py-2 px-4 rounded-xl transition"
       >
-        Ir para Evolução
+        Preencher Evolução
       </button>
     </div>
   );

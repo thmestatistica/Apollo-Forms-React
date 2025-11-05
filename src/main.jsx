@@ -25,6 +25,7 @@ import PacienteForms from './routes/paciente/PacienteForms.jsx'
 // Componentes de Telas Iniciais (Protegidos)
 import TelaInicialTerapeuta from './routes/terapeuta/TelaInicialTerapeuta.jsx'
 import TelaInicialPaciente from './routes/paciente/TelaInicialPaciente.jsx'
+import FormularioGenerico from './routes/forms/FormGen.jsx'
 
 // --- Configuração simples das Rotas com createBrowserRouter ---
 const router = createBrowserRouter([
@@ -50,7 +51,14 @@ const router = createBrowserRouter([
                     element: <FormsTerapeuta />,
                     path: '/forms-terapeuta',
                     children: [
-                        { element: <TelaInicialTerapeuta />, path: 'tela-inicial' },
+                        { 
+                            element: <TelaInicialTerapeuta />, 
+                            path: 'tela-inicial' 
+                        },
+                        {
+                            element: <FormularioGenerico />,
+                            path: 'formulario/:tipo_form/:id_form' // Rota dinâmica baseada no id
+                        }
                     ]
                 }
             ]

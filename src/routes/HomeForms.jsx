@@ -4,8 +4,26 @@ import logo from '../assets/logo_app.png'
 // Importando Componentes
 // import HomeListItem from '../components/home/HomeListItem'
 import LinkLogin from '../components/home/LinkLogin'
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 
 function HomeForms() {
+  const navigate = useNavigate()
+  const { isAuthenticated, user } = useAuth()
+
+  // Se já estiver autenticado, redireciona para a tela inicial apropriada
+  useEffect(() => {
+    if (isAuthenticated) {
+      const redirectPath = user?.role === 'terapeuta'
+        ? '/forms-terapeuta/tela-inicial'
+        : '/forms-paciente/tela-inicial'
+
+      // replace: true impede que o usuário volte para a página inicial ao pressionar "voltar"
+      navigate(redirectPath, { replace: true })
+    }
+  }, [isAuthenticated, user?.role, navigate])
+
   return (
     <>
     <div className='flex flex-col items-center justify-center h-screen gap-8'>
