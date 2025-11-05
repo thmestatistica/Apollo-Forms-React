@@ -112,6 +112,13 @@ const TelaInicialTerapeuta = () => {
     }
   ];
 
+  /** Opções disponíveis de escalas (mock, poderia vir de API futuramente) */
+  const escalasDisponiveis = [
+    { id: 1, value: "TUG", label: "TUG - Timed Up and Go", tipo_form: "Escala" },
+    { id: 2, value: "Fois", label: "Fois", tipo_form: "Escala" },
+    { id: 3, value: "Fugl-Meyer", label: "Fugl-Meyer Assessment", tipo_form: "Escala" },
+  ];
+
 
   /**
    * Filtra apenas os agendamentos do dia atual.
@@ -145,7 +152,7 @@ const TelaInicialTerapeuta = () => {
             {agendamentos_pendentes.length === 0 ? (
               <InfoGen message="🗒️ Nenhuma evolução ou avaliação pendente." />
             ) : (
-              <EvoPag pendenciasLista={agendamentos_pendentes} />
+              <EvoPag pendenciasLista={agendamentos_pendentes} escalasDisponiveis={escalasDisponiveis} />
             )}
           </div>
 

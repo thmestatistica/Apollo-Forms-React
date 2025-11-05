@@ -29,7 +29,7 @@ import { useFormContext } from "../../hooks/useFormContext";
  * @param {number} props.penData.AgendamentoID - ID único do agendamento.
  * @returns {JSX.Element} O modal de pendência renderizado.
  */
-const PenModal = ({ penData }) => {
+const PenModal = ({ penData, escalasDisponiveis }) => {
   const navigate = useNavigate();
 
   // Contexto global com informações sobre formulários e escalas
@@ -37,13 +37,6 @@ const PenModal = ({ penData }) => {
 
   /** ID do agendamento atual (chave de referência no contexto) */
   const agendamentoId = penData["AgendamentoID"];
-
-  /** Opções disponíveis de escalas (mock, poderia vir de API futuramente) */
-  const escalasDisponiveis = [
-    { id: 1, value: "TUG", label: "TUG - Timed Up and Go", tipo_form: "Escala" },
-    { id: 2, value: "Fois", label: "Fois", tipo_form: "Escala" },
-    { id: 3, value: "Fugl-Meyer", label: "Fugl-Meyer Assessment", tipo_form: "Escala" },
-  ];
 
   /** Escalas selecionadas para este agendamento (vindas do contexto) */
   const escalasAtuais = escalasPorAgendamento[agendamentoId] || [];

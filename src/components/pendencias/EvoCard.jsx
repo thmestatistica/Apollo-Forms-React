@@ -35,7 +35,7 @@ const getCorBotao = (nivel) => {
  * @component EvoCard
  * Exibe os cards de evoluções pendentes e abre um modal para preenchimento.
  */
-const EvoCard = ({ paginaAtual = [] }) => {
+const EvoCard = ({ paginaAtual = [], escalasDisponiveis = [] }) => {
   const { openModal, isModalOpen, pendenciaSelecionada, closeModal } =
     useFormContext();
 
@@ -100,7 +100,7 @@ const EvoCard = ({ paginaAtual = [] }) => {
       {/* Modal global controlado via contexto */}
       <Modal isOpen={isModalOpen} onClose={closeModal}>
         {pendenciaSelecionada ? (
-          <PenModal penData={pendenciaSelecionada} />
+          <PenModal penData={pendenciaSelecionada} escalasDisponiveis={escalasDisponiveis} />
         ) : (
           <p>Carregando pendência...</p>
         )}
