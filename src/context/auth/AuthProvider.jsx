@@ -118,8 +118,29 @@ export const AuthProvider = ({ children }) => {
     //     }
     // };
 
+    /**
+     * Remove todos os dados relacionados a agendamentos do localStorage.
+     * Mantemos a lista em sincronia com o que a aplicação realmente persiste.
+     */
+    const limparDadosAgendamento = () => {
+        try {
+            const chaves = [
+                // Persistido em FormProvider.jsx
+                "escalasPorAgendamento",
+            ];
+
+            chaves.forEach((chave) => localStorage.removeItem(chave));
+        } catch (err) {
+            // Evita que um erro no localStorage impeça o logout
+            console.warn("Falha ao limpar dados de agendamento do localStorage:", err);
+        }
+    };
+
     // Função de logout
     const logout = () => {
+        // Limpa dados relacionados a agendamentos
+        limparDadosAgendamento();
+
         // Atualiza o estado do usuário para null
         setUser(null);
 

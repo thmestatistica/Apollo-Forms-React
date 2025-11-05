@@ -4,6 +4,5 @@
  */
 
 import { createContext } from "react";
-import PropTypes from "prop-types";
 
 export const FormContext = createContext(null);

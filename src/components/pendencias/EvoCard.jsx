@@ -1,7 +1,7 @@
 import CreateIcon from "@mui/icons-material/Create";
 import { Modal } from "../modal/Modal";
 import PenModal from "./PenModal"; // conteúdo específico do modal
-import { useFormContext } from "../../hooks/use";
+import { useFormContext } from "../../hooks/useFormContext";
 
 /**
  * Funções de cor

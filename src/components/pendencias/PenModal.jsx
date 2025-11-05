@@ -1,107 +1,165 @@
 /**
  * @file PenModal.jsx
- * @description Modal de Pendência com multiselect e persistência global.
+ * @description Modal de Pendência com seleção persistente por agendamento.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Select from "react-select";
 import { useNavigate } from "react-router-dom";
-import { useFormContext } from "../../hooks/use";
+import { useFormContext } from "../../hooks/useFormContext";
 
-/**
- * @component PenModal
- * Exibe informações da pendência e um seletor de escalas.
- */
 const PenModal = ({ penData }) => {
   const navigate = useNavigate();
-  const { escalasSelecionadas, setEscalasSelecionadas, closeModal } = useFormContext(); 
+  const {
+    escalasPorAgendamento,
+    atualizarEscalas,
+    closeModal,
+  } = useFormContext();
 
-  // Opções de escalas disponíveis
+  // ID do agendamento atual
+  const agendamentoId = penData["AgendamentoID"];
+
+  // Opções disponíveis
   const escalasDisponiveis = [
     { value: "TUG", label: "TUG - Timed Up and Go" },
     { value: "Berg", label: "Berg Balance Scale" },
     { value: "Fugl-Meyer", label: "Fugl-Meyer Assessment" },
   ];
 
-  // Controle local: checkbox principal
-  const [temEscala, setTemEscala] = useState(escalasSelecionadas.length > 0);
+  // Escalas do agendamento atual (carregadas do contexto)
+  const escalasAtuais = escalasPorAgendamento[agendamentoId] || [];
 
-  /** Atualiza o contexto e localStorage ao mudar a seleção */
+  const [temEscala, setTemEscala] = useState(escalasAtuais.length > 0);
+
+  // Mantém o checkbox sincronizado com os dados persistidos
+  useEffect(() => {
+    setTemEscala(escalasAtuais.length > 0);
+  }, [escalasAtuais.length]);
+
+  /** Atualiza escalas no contexto e localStorage */
   const handleChange = (selectedOptions) => {
-    const valores = selectedOptions ? selectedOptions.map((opt) => opt.value) : [];
-    setEscalasSelecionadas(valores);
+    const novas = selectedOptions ? selectedOptions.map((opt) => opt.value) : [];
+    atualizarEscalas(agendamentoId, novas);
   };
 
-  /** Inicializa as opções selecionadas ao montar */
+  /** Mantém seleção visível */
   const selectedValues = escalasDisponiveis.filter((opt) =>
-    escalasSelecionadas.includes(opt.value)
+    escalasAtuais.includes(opt.value)
   );
 
-  /** Avança para página de evolução */
+  /** Ir para página de evolução */
   const handleEvoluir = () => {
     closeModal();
-    navigate("/evolucao"); // ajuste o caminho conforme suas rotas
+    navigate("/evolucao");
   };
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="font-bold text-xl">Pendências do Agendamento</h2>
+      <h2 className="font-bold text-xl text-apollo-200">Pendências do Agendamento</h2>
 
-      {/* Informações básicas */}
-      <div className="grid md:grid-cols-2 gap-2 text-gray-700">
+      <div className="grid md:grid-cols-2 gap-2 text-apollo-200">
         <p><strong>Paciente:</strong> {penData["Paciente"]}</p>
         <p><strong>Data:</strong> {penData["Data"]}</p>
         <p><strong>Horário:</strong> {penData["Início"]} até {penData["Fim"]}</p>
         <p><strong>ID:</strong> {penData["AgendamentoID"]}</p>
       </div>
 
-      {/* Checkbox principal */}
       <div className="flex items-center gap-2 mt-3">
         <input
           type="checkbox"
           id="checkboxEscala"
           checked={temEscala}
           onChange={() => setTemEscala(!temEscala)}
-          className="accent-apollo-200 w-5 h-5 transition-all duration-300 hover:scale-110"
+          className="accent-apollo-200 w-5 h-5 hover:scale-110 transition-all"
         />
-        <label htmlFor="checkboxEscala" className="font-semibold">
+        <label htmlFor="checkboxEscala" className="font-semibold text-apollo-200">
           Foi feita alguma escala?
         </label>
       </div>
 
-      {/* Multiselect */}
       {temEscala && (
         <div className="mt-3">
           <Select
             isMulti
+            closeMenuOnSelect={false}
             options={escalasDisponiveis}
             value={selectedValues}
             onChange={handleChange}
             placeholder="Selecione as escalas..."
             className="text-sm"
-            menuPortalTarget={document.body}   // <-- renderiza o menu fora do modal
-            menuPosition="fixed"               // <-- fixa o menu corretamente
+            menuPortalTarget={document.body}
+            menuPosition="fixed"
             styles={{
-                menuPortal: (base) => ({ ...base, zIndex: 9999 }), // garante que fique acima de tudo
-                control: (base) => ({
+              // Corrige sobreposição do menu
+              menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+
+              // Estilo do container principal
+              control: (base, state) => ({
                 ...base,
                 borderRadius: "0.75rem",
-                borderColor: "#ccc",
+                borderColor: state.isFocused ? "#5A2779" : "#d4d4d8",
                 boxShadow: "none",
-                "&:hover": { borderColor: "#60a5fa" },
-                }),
+                "&:hover": { borderColor: "#5A2779" },
+                minHeight: "42px",
+              }),
+
+              // 🔽 Estilo das opções do menu
+              option: (base, state) => ({
+                ...base,
+                fontSize: "0.9rem",
+                padding: "10px 12px",
+                borderRadius: "0.5rem",
+                cursor: "pointer",
+                backgroundColor: state.isSelected
+                  ? "#5A2779" // quando selecionada
+                  : state.isFocused
+                  ? "#F3E8FF" // quando o mouse passa
+                  : "white", // estado normal
+                color: state.isSelected ? "white" : "#1F2937", // texto branco se selecionada
+                transition: "background-color 0.2s ease, color 0.2s ease",
+              }),
+
+              // Estilo da lista de opções (container)
+              menu: (base) => ({
+                ...base,
+                borderRadius: "0.75rem",
+                marginTop: "6px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                overflow: "hidden",
+              }),
+
+              // Estilo dos valores selecionados (tags no caso de multi)
+              multiValue: (base) => ({
+                ...base,
+                backgroundColor: "#E9D8FD",
+                borderRadius: "0.5rem",
+                padding: "2px 6px",
+              }),
+              multiValueLabel: (base) => ({
+                ...base,
+                color: "#5A2779",
+                fontWeight: 500,
+              }),
+              multiValueRemove: (base) => ({
+                ...base,
+                color: "#5A2779",
+                "&:hover": {
+                  backgroundColor: "#5A2779",
+                  color: "white",
+                  borderRadius: "0.5rem",
+                },
+              }),
             }}
-            />
+          />
 
 
-          {/* Lista de escalas selecionadas */}
           <ul className="mt-4 flex flex-col gap-2">
             {selectedValues.map((escala) => (
               <li
                 key={escala.value}
                 className="flex justify-between items-center p-3 border border-gray-200 rounded-lg shadow-sm bg-white"
               >
-                <span className="font-medium">{escala.label}</span>
+                <span className="font-medium text-apollo-200">{escala.label}</span>
                 <button
                   className="bg-apollo-200 hover:bg-apollo-300 text-white py-1 px-3 rounded-lg text-sm transition"
                   type="button"
@@ -114,12 +172,11 @@ const PenModal = ({ penData }) => {
         </div>
       )}
 
-      {/* Botão final */}
       <button
         onClick={handleEvoluir}
-        className="mt-6 bg-apollo-200 hover:bg-apollo-300 text-white font-semibold py-2 px-4 rounded-xl transition"
+        className="mt-6 bg-apollo-500 hover:bg-apollo-600 text-white font-semibold py-2 px-4 rounded-xl transition"
       >
-        Preencher Evolução/Avaliação
+        Ir para Evolução
       </button>
     </div>
   );

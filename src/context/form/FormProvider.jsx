@@ -1,55 +1,72 @@
 /**
- * @file FormContext.jsx
- * @description Contexto global para controle do modal e persistência dos dados de formulário.
+ * @file FormProvider.jsx
+ * @description Contexto global para controle do modal e persistência das escalas por agendamento.
  */
 
-import {  useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { FormContext } from "./FormContext";
 
 /**
- * Provedor de contexto global.
- * Gerencia o estado do modal, pendência e os dados selecionados.
+ * @component FormProvider
+ * Fornece estados globais para modais e escalas associadas a cada agendamento.
  */
 export const FormProvider = ({ children }) => {
-  // Estado: controle de abertura do modal
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Estado: pendência atual
   const [pendenciaSelecionada, setPendenciaSelecionada] = useState(null);
 
-  // Estado: escalas selecionadas pelo terapeuta
-  const [escalasSelecionadas, setEscalasSelecionadas] = useState([]);
+  /**
+   * Estrutura:
+   * {
+   *   [agendamentoId]: ["TUG", "Berg"]
+   * }
+   */
+  const [escalasPorAgendamento, setEscalasPorAgendamento] = useState(() => {
+    // Hidrata o estado imediatamente do localStorage (evita sobrescrever com {} em StrictMode)
+    try {
+      const stored = localStorage.getItem("escalasPorAgendamento");
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
 
-  /** Carrega seleções persistidas no localStorage ao iniciar */
+  /** Persiste no localStorage sempre que mudar */
   useEffect(() => {
-    const stored = localStorage.getItem("escalasSelecionadas");
-    if (stored) setEscalasSelecionadas(JSON.parse(stored));
-  }, []);
+    try {
+      localStorage.setItem(
+        "escalasPorAgendamento",
+        JSON.stringify(escalasPorAgendamento)
+      );
+    } catch {
+      // noop
+    }
+  }, [escalasPorAgendamento]);
 
-  /** Atualiza localStorage sempre que as seleções mudarem */
-  useEffect(() => {
-    localStorage.setItem("escalasSelecionadas", JSON.stringify(escalasSelecionadas));
-  }, [escalasSelecionadas]);
+  /** Define as escalas de um agendamento específico */
+  const atualizarEscalas = (agendamentoId, novasEscalas) => {
+    setEscalasPorAgendamento((prev) => ({
+      ...prev,
+      [agendamentoId]: novasEscalas,
+    }));
+  };
 
-  /** Abre o modal */
+  /** Abre modal e define pendência */
   const openModal = (pendencia) => {
     setPendenciaSelecionada(pendencia);
     setIsModalOpen(true);
   };
 
-  /** Fecha o modal */
-  const closeModal = () => {
-    setIsModalOpen(false);
-  };
+  /** Fecha modal */
+  const closeModal = () => setIsModalOpen(false);
 
   return (
     <FormContext.Provider
       value={{
         isModalOpen,
         pendenciaSelecionada,
-        escalasSelecionadas,
-        setEscalasSelecionadas,
+        escalasPorAgendamento,
+        atualizarEscalas,
         openModal,
         closeModal,
       }}
