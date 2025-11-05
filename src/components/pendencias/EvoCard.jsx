@@ -1,10 +1,10 @@
 import CreateIcon from "@mui/icons-material/Create";
 import { Modal } from "../modal/Modal";
-import PenModal from "./PenModal"; // conteúdo específico do modal
+import PenModal from "./PenModal";
 import { useFormContext } from "../../hooks/useFormContext";
 
 /**
- * Funções de cor
+ * Retorna classes de cor de fundo e borda para o nível da pendência.
  */
 const getCorPendencia = (nivel) => {
   const cores = {
@@ -14,9 +14,12 @@ const getCorPendencia = (nivel) => {
     Urgente: "bg-pendencia-urgente/20 border border-pendencia-urgente",
     Crítico: "bg-pendencia-critico/20 border border-pendencia-critico",
   };
-  return cores[nivel] || "text-gray-600";
+  return cores[nivel] || "bg-gray-100 border border-gray-300";
 };
 
+/**
+ * Retorna classes de cor para o botão do card.
+ */
 const getCorBotao = (nivel) => {
   const cores = {
     Normal: "bg-pendencia-normal",
@@ -30,14 +33,16 @@ const getCorBotao = (nivel) => {
 
 /**
  * @component EvoCard
- * Renderiza os cards de pendências com botão para abrir o modal de edição.
+ * Exibe os cards de evoluções pendentes e abre um modal para preenchimento.
  */
 const EvoCard = ({ paginaAtual = [] }) => {
-  const { openModal, isModalOpen, pendenciaSelecionada, closeModal } = useFormContext();
+  const { openModal, isModalOpen, pendenciaSelecionada, closeModal } =
+    useFormContext();
 
   return (
     <>
-      <div className="grid gap-3 pb-16">
+      {/* Container dos cards */}
+      <div className="grid gap-3 pb-20 sm:pb-24">
         {paginaAtual.map((pen, index) => {
           const nivel = pen["Nível de Pendência"];
           const id = pen["AgendamentoID"] ?? index;
@@ -47,41 +52,44 @@ const EvoCard = ({ paginaAtual = [] }) => {
               key={id}
               className={`${getCorPendencia(
                 nivel
-              )} grid grid-cols-12 rounded-lg overflow-hidden transition-colors duration-200`}
+              )} grid grid-cols-12 rounded-xl overflow-hidden shadow-sm transition-transform duration-200 hover:scale-[1.01] hover:shadow-md`}
             >
-              {/* Bloco esquerdo */}
-              <div className="col-span-9 p-3 text-black min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <strong className="truncate">{pen["Paciente"]}</strong>
+              {/* Coluna com informações do paciente */}
+              <div className="col-span-9 p-3 text-black flex flex-col justify-center min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <strong className="truncate text-lg font-semibold">
+                    {pen["Paciente"]}
+                  </strong>
+
                   <span
-                    className={`text-xs font-bold px-2 py-1 rounded-full border uppercase border-gray-300 ${getCorPendencia(nivel)} text-black/80`}
+                    className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${getCorPendencia(
+                      nivel
+                    )} text-black/80`}
                   >
                     {nivel}
                   </span>
                 </div>
 
-                <div className="mt-1 text-sm text-black flex flex-col">
+                <div className="text-sm text-black/90 leading-snug">
                   <p>
-                    <strong>Data: </strong>
-                    {pen["Data"]}
+                    <strong>Data:</strong> {pen["Data"]}
                   </p>
                   <p>
-                    <strong>Horário: </strong>
-                    {pen["Início"]} até {pen["Fim"]}
+                    <strong>Horário:</strong> {pen["Início"]} - {pen["Fim"]}
                   </p>
                 </div>
               </div>
 
-              {/* Botão que abre o modal */}
+              {/* Botão lateral do modal */}
               <div className="col-span-3 border-l border-black/10">
                 <button
                   type="button"
-                  className={`w-full h-full text-white transition-colors grid place-items-center brightness-90 ${getCorBotao(
+                  className={`w-full h-full grid place-items-center text-white font-medium transition-all ${getCorBotao(
                     nivel
-                  )} hover:brightness-110`}
-                  onClick={() => openModal(pen)} // Abre apenas este modal
+                  )} hover:brightness-110 active:scale-95`}
+                  onClick={() => openModal(pen)}
                 >
-                  <CreateIcon />
+                  <CreateIcon fontSize="medium" />
                 </button>
               </div>
             </div>

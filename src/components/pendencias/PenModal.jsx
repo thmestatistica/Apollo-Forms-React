@@ -1,65 +1,100 @@
 /**
  * @file PenModal.jsx
- * @description Modal de Pendência com seleção persistente por agendamento.
+ * @description Modal que exibe pendências de um agendamento e permite selecionar e preencher escalas associadas.
  */
-
+// useState e useEffect para controle de estado local e efeitos colaterais
 import { useState, useEffect } from "react";
-import Select from "react-select";
+// useNavigate para navegação programática
 import { useNavigate } from "react-router-dom";
+
+// Componentes
+// MultiSelect para seleção múltipla de escalas
+import MultiSelect from "../input/MultiSelect.jsx";
+
+// Hook customizado para acessar o contexto de formulários
 import { useFormContext } from "../../hooks/useFormContext";
 
+/**
+ * Componente responsável por exibir as pendências de um agendamento específico,
+ * permitindo ao terapeuta indicar se alguma escala foi aplicada, selecionar quais,
+ * e navegar para o formulário correspondente.
+ *
+ * @component
+ * @param {Object} props - Propriedades do componente.
+ * @param {Object} props.penData - Dados da pendência/agendamento.
+ * @param {string} props.penData.Paciente - Nome do paciente.
+ * @param {string} props.penData.Data - Data da sessão.
+ * @param {string} props.penData.Início - Horário inicial da sessão.
+ * @param {string} props.penData.Fim - Horário final da sessão.
+ * @param {number} props.penData.AgendamentoID - ID único do agendamento.
+ * @returns {JSX.Element} O modal de pendência renderizado.
+ */
 const PenModal = ({ penData }) => {
   const navigate = useNavigate();
-  const {
-    escalasPorAgendamento,
-    atualizarEscalas,
-    closeModal,
-  } = useFormContext();
 
-  // ID do agendamento atual
+  // Contexto global com informações sobre formulários e escalas
+  const { escalasPorAgendamento, atualizarEscalas, closeModal } = useFormContext();
+
+  /** ID do agendamento atual (chave de referência no contexto) */
   const agendamentoId = penData["AgendamentoID"];
 
-  // Opções disponíveis
+  /** Opções disponíveis de escalas (mock, poderia vir de API futuramente) */
   const escalasDisponiveis = [
     { id: 1, value: "TUG", label: "TUG - Timed Up and Go", tipo_form: "Escala" },
-    { id: 2, value: "Berg", label: "Berg Balance Scale", tipo_form: "Escala" },
+    { id: 2, value: "Fois", label: "Fois", tipo_form: "Escala" },
     { id: 3, value: "Fugl-Meyer", label: "Fugl-Meyer Assessment", tipo_form: "Escala" },
   ];
 
-  // Escalas do agendamento atual (carregadas do contexto)
+  /** Escalas selecionadas para este agendamento (vindas do contexto) */
   const escalasAtuais = escalasPorAgendamento[agendamentoId] || [];
 
+  /** Estado local para controlar o checkbox "foi feita alguma escala?" */
   const [temEscala, setTemEscala] = useState(escalasAtuais.length > 0);
 
-  // Mantém o checkbox sincronizado com os dados persistidos
+  /**
+   * Mantém o estado do checkbox sincronizado caso a lista de escalas
+   * seja atualizada externamente (ex: outro componente).
+   */
   useEffect(() => {
     setTemEscala(escalasAtuais.length > 0);
   }, [escalasAtuais.length]);
 
-  /** Atualiza escalas no contexto e localStorage */
+  /**
+   * Atualiza as escalas selecionadas no contexto global.
+   * @param {Array<{value: string}>} selectedOptions - Opções selecionadas no MultiSelect.
+   */
   const handleChange = (selectedOptions) => {
     const novas = selectedOptions ? selectedOptions.map((opt) => opt.value) : [];
     atualizarEscalas(agendamentoId, novas);
   };
 
-  /** Mantém seleção visível */
+  /** 
+   * Garante que as opções visíveis no select sejam compatíveis com as escalas persistidas.
+   */
   const selectedValues = escalasDisponiveis.filter((opt) =>
     escalasAtuais.includes(opt.value)
   );
 
-  /** Navegar para formulário específico */
+  /**
+   * Navega até o formulário de uma escala específica.
+   * Fecha o modal e envia o estado da pendência via `navigate`.
+   *
+   * @param {number} id - ID da escala a ser preenchida.
+   * @param {string} tipo_form - Tipo do formulário (ex: "Escala", "Evolução").
+   */
   const handleNavForm = (id, tipo_form) => {
     closeModal();
-    // Envia os dados da pendência para o formulário via state
-    navigate(`/forms-terapeuta/formulario/${tipo_form}/${id}` , {
-      state: { pendencia: penData }
+    navigate(`/forms-terapeuta/formulario/${tipo_form.toLowerCase()}/${id}`, {
+      state: { pendencia: penData },
     });
   };
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Título do modal */}
       <h2 className="font-bold text-xl text-apollo-200">Pendências do Agendamento</h2>
 
+      {/* Informações principais do agendamento */}
       <div className="grid md:grid-cols-2 gap-2 text-apollo-200">
         <p><strong>Paciente:</strong> {penData["Paciente"]}</p>
         <p><strong>Data:</strong> {penData["Data"]}</p>
@@ -67,6 +102,7 @@ const PenModal = ({ penData }) => {
         <p><strong>ID:</strong> {penData["AgendamentoID"]}</p>
       </div>
 
+      {/* Checkbox indicando se houve aplicação de escala */}
       <div className="flex items-center gap-2 mt-3">
         <input
           type="checkbox"
@@ -80,80 +116,19 @@ const PenModal = ({ penData }) => {
         </label>
       </div>
 
+      {/* Seleção e listagem das escalas (apenas se o checkbox estiver marcado) */}
       {temEscala && (
         <div className="mt-3">
-          <Select
-            isMulti
-            closeMenuOnSelect={false}
+          {/* Campo de seleção múltipla */}
+          <MultiSelect
             options={escalasDisponiveis}
             value={selectedValues}
             onChange={handleChange}
             placeholder="Selecione as escalas..."
             className="text-sm"
-            menuPortalTarget={document.body}
-            menuPosition="fixed"
-            styles={{
-              // Corrige sobreposição do menu
-              menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-
-              // Estilo do container principal
-              control: (base, state) => ({
-                ...base,
-                borderRadius: "0.75rem",
-                borderColor: state.isFocused ? "#5A2779" : "#d4d4d8",
-                boxShadow: "none",
-                "&:hover": { borderColor: "#5A2779" },
-                minHeight: "42px",
-              }),
-
-              // 🔽 Estilo das opções do menu
-              option: (base, state) => ({
-                ...base,
-                fontSize: "0.9rem",
-                padding: "10px 12px",
-                borderRadius: "0.5rem",
-                cursor: "pointer",
-                backgroundColor: state.isSelected
-                  ? "#5A2779" // quando selecionada
-                  : state.isFocused
-                  ? "#F3E8FF" // quando o mouse passa
-                  : "white", // estado normal
-                color: state.isSelected ? "white" : "#1F2937", // texto branco se selecionada
-                transition: "background-color 0.2s ease, color 0.2s ease",
-              }),
-
-              // Estilo da lista de opções (container)
-              menu: (base) => ({
-                ...base,
-                borderRadius: "0.75rem",
-                marginTop: "6px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                overflow: "hidden",
-              }),
-
-              // Estilo dos valores selecionados (tags no caso de multi)
-              multiValue: (base) => ({
-                ...base,
-                backgroundColor: "#E9D8FD",
-                borderRadius: "0.5rem",
-                padding: "2px 6px",
-              }),
-              multiValueLabel: (base) => ({
-                ...base,
-                color: "#5A2779",
-                fontWeight: 500,
-              }),
-              multiValueRemove: (base) => ({
-                ...base,
-                color: "#5A2779",
-                "&:hover": {
-                  backgroundColor: "#5A2779",
-                  color: "white",
-                  borderRadius: "0.5rem",
-                },
-              }),
-            }}
           />
+
+          {/* Lista de escalas selecionadas com botão para preenchimento */}
           <ul className="mt-4 flex flex-col gap-2">
             {selectedValues.map((escala) => (
               <li
@@ -161,10 +136,11 @@ const PenModal = ({ penData }) => {
                 className="flex justify-between items-center p-3 border border-gray-200 rounded-lg shadow-sm bg-white"
               >
                 <span className="font-medium text-apollo-200">{escala.label}</span>
+
                 <button
-                  className="bg-apollo-200 hover:bg-apollo-300 text-white py-1 px-3 rounded-lg text-sm transition"
                   type="button"
                   onClick={() => handleNavForm(escala.id, escala.tipo_form)}
+                  className="bg-apollo-200 hover:bg-apollo-300 text-white py-1 px-3 rounded-lg text-sm transition"
                 >
                   Preencher {escala.value}
                 </button>
@@ -174,8 +150,9 @@ const PenModal = ({ penData }) => {
         </div>
       )}
 
+      {/* Botão para preencher evolução geral */}
       <button
-        onClick={() => handleNavForm(penData["AgendamentoID"])}
+        onClick={() => handleNavForm(4, "Evolução")}
         className="mt-6 bg-apollo-500 hover:bg-apollo-600 text-white font-semibold py-2 px-4 rounded-xl transition"
       >
         Preencher Evolução
