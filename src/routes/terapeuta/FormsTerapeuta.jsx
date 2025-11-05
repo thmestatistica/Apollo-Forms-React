@@ -1,10 +1,11 @@
 import { Outlet } from 'react-router-dom'
+import { FormProvider } from '../../context/form/FormProvider'
 
 function FormsTerapeuta() {
   return (
-    <div>
-      <Outlet />
-    </div>
+    <FormProvider>
+        <Outlet />
+    </FormProvider>
   )
 }
 

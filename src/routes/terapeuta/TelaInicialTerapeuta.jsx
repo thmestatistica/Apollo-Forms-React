@@ -132,7 +132,7 @@ const TelaInicialTerapeuta = () => {
             )}
           </div>
 
-          {/* Area de Navegação */}
+          {/* Área de Navegação */}
           <div className="flex flex-col row-span-1 md:col-span-2 gap-5">
             <h2 className="font-extrabold text-2xl text-left md:col-span-2 col-span-1">
               🔎 Navegação
