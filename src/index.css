@@ -16,6 +16,12 @@
   --color-apollo-700: #F0F2F6;
   --color-apollo-800: #3B105A;
 
+  --color-pendencia-normal: #9EE682;
+  --color-pendencia-atencao: #F1DB0C;
+  --color-pendencia-alerta: #FF6701;
+  --color-pendencia-urgente: #EB3107;
+  --color-pendencia-critico: #6A0DAD;
+
   /* Fonte */
   --font-apollo: 'Space Grotesk', sans-serif;
 }

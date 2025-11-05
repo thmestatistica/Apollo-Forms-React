@@ -1,8 +1,8 @@
 /**
  * Componente: AgenPag
  * ------------------------
- * Exibe uma lista de agendamentos agrupados por paciente,
- * com suporte à paginação fixa na parte inferior da tela.
+ * Exibe uma lista de agendamentos em cartões individuais (sem agrupamento),
+ * ordenados por horário (mais antigos primeiro) e com paginação fixa.
  *
  * @component
  * @example
@@ -32,7 +32,7 @@
 
 import { useState } from "react";
 import AgenCard from "./AgenCard.jsx"; // Componente filho responsável por renderizar os cartões individuais.
-import PaginationButtons from "./PaginationButtons.jsx";
+import PaginationButtons from "../pagination/PaginationButtons.jsx";
 
 /**
  * Componente funcional principal
@@ -45,39 +45,26 @@ const AgenPag = ({ agendamentos = [] }) => {
    */
   const [currentPage, setCurrentPage] = useState(1);
 
-  /**
-   * Agrupa os agendamentos por nome do paciente.
-   * Exemplo de saída:
-   * {
-   *   "Maria Silva": [agendamento1, agendamento2],
-   *   "João Souza": [agendamento3]
-   * }
-   */
-  const agendamentosAgrupados = agendamentos.reduce((acc, ag) => {
-    const nome = ag.paciente.nome;
-    if (!acc[nome]) acc[nome] = []; // Cria um array para o paciente caso não exista ainda.
-    acc[nome].push(ag); // Adiciona o agendamento ao grupo correspondente.
-    return acc;
-  }, {});
+  // Ordena todos os agendamentos por horário de início (mais antigos primeiro)
+  const agendamentosOrdenados = [...agendamentos].sort((a, b) => {
+    const ta = a?.inicio ? new Date(a.inicio).getTime() : Number.POSITIVE_INFINITY;
+    const tb = b?.inicio ? new Date(b.inicio).getTime() : Number.POSITIVE_INFINITY;
+    return ta - tb;
+  });
 
-  // Extrai apenas os nomes dos pacientes (chaves do objeto agrupado)
-  const nomesPacientes = Object.keys(agendamentosAgrupados);
-
-  // Define a quantidade máxima de pacientes exibidos por página
+  // Configuração de paginação: quantidade de agendamentos por página
   const itensPorPagina = 3;
+  const totalPaginas = Math.ceil(agendamentosOrdenados.length / itensPorPagina) || 1;
 
-  // Calcula o número total de páginas com base na quantidade de pacientes
-  const totalPaginas = Math.ceil(nomesPacientes.length / itensPorPagina);
-
-  // Calcula os índices de início e fim para fatiar o array de pacientes conforme a página atual
+  // Índices para fatiar a lista de agendamentos conforme a página atual
   const indexInicio = (currentPage - 1) * itensPorPagina;
   const indexFim = indexInicio + itensPorPagina;
 
-  // Retorna apenas os pacientes que devem ser exibidos na página atual
-  const pacientesPaginados = nomesPacientes.slice(indexInicio, indexFim);
+  // Agendamentos a exibir na página atual
+  const agendamentosPaginados = agendamentosOrdenados.slice(indexInicio, indexFim);
 
-  // Verifica se há necessidade de exibir a barra de paginação (mais de 3 pacientes)
-  const pagination = nomesPacientes.length > itensPorPagina;
+  // Exibir paginação somente se houver mais itens que cabem em uma página
+  const pagination = agendamentosOrdenados.length > itensPorPagina;
 
   return (
     <div className="flex flex-col w-full max-w-full mx-auto border border-gray-200 rounded-lg shadow-sm bg-white min-h-[500px] relative">
@@ -86,10 +73,7 @@ const AgenPag = ({ agendamentos = [] }) => {
         - Envia os dados agrupados e os pacientes da página atual para o componente AgenCard.
         - O AgenCard será responsável por renderizar cada bloco de agendamentos.
       */}
-      <AgenCard
-        agendamentosAgrupados={agendamentosAgrupados}
-        pacientesPaginados={pacientesPaginados}
-      />
+      <AgenCard agendamentosPaginados={agendamentosPaginados} />
 
       {/* 
         Paginação fixa:
@@ -101,8 +85,8 @@ const AgenPag = ({ agendamentos = [] }) => {
         <PaginationButtons
             currentPage={currentPage}
             totalPages={totalPaginas}
-            onPrev={() => setCurrentPage((prev) => prev - 1)}
-            onNext={() => setCurrentPage((prev) => prev + 1)}
+            onPrev={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            onNext={() => setCurrentPage((prev) => Math.min(totalPaginas, prev + 1))}
         />
       )}
     </div>
