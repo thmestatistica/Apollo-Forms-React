@@ -6,8 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { Link } from 'react-router-dom';
 // Importando o componente de exibição de erros
 import ErroGen from '../../components/info/ErroGen';
-// Importando a função de requisição de login  (API)
-// import { listarTerapeutas } from '../../utils/terapeutas/terapeutasUtils';
+import SucessGen from '../../components/info/SucessGen';
 
 const LoginTerapeuta = () => {
     // Acessa a função de login do AuthContext
@@ -17,31 +16,32 @@ const LoginTerapeuta = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [sucesso, setSucesso] = useState('');
 
+    // Tipo de usuário para login
+    const tipo = "terapeuta";
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(''); // Limpa erros anteriores
+        setError('');
 
-        // const terapeutas = await listarTerapeutas();
+        const usuario = { username, password };
 
-        // terapeutas.forEach(terapeuta => {
-        //     if (terapeuta.username === username && terapeuta.password === password) {
-        //       login({ id: terapeuta.id, username }, 'terapeuta');
-        //     } else {
-        //       setError('Credenciais inválidas. Tente novamente.');
-        //     }
-        // });
+        try {
 
-        if (username === 'admin' && password === '123') {
-            // Simula dados do terapeuta
-            const terapeutaData = { id: 1, username: 'terapeuta' };
-            login(terapeutaData, 'terapeuta');
-        } else {
-            setError('Credenciais inválidas. Tente novamente.');
+            await login(usuario, tipo);
+            
+            
+
+        } catch (err) {
+            setError('Falha no login. Verifique suas credenciais.');
+
+            console.error('Erro no login do terapeuta:', err);
         }
     };
 
+
+    
     return (
         <>
         <div className='flex flex-col items-center justify-center h-screen gap-8'>
@@ -68,7 +68,8 @@ const LoginTerapeuta = () => {
                                 className='border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-apollo-400'
                             />
                         </div>
-                        <ErroGen error={error} />
+                        {error && <ErroGen mensagem={error} />}
+                        {sucesso && <SucessGen sucesso={sucesso} />}
                         <button type="submit" className='bg-apollo-500 text-white p-2 rounded-md font-bold hover:bg-apollo-600 transition-colors duration-300 cursor-pointer'>Entrar</button>
                     </form>
 
