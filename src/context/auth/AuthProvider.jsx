@@ -20,9 +20,14 @@ export const AuthProvider = ({ children }) => {
     }, [user]);
 
     /**
-     * Realiza login de terapeuta ou paciente e armazena token.
+     * Realiza login e retorna objeto de resultado.
+     * @param {*} credentials Credenciais (usuario ou cpf)
+     * @param {string} type Tipo: 'terapeuta' | 'paciente'
+     * @param {{redirect?: boolean, delayMs?: number}} options Controle de redirecionamento
+     * @returns {{success: boolean, error?: any}}
      */
-    const login = async (credentials, type) => {
+    const login = async (credentials, type, options = {}) => {
+        const { redirect = true, delayMs = 0 } = options;
         try {
             let response = null;
 
@@ -39,16 +44,20 @@ export const AuthProvider = ({ children }) => {
             const authData = { ...response, role: type };
             setUser(authData);
 
-            // Redireciona após login
-            navigate(
-                type === "terapeuta"
-                    ? "/forms-terapeuta/tela-inicial"
-                    : "/forms-paciente/tela-inicial",
-                { replace: true }
-            );
+            if (redirect) {
+                const go = () => navigate(
+                    type === "terapeuta"
+                        ? "/forms-terapeuta/tela-inicial"
+                        : "/forms-paciente/tela-inicial",
+                    { replace: true }
+                );
+                if (delayMs > 0) setTimeout(go, delayMs); else go();
+            }
+
+            return { success: true };
         } catch (error) {
             console.error("Erro no login:", error);
-            alert("Usuário ou senha inválidos!");
+            return { success: false, error };
         }
     };
 

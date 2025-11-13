@@ -24,19 +24,16 @@ const LoginTerapeuta = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setSucesso('');
 
         const usuario = { username, password };
 
-        try {
-
-            await login(usuario, tipo);
-            
-            
-
-        } catch (err) {
+        const result = await login(usuario, tipo, { redirect: true, delayMs: 800 });
+        if (result.success) {
+            setSucesso('Login realizado com sucesso!');
+        } else {
             setError('Falha no login. Verifique suas credenciais.');
-
-            console.error('Erro no login do terapeuta:', err);
+            console.error('Erro no login do terapeuta:', result.error);
         }
     };
 
@@ -68,7 +65,7 @@ const LoginTerapeuta = () => {
                                 className='border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-apollo-400'
                             />
                         </div>
-                        {error && <ErroGen mensagem={error} />}
+                        {error && <ErroGen error={error} />}
                         {sucesso && <SucessGen sucesso={sucesso} />}
                         <button type="submit" className='bg-apollo-500 text-white p-2 rounded-md font-bold hover:bg-apollo-600 transition-colors duration-300 cursor-pointer'>Entrar</button>
                     </form>
