@@ -7,11 +7,12 @@
 // Componentes
 import { useAuth } from "../../hooks/useAuth.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useFormContext } from "../../hooks/useFormContext";
 import AgenPag from "../../components/agenda/AgenPag.jsx";
 import InfoGen from "../../components/info/InfoGen";
 import EvoPag from "../../components/pendencias/EvoPag.jsx";
+import { listar_agendamentos } from "../../api/agenda/agenda_utils.js";
 
 // Utilitários de formatação e verificação
 import { isHoje } from "../../utils/verify/verify_utils.js";
@@ -19,10 +20,38 @@ import { isHoje } from "../../utils/verify/verify_utils.js";
 // Componente principal
 const TelaInicialTerapeuta = () => {
 
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const { openModal, pendenciaSelecionada } = useFormContext();
+
+  // Estado para armazenar agendamentos carregados da API
+  const [agendamentos, setAgendamentos] = useState([]);
+  const [carregandoAgendamentos, setCarregandoAgendamentos] = useState(false);
+  const [erroAgendamentos, setErroAgendamentos] = useState(null);
+
+  // Carrega agendamentos ao montar o componente
+  useEffect(() => {
+    const fetchAgendamentos = async () => {
+      setCarregandoAgendamentos(true);
+      setErroAgendamentos(null);
+      try {
+        // Usa id do usuário se disponível para filtrar; ajuste conforme estrutura real do objeto user
+        const usuarioId = user?.id ?? user?.usuarioId ?? user?.idUsuario;
+        const startDate = new Date().toISOString().split('T')[0]; // Data atual no formato YYYY-MM-DD
+        console.log("Buscando agendamentos para usuárioId:", usuarioId, "e startDate:", startDate);
+        const dados = await listar_agendamentos({ usuarioId, startDate });
+        setAgendamentos(dados['agendamentos'] || []);
+      } catch (err) {
+        console.error("Erro ao carregar agendamentos", err);
+        setErroAgendamentos("Falha ao carregar agendamentos.");
+      } finally {
+        setCarregandoAgendamentos(false);
+      }
+    };
+    fetchAgendamentos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Reabre o modal ao voltar da tela de formulário, mantendo a pendência selecionada
   useEffect(() => {
@@ -35,82 +64,6 @@ const TelaInicialTerapeuta = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state?.reopenModal]);
 
-  // Exemplo de agendamentos recebidos do backend
-  const agendamentos = [
-    {
-      id: 1,
-      inicio: "2025-11-04T14:00:00.000Z",
-      fim: "2025-11-04T15:00:00.000Z",
-      paciente: { id: 1, nome: "João Silva" },
-      slot: { id: 1, nome: "Lokomat", sigla: "LKMT" },
-    },
-    {
-      id: 2,
-      inicio: "2025-11-05T10:00:00.000Z",
-      fim: "2025-11-05T11:00:00.000Z",
-      paciente: { id: 2, nome: "Maria Souza" },
-      slot: { id: 2, nome: "Esteira", sigla: "ESTR" },
-    },
-    {
-      id: 3,
-      inicio: "2025-11-04T16:00:00.000Z",
-      fim: "2025-11-04T17:00:00.000Z",
-      paciente: { id: 3, nome: "Luiza Fernandes de Almeida Costa Neta Filho Santo" },
-      slot: { id: 3, nome: "Balanço", sigla: "BLNC" },
-    },
-    {
-      id: 4,
-      inicio: "2025-11-04T09:00:00.000Z",
-      fim: "2025-11-04T10:00:00.000Z",
-      paciente: { id: 4, nome: "Ana Costa" },
-      slot: { id: 4, nome: "C-Mill", sigla: "CMill" },
-    },
-    {
-      id: 5,
-      inicio: "2025-11-04T13:00:00.000Z",
-      fim: "2025-11-04T14:00:00.000Z",
-      paciente: { id: 5, nome: "Pedro Lima" },
-      slot: { id: 5, nome: "Armeo", sigla: "ARM" },
-    }
-  ];
-
-  const agendamentos_pendentes = [
-    {
-      id: 1,
-      inicio: "2025-11-04T14:00:00.000Z",
-      fim: "2025-11-04T15:00:00.000Z",
-      "paciente": { id: 3, nome: "José Almeida" },
-      "slot": { id: 3, nome: "C-Mill", sigla: "CMILL" },
-    },
-    {
-      id: 3,
-      inicio: "2025-11-03T16:00:00.000Z",
-      fim: "2025-11-03T17:00:00.000Z",
-      "paciente": { id: 3, nome: "Carlos Pereira" },
-      "slot": { id: 3, nome: "Armeo", sigla: "ARM" },
-    },
-    {
-      id: 4,
-      inicio: "2024-11-04T09:00:00.000Z",
-      fim: "2024-11-04T10:00:00.000Z",
-      "paciente": { id: 4, nome: "Ana Costa" },
-      "slot": { id: 4, nome: "Lokomat", sigla: "LKMT" },
-    },
-    {
-      id: 5,
-      inicio: "2025-11-02T22:00:00.000Z",
-      fim: "2025-11-02T23:00:00.000Z",
-      "paciente": { id: 5, nome: "Pedro Lima" },
-      "slot": { id: 5, nome: "Balanço", sigla: "BLNC" },
-    },
-    {
-      id: 6,
-      inicio: "2025-11-01T11:00:00.000Z",
-      fim: "2025-11-01T12:00:00.000Z",
-      "paciente": { id: 6, nome: "Luiza Fernandes de Almeida Costa Neta Filho Santo" },
-      "slot": { id: 6, nome: "Esteira", sigla: "ESTR" },
-    }
-  ];
 
   /** Opções disponíveis de escalas (mock, poderia vir de API futuramente) */
   const escalasDisponiveis = [
@@ -119,11 +72,6 @@ const TelaInicialTerapeuta = () => {
     { id: 3, value: "Fugl-Meyer", label: "Fugl-Meyer Assessment", tipo_form: "Escala" },
   ];
 
-
-  /**
-   * Filtra apenas os agendamentos do dia atual.
-   */
-  const agendamentosHoje = agendamentos.filter((ag) => isHoje(ag.inicio));
 
   return (
     <div className="flex flex-col items-center justify-center h-screen gap-8">
@@ -139,22 +87,30 @@ const TelaInicialTerapeuta = () => {
           <div className="flex flex-col gap-4 col-span-1 md:row-span-3">
             <h2 className="font-bold text-2xl">📅 Agendamentos de Hoje</h2>
 
-            {agendamentosHoje.length === 0 ? (
-              <InfoGen message="📑 Nenhum agendamento para hoje." />
-            ) : (
-              <AgenPag agendamentos={agendamentosHoje} />
+            {carregandoAgendamentos && <InfoGen message="⏳ Carregando agendamentos..." />}
+            {erroAgendamentos && <InfoGen message={erroAgendamentos} />}
+            {!carregandoAgendamentos && !erroAgendamentos && (
+              agendamentos.length === 0 ? (
+                <InfoGen message="📑 Nenhum agendamento para hoje." />
+              ) : (
+                <AgenPag agendamentos={agendamentos} />
+              )
             )}
           </div>
 
-          {/* Área de evoluções pendentes */}
+          {/* Área de evoluções pendentes
           <div className="flex flex-col gap-4 col-span-1 md:row-span-3 h-full">
             <h2 className="font-bold text-2xl">📝 Evoluções/Avaliações Pendentes</h2>
-            {agendamentos_pendentes.length === 0 ? (
-              <InfoGen message="🗒️ Nenhuma evolução ou avaliação pendente." />
-            ) : (
-              <EvoPag pendenciasLista={agendamentos_pendentes} escalasDisponiveis={escalasDisponiveis} />
+            {carregandoAgendamentos && <InfoGen message="⏳ Carregando pendências..." />}
+            {erroAgendamentos && <InfoGen message={erroAgendamentos} />}
+            {!carregandoAgendamentos && !erroAgendamentos && (
+              agendamentosPendentes.length === 0 ? (
+                <InfoGen message="🗒️ Nenhuma evolução ou avaliação pendente." />
+              ) : (
+                <EvoPag pendenciasLista={agendamentosPendentes} escalasDisponiveis={escalasDisponiveis} />
+              )
             )}
-          </div>
+          </div> */}
 
           {/* Área de Navegação */}
           <div className="flex flex-col row-span-1 md:col-span-2 gap-5">

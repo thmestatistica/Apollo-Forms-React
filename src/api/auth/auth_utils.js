@@ -1,4 +1,4 @@
-import axiosInstance from "./axiosInstance";
+import axiosInstance from "../axiosInstance";
 
 /**
  * Login de paciente via CPF
