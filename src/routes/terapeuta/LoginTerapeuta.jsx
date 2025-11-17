@@ -41,9 +41,8 @@ const LoginTerapeuta = () => {
     
     return (
         <>
-        <div className='flex flex-col items-center justify-center h-screen gap-8'>
-            <div className='w-screen md:w-3/4 xl:w-1/2 h-3/4 flex flex-col gap-12 xl:bg-linear-to-tr from-apollo-300 to-apollo-400 rounded-lg p-4 xl:shadow-lg items-center'>
-                <div className='bg-white h-full rounded-xl flex flex-col gap-10 xl:shadow-md justify-center items-center w-full p-10'>
+            <div className='min-h-screen flex justify-center bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-6 p-3'>
+                <div className='bg-white w-full max-w-4xl rounded-2xl shadow-lg flex flex-col justify-center items-center gap-6 p-6 sm:p-8'>
                     <h1 className='font-extrabold text-4xl text-center'>🔐 Login do Terapeuta</h1>
                     <form onSubmit={handleSubmit} className='flex flex-col gap-10 w-full max-w-md'>
                         <div className='flex flex-col gap-2'>
@@ -73,7 +72,6 @@ const LoginTerapeuta = () => {
                     <Link to='/' className='text-apollo-200 hover:underline hover:underline-offset-4'>← Voltar para a página inicial</Link>
                 </div>
             </div>
-        </div>
         </>
     );
 };

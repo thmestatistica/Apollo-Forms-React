@@ -21,11 +21,18 @@ axiosInstance.interceptors.request.use((config) => {
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expirado → limpa sessão e recarrega
+    const { config, response } = error;
+    const isLoginAttempt = config.url.endsWith('/login') || config.url.endsWith('/login/paciente');
+
+    // Se o erro for 401 e NÃO for uma tentativa de login, redirecione.
+    if (response?.status === 401 && !isLoginAttempt) {
+      // Token expirado ou inválido em rota protegida → limpa sessão e recarrega
       localStorage.removeItem("userAuthData");
-      window.location.href = "/";
+      localStorage.removeItem("escalasPorAgendamento"); // Limpeza completa
+      window.location.href = "/"; // Redireciona para a home/login
     }
+    
+    // Rejeita a promessa para que a falha possa ser tratada no local da chamada (ex: no login)
     return Promise.reject(error);
   }
 );

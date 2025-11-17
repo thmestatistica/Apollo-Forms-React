@@ -3,7 +3,7 @@
  * @description Classificação de pendências de agendamentos.
  */
 
-import { _parseIso, abreviarNome } from "../format/formatar_utils";
+import { _parseIso, formatarHora } from "../format/formatar_utils";
 
 /**
  * Classifica pendências por horas desde o fim do agendamento.
@@ -46,20 +46,26 @@ export const classificarPendencias = async (idsPendentes, carregarAgendamento) =
             const paciente = ag?.paciente?.nome || "Paciente";
             const slotNome = ag?.slot?.nome || "—";
             const slotSigla = ag?.slot?.sigla || "—";
+            const profissionalEspecialidade = ag?.profissional?.especialidade[0] || "—";
+            console.log("[classificarPendencias] id=", agId, " paciente=", paciente, " slot=", slotNome);
+            console.log(ag);
+            console.log(profissionalEspecialidade);
 
             linhas.push({
                 _ordem: dtIni || new Date(8640000000000000),
                 "Nível de Pendência": nivel,
                 "Horas": Math.round(horasPendencia * 100) / 100, // arredonda 2 casas
                 "AgendamentoID": ag.id ?? agId,
+                "PacienteID": ag?.paciente?.id || "—",
+                "ProfissionalEspecialidade": profissionalEspecialidade,
                 "Data": dtIni ? dtIni.toLocaleDateString("pt-BR") : "—",
                 "Início": dtIni
-                    ? dtIni.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+                    ? formatarHora(ag.inicio)
                     : "—",
                 "Fim": dtFim
-                    ? dtFim.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+                    ? formatarHora(ag.fim)
                     : "—",
-                "Paciente": abreviarNome(paciente.trim().toLowerCase() === "paciente de testes" ? "VAGO" : paciente, 1),
+                "Paciente": paciente.trim().toLowerCase() === "paciente de testes" ? "VAGO" : paciente,
                 "Slot": slotNome,
                 "Sigla": slotSigla,
             });

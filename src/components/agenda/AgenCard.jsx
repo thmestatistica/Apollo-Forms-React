@@ -9,7 +9,7 @@ function AgenCard({ agendamentosPaginados = [] }) {
         agendamentosPaginados.map((agendamento) => (
           <div key={agendamento.id} className="border border-apollo-200 rounded-md">
             {/* Header com nome do paciente */}
-            <div className="bg-apollo-200/20 px-4 py-2 rounded-t-md font-semibold text-black">
+            <div className="bg-apollo-200/20 px-4 py-2 rounded-t-md font-semibold text-black capitalize">
               {abreviarNome(agendamento?.paciente?.nome ?? "Paciente", 2)}
             </div>
 

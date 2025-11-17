@@ -4,6 +4,7 @@
  */
 // useState e useEffect para controle de estado local e efeitos colaterais
 import { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 // useNavigate para navegação programática
 import { useNavigate } from "react-router-dom";
 
@@ -61,12 +62,28 @@ const PenModal = ({ penData, escalasDisponiveis }) => {
     atualizarEscalas(agendamentoId, novas);
   };
 
-  /** 
-   * Garante que as opções visíveis no select sejam compatíveis com as escalas persistidas.
+  /**
+   * Normaliza as opções para o formato esperado pelo react-select
+   * mantendo os campos originais para uso posterior na UI.
    */
-  const selectedValues = escalasDisponiveis.filter((opt) =>
-    escalasAtuais.includes(opt.value)
-  );
+  const rawOptions = Array.isArray(escalasDisponiveis) ? escalasDisponiveis : [];
+  const options = rawOptions.map((item) => {
+    const value = String(
+      item?.formularioId ?? ""
+    );
+    const label =
+      item?.label ??
+      item?.formulario?.nomeEscala ??
+      item?.especialidade ??
+      `Escala ${value}`;
+    return { ...item, value, label };
+  });
+
+  console.log("Escalas disponíveis no PenModal (normalizadas):", options);
+
+  // Selecionadas atuais normalizadas para string e comparadas via Set
+  const selectedSet = new Set((escalasAtuais || []).map((v) => String(v)));
+  const selectedValues = options.filter((opt) => selectedSet.has(String(opt.value)));
 
   /**
    * Navega até o formulário de uma escala específica.
@@ -75,10 +92,10 @@ const PenModal = ({ penData, escalasDisponiveis }) => {
    * @param {number} id - ID da escala a ser preenchida.
    * @param {string} tipo_form - Tipo do formulário (ex: "Escala", "Evolução").
    */
-  const handleNavForm = (id, tipo_form) => {
+  const handleNavForm = (id, tipo_form, titulo, pendenciaEscala, isEvolucao = false) => {
     closeModal();
     navigate(`/forms-terapeuta/formulario/${tipo_form.toLowerCase()}/${id}`, {
-      state: { pendencia: penData },
+      state: { pendencia: penData, formTitulo: titulo, pendenciaEscala, isEvolucao },
     });
   };
 
@@ -114,7 +131,7 @@ const PenModal = ({ penData, escalasDisponiveis }) => {
         <div className="mt-3">
           {/* Campo de seleção múltipla */}
           <MultiSelect
-            options={escalasDisponiveis}
+            options={options}
             value={selectedValues}
             onChange={handleChange}
             placeholder="Selecione as escalas..."
@@ -125,17 +142,24 @@ const PenModal = ({ penData, escalasDisponiveis }) => {
           <ul className="mt-4 flex flex-col gap-2">
             {selectedValues.map((escala) => (
               <li
-                key={escala.value}
+                key={escala.formularioId}
                 className="flex justify-between items-center p-3 border border-gray-200 rounded-lg shadow-sm bg-white"
               >
-                <span className="font-medium text-apollo-200">{escala.label}</span>
+                <span className="font-medium text-apollo-200">{escala.formulario?.nomeEscala || escala.label}</span>
 
                 <button
                   type="button"
-                  onClick={() => handleNavForm(escala.id, escala.tipo_form)}
+                  onClick={() =>
+                    handleNavForm(
+                      escala.formularioId,
+                      "Escala",
+                      escala.formulario?.nomeEscala || escala.label,
+                      escala
+                    )
+                  }
                   className="bg-apollo-200 hover:bg-apollo-300 text-white py-1 px-3 rounded-lg text-sm transition"
                 >
-                  Preencher {escala.value}
+                  Preencher
                 </button>
               </li>
             ))}
@@ -145,7 +169,7 @@ const PenModal = ({ penData, escalasDisponiveis }) => {
 
       {/* Botão para preencher evolução geral */}
       <button
-        onClick={() => handleNavForm(4, "Evolução")}
+        onClick={() => handleNavForm(4, "Evolução", "Evolução", { id: null, agendamentoId, pacienteId: null }, true)}
         className="mt-6 bg-apollo-500 hover:bg-apollo-600 text-white font-semibold py-2 px-4 rounded-xl transition"
       >
         Preencher Evolução
@@ -155,3 +179,9 @@ const PenModal = ({ penData, escalasDisponiveis }) => {
 };
 
 export default PenModal;
+
+PenModal.propTypes = {
+  penData: PropTypes.object.isRequired,
+  // Aceita lista bruta vinda da API ou já no formato label/value
+  escalasDisponiveis: PropTypes.arrayOf(PropTypes.object),
+};

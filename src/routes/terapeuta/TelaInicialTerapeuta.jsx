@@ -12,10 +12,9 @@ import { useFormContext } from "../../hooks/useFormContext";
 import AgenPag from "../../components/agenda/AgenPag.jsx";
 import InfoGen from "../../components/info/InfoGen";
 import EvoPag from "../../components/pendencias/EvoPag.jsx";
-import { listar_agendamentos } from "../../api/agenda/agenda_utils.js";
-
-// Utilitários de formatação e verificação
-import { isHoje } from "../../utils/verify/verify_utils.js";
+import LoadingGen from "../../components/info/LoadingGen.jsx";
+import { listar_agendamentos_filtrados, agendamentos_pendentes } from "../../api/agenda/agenda_utils.js";
+import Swal from "sweetalert2";
 
 // Componente principal
 const TelaInicialTerapeuta = () => {
@@ -27,8 +26,19 @@ const TelaInicialTerapeuta = () => {
 
   // Estado para armazenar agendamentos carregados da API
   const [agendamentos, setAgendamentos] = useState([]);
+  const [agendamentosPendentes, setAgendamentosPendentes] = useState([]);
+
+  // Estados de carregamento separados
   const [carregandoAgendamentos, setCarregandoAgendamentos] = useState(false);
+  const [carregandoPendencias, setCarregandoPendencias] = useState(false);
+
+  // Erros separados
   const [erroAgendamentos, setErroAgendamentos] = useState(null);
+  const [erroPendencias, setErroPendencias] = useState(null);
+
+  // Flags para saber se já houve a primeira resolução de cada fetch
+  const [agendamentosCarregados, setAgendamentosCarregados] = useState(false);
+  const [pendenciasCarregadas, setPendenciasCarregadas] = useState(false);
 
   // Carrega agendamentos ao montar o componente
   useEffect(() => {
@@ -40,38 +50,73 @@ const TelaInicialTerapeuta = () => {
         const usuarioId = user?.id ?? user?.usuarioId ?? user?.idUsuario;
         const startDate = new Date().toISOString().split('T')[0]; // Data atual no formato YYYY-MM-DD
         console.log("Buscando agendamentos para usuárioId:", usuarioId, "e startDate:", startDate);
-        const dados = await listar_agendamentos({ usuarioId, startDate });
-        setAgendamentos(dados['agendamentos'] || []);
+        const dados = await listar_agendamentos_filtrados({ usuarioId, startDate });
+        setAgendamentos(dados || []);
       } catch (err) {
         console.error("Erro ao carregar agendamentos", err);
         setErroAgendamentos("Falha ao carregar agendamentos.");
       } finally {
         setCarregandoAgendamentos(false);
+        setAgendamentosCarregados(true);
       }
     };
     fetchAgendamentos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Reabre o modal ao voltar da tela de formulário, mantendo a pendência selecionada
+  // Ao voltar do formulário: mostrar sucesso (se houver) e reabrir modal
   useEffect(() => {
-    if (location.state?.reopenModal && pendenciaSelecionada) {
-      // Reabre usando a última pendência selecionada
-      openModal(pendenciaSelecionada);
-      // Limpa o state para evitar reabrir em futuras navegações
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.state?.reopenModal]);
+    const { reopenModal, formSuccess, formTitulo } = location.state || {};
+
+    const run = async () => {
+      if (formSuccess) {
+        await Swal.fire({
+          icon: "success",
+          title: "Enviado com sucesso!",
+          text: formTitulo ? `${formTitulo} foi salvo corretamente.` : "As respostas foram salvas corretamente.",
+          confirmButtonColor: "#7C3AED", // apollo-200 vibe
+        });
+      }
+
+      if (reopenModal && pendenciaSelecionada) {
+        openModal(pendenciaSelecionada);
+      }
+
+      if (reopenModal || formSuccess) {
+        // Limpa o state para não repetir a ação ao navegar
+        navigate(location.pathname, { replace: true, state: {} });
+      }
+    };
+
+    run();
+  }, [location.state, location.pathname, pendenciaSelecionada, openModal, navigate]);
 
 
-  /** Opções disponíveis de escalas (mock, poderia vir de API futuramente) */
-  const escalasDisponiveis = [
-    { id: 1, value: "TUG", label: "TUG - Timed Up and Go", tipo_form: "Escala" },
-    { id: 2, value: "Fois", label: "Fois", tipo_form: "Escala" },
-    { id: 3, value: "Fugl-Meyer", label: "Fugl-Meyer Assessment", tipo_form: "Escala" },
-  ];
+  useEffect(() => {
+    const fetchAgendamentosPendentes = async () => {
+      setCarregandoPendencias(true);
+      setErroPendencias(null);
+      try {
+        const profissionalId = user?.profissionalId || user?.id || user?.usuarioId;
+        const dados = await agendamentos_pendentes(profissionalId);
+        setAgendamentosPendentes(dados || []);
+      } catch (err) {
+        console.error("Erro ao carregar agendamentos pendentes", err);
+        setErroPendencias("Falha ao carregar agendamentos pendentes.");
+      } finally {
+        setCarregandoPendencias(false);
+        setPendenciasCarregadas(true);
+      }
+    };
+    fetchAgendamentosPendentes();
+  }, [user?.profissionalId, user?.id, user?.usuarioId]);
 
+  // Enquanto qualquer fetch inicial não resolveu, mostrar loading global
+  const carregandoInicial = !agendamentosCarregados || !pendenciasCarregadas;
+
+  if (carregandoInicial) {
+    return <LoadingGen mensagem="Carregando painel do terapeuta..." />;
+  }
 
   return (
     <div className="flex flex-col items-center justify-center h-screen gap-8">
@@ -98,19 +143,19 @@ const TelaInicialTerapeuta = () => {
             )}
           </div>
 
-          {/* Área de evoluções pendentes
+          {/* Área de evoluções pendentes */}
           <div className="flex flex-col gap-4 col-span-1 md:row-span-3 h-full">
             <h2 className="font-bold text-2xl">📝 Evoluções/Avaliações Pendentes</h2>
-            {carregandoAgendamentos && <InfoGen message="⏳ Carregando pendências..." />}
-            {erroAgendamentos && <InfoGen message={erroAgendamentos} />}
-            {!carregandoAgendamentos && !erroAgendamentos && (
+            {carregandoPendencias && <InfoGen message="⏳ Carregando pendências..." />}
+            {erroPendencias && <InfoGen message={erroPendencias} />}
+            {!carregandoPendencias && !erroPendencias && (
               agendamentosPendentes.length === 0 ? (
                 <InfoGen message="🗒️ Nenhuma evolução ou avaliação pendente." />
               ) : (
-                <EvoPag pendenciasLista={agendamentosPendentes} escalasDisponiveis={escalasDisponiveis} />
+                <EvoPag pendenciasLista={agendamentosPendentes} />
               )
             )}
-          </div> */}
+          </div>
 
           {/* Área de Navegação */}
           <div className="flex flex-col row-span-1 md:col-span-2 gap-5">

@@ -32,7 +32,7 @@ import EvoCard from "./EvoCard.jsx";
  * Componente funcional principal.
  * Utiliza React Hooks para controle de estado, paginação e processamento assíncrono de dados.
  */
-const EvoPag = ({ pendenciasLista = [], escalasDisponiveis = [] }) => {
+const EvoPag = ({ pendenciasLista = [] }) => {
   /**
    * Estado: armazena as pendências classificadas e processadas.
    * @type {Array}
@@ -116,7 +116,7 @@ const EvoPag = ({ pendenciasLista = [], escalasDisponiveis = [] }) => {
       {pendenciasOrdenadas.length === 0 ? (
         <InfoGen message="🗒️ Nenhuma evolução ou avaliação pendente." />
       ) : (
-        <EvoCard paginaAtual={paginaAtual} escalasDisponiveis={escalasDisponiveis} />
+        <EvoCard paginaAtual={paginaAtual} />
       )}
 
       {/* 

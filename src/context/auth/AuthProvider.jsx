@@ -44,17 +44,16 @@ export const AuthProvider = ({ children }) => {
             const authData = { ...response, role: type };
             setUser(authData);
 
+            // Redireciona SOMENTE se a autenticação teve sucesso e um token foi recebido
             if (redirect) {
-                const go = () => navigate(
-                    type === "terapeuta"
-                        ? "/forms-terapeuta/tela-inicial"
-                        : "/forms-paciente/tela-inicial",
-                    { replace: true }
-                );
+                const destino = type === "terapeuta"
+                    ? "/forms-terapeuta/tela-inicial"
+                    : "/forms-paciente/tela-inicial";
+                const go = () => navigate(destino, { replace: true });
                 if (delayMs > 0) setTimeout(go, delayMs); else go();
             }
 
-            return { success: true };
+            return { success: true, user: authData };
         } catch (error) {
             console.error("Erro no login:", error);
             return { success: false, error };

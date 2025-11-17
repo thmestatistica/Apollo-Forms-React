@@ -5,41 +5,67 @@
  * Pode receber dados de pendência via state do react-router.
  */
 
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 import CampoDinamico from "../../components/form/CampoDinamico.jsx";
 import LoadingGen from "../../components/info/LoadingGen.jsx";
 
 import { formularios } from "../../data/formulario.jsx";
+import { carregar_perguntas_form, montarFormularioGenerico, carregar_info_form, enviar_respostas_form } from "../../api/forms/forms_utils";
+// import { remover_presenca_profissional } from "../../api/profissionais/profissionais_utils";
+import { concluir_pendencia_escala } from "../../api/pendencias/pendencias_utils";
+import { useAuth } from "../../hooks/useAuth";
+import { useFormContext } from "../../hooks/useFormContext";
 
 const FormularioGenerico = () => {
-    const { id_form } = useParams();
+    const { id_form, tipo_form } = useParams();
+    const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuth();
+    const { escalasPorAgendamento, atualizarEscalas } = useFormContext();
     const pendencia = location.state?.pendencia;
 
     const [formulario, setFormulario] = useState(null);
     const [loading, setLoading] = useState(true);
     const [erro, setErro] = useState(null);
+    const [submitting, setSubmitting] = useState(false); // indica envio em progresso
 
     /**
      * Busca o formulário com base no ID da URL.
-     * Simula uma chamada de API real, mas pode ser trocado por um fetch.
+     * 1) Tenta carregar do backend (API Forms)
+     * 2) Se vazio, faz fallback para o mock local
      */
     useEffect(() => {
         const fetchFormulario = async () => {
             try {
                 setLoading(true);
                 setErro(null);
+                const tituloFromNav = location.state?.formTitulo;
+                // 1) API real: /forms/:id/questions e /forms/:id para nome
+                const [perguntas, info] = await Promise.all([
+                    carregar_perguntas_form(Number(id_form)),
+                    carregar_info_form(Number(id_form))
+                ]);
 
-                const response = await new Promise((resolve, reject) => {
-                    setTimeout(() => {
-                    const found = formularios.find((f) => f.id === Number(id_form));
-                    found ? resolve(found) : reject("Formulário não encontrado");
-                    }, 800);
+                if (Array.isArray(perguntas) && perguntas.length > 0) {
+                    const titulo = tituloFromNav ?? info?.nome ?? info?.nomeEscala ?? info?.titulo ?? undefined;
+                    const f = montarFormularioGenerico(id_form, perguntas, { titulo });
+                    setFormulario(f);
+                    return;
+                }
+
+                // 2) Fallback para mock local (caso API esteja vazia ou indisponível)
+                // Precisa comparar por formularioID (quando existir) e manter compatibilidade com mock (id)
+                const found = formularios.find((f) => {
+                    const fid = f?.formulario?.formularioID ?? f?.formulario?.formularioId ?? f?.formularioID ?? f?.formularioId ?? f?.id;
+                    return Number(fid) === Number(id_form);
                 });
-
-                setFormulario(response);
+                if (found) {
+                    setFormulario(found);
+                } else {
+                    throw new Error("Formulário não encontrado");
+                }
             } catch (err) {
                 setErro(err?.message || String(err));
             } finally {
@@ -48,7 +74,7 @@ const FormularioGenerico = () => {
         };
 
         fetchFormulario();
-    }, [id_form]);
+    }, [id_form, location]);
 
     // Estado de carregamento ou erro
     if (loading) return <LoadingGen mensagem="Carregando formulário..." />;
@@ -81,57 +107,124 @@ const FormularioGenerico = () => {
      * Manipula o envio do formulário.
      * Faz a leitura e validação dos campos dinamicamente.
      */
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!formulario) return;
+        if (!formulario || submitting) return; // evita duplo submit
+        setSubmitting(true);
 
+        // =====================
+        // 1. Coleta & Validação
+        // =====================
         const fd = new FormData(e.currentTarget);
-        const data = {};
-        const missing = [];
+        const respostasForm = {};
+        const obrigatoriosFaltando = [];
 
-        formulario.campos.forEach((campo) => {
+        for (const campo of formulario.campos) {
             const { nome, label, tipo_resposta_esperada, meta_dados } = campo;
-
-            const isOptional =
-            (meta_dados?.required === false) ||
-            tipo_resposta_esperada === "TEXTO_LIVRE" ||
-            /observac/i.test(nome);
+            const isOptional = (meta_dados?.required === false) || tipo_resposta_esperada === "TEXTO_LIVRE" || /observac/i.test(nome);
 
             if (tipo_resposta_esperada === "SELECAO_MULTIPLA") {
                 const values = fd.getAll(nome).filter(Boolean);
-                
-                if (!isOptional && values.length === 0) missing.push(label || nome);
-                data[nome] = values;
-
-            } else {
-                const raw = fd.get(nome);
-                const value = typeof raw === "string" ? raw.trim() : raw;
-                const isEmpty = !value;
-
-                if (!isOptional && isEmpty) missing.push(label || nome);
-
-                data[nome] =
-                    tipo_resposta_esperada === "NUMERO_FLOAT" && !isEmpty
-                    ? Number.parseFloat(value)
-                    : value || "";
+                if (!isOptional && values.length === 0) obrigatoriosFaltando.push(label || nome);
+                respostasForm[nome] = values;
+                continue;
             }
-        });
 
-        if (missing.length > 0) {
-            alert(
-                `Preencha os campos obrigatórios antes de enviar:\n\n- ${missing.join(
-                    "\n- "
-            )}`
-            );
+            const raw = fd.get(nome);
+            const value = typeof raw === "string" ? raw.trim() : raw;
+            const isEmpty = !value;
+            if (!isOptional && isEmpty) obrigatoriosFaltando.push(label || nome);
+            respostasForm[nome] = (tipo_resposta_esperada === "NUMERO_FLOAT" && !isEmpty) ? Number.parseFloat(value) : (value || "");
+        }
+
+        if (obrigatoriosFaltando.length > 0) {
+            alert(`Preencha os campos obrigatórios antes de enviar:\n\n- ${obrigatoriosFaltando.join("\n- ")}`);
+            setSubmitting(false);
             return;
         }
 
-        const resumo = {
-            formulario: formulario.titulo,
-            dados: data,
+        // =====================
+        // 2. Montagem Payload
+        // =====================
+        const paciente_id = pendencia?.["PacienteID"] ?? pendencia?.pacienteId ?? null;
+        const profissional_id = user?.profissionalId ?? user?.id ?? user?.usuarioId ?? null;
+        const payloadRespostas = {
+            paciente_id,
+            profissional_id,
+            disponibilizado_id: null,
+            respostas: respostasForm,
         };
 
-        alert(`Dados do formulário:\n\n${JSON.stringify(resumo, null, 2)}`);
+        // =====================
+        // 3. Execução das Requisições
+        //    Todas precisam ter ok === true
+        // =====================
+        const pendEscala = location.state?.pendenciaEscala;
+        const agendamentoId = pendencia?.["AgendamentoID"] ?? pendencia?.agendamentoId;
+        // const isEvolucao = location.state?.isEvolucao === true || /evolu/i.test(tipo_form ?? "");
+
+        const resultados = { enviar: null, concluirPendencia: null, removerPresenca: null };
+        let houveErro = false;
+        let mensagensErro = [];
+
+        // Envia respostas
+        resultados.enviar = await enviar_respostas_form(Number(id_form), payloadRespostas);
+        if (!resultados.enviar?.ok) {
+            houveErro = true;
+            mensagensErro.push("Falha ao salvar respostas.");
+        }
+
+        // Concluir pendência de escala (se aplicável)
+        if (!houveErro && pendEscala?.id) {
+            resultados.concluirPendencia = await concluir_pendencia_escala({
+                id: pendEscala.id,
+                pacienteId: pendEscala.pacienteId ?? paciente_id,
+                agendamentoId: pendEscala.agendamentoId ?? agendamentoId,
+                formularioId: pendEscala.formularioId ?? Number(id_form),
+                diagnosticoMacro: pendEscala.diagnosticoMacro,
+                especialidade: pendEscala.especialidade,
+            });
+            if (!resultados.concluirPendencia?.ok) {
+                houveErro = true;
+                mensagensErro.push("Falha ao concluir pendência de escala.");
+            }
+        }
+
+        // // Remover presença do profissional (somente se Evolução)
+        // if (!houveErro && isEvolucao && profissional_id && agendamentoId) {
+        //     resultados.removerPresenca = await remover_presenca_profissional(profissional_id, agendamentoId);
+        //     if (!resultados.removerPresenca?.ok) {
+        //         houveErro = true;
+        //         mensagensErro.push("Falha ao remover presença do profissional.");
+        //     }
+        // }
+
+        // =====================
+        // 4. Tratamento de Erros
+        // =====================
+        if (houveErro) {
+            alert(`Erros encontrados ao enviar formulário:\n\n- ${mensagensErro.join("\n- ")}`);
+            setSubmitting(false);
+            return; // Não navega
+        }
+
+        // =====================
+        // 5. Atualiza Contexto (Escalas restantes) somente após sucesso geral
+        // =====================
+        if (agendamentoId) {
+            const idStr = String(id_form);
+            const atuais = escalasPorAgendamento?.[agendamentoId] || [];
+            const atualizadas = atuais.filter((v) => String(v) !== idStr);
+            atualizarEscalas(agendamentoId, atualizadas);
+        }
+
+        // =====================
+        // 6. Navegação de Sucesso
+        // =====================
+        navigate("/forms-terapeuta/tela-inicial", {
+            replace: true,
+            state: { reopenModal: true, formSuccess: true, formTitulo: formulario?.titulo }
+        });
     };
 
   // Renderização do conteúdo principal
@@ -179,10 +272,18 @@ const FormularioGenerico = () => {
                     <div className="flex flex-col gap-4 justify-between mt-4">
                         <button
                             type="submit"
-                            className="bg-apollo-200 hover:bg-apollo-300 text-white font-medium rounded-lg px-6 py-2 transition-colors"
+                            disabled={submitting}
+                            aria-busy={submitting}
+                            className={`bg-apollo-200 text-white font-medium rounded-lg px-6 py-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${!submitting ? 'hover:bg-apollo-300' : ''}`}
                         >
-                            Enviar
+                            {submitting ? 'Enviando…' : 'Enviar'}
                         </button>
+
+                        {submitting && (
+                            <div className="flex items-center gap-2 text-sm text-apollo-200 justify-center" aria-live="polite">
+                                <span className="animate-pulse">⌛ Enviando respostas, aguarde…</span>
+                            </div>
+                        )}
 
                         <Link
                             to="/forms-terapeuta/tela-inicial"

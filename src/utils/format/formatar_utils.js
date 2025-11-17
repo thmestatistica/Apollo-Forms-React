@@ -5,12 +5,16 @@
  * @returns {string} - Ex: "31/12/2025"
  */
 export const formatarData = (dataISO) => {
-  const data = new Date(dataISO);
-  return data.toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  if (!dataISO) return "—";
+  const s = String(dataISO);
+  // Captura YYYY-MM-DD no início da string
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) {
+    const [, yyyy, mm, dd] = m;
+    return `${dd}/${mm}/${yyyy}`;
+  }
+  // Fallback: retorna string original se não for ISO
+  return s;
 };
 
 /**
@@ -19,11 +23,16 @@ export const formatarData = (dataISO) => {
  * @returns {string} - Ex: "12:00"
  */
 export const formatarHora = (dataISO) => {
-  const data = new Date(dataISO);
-  return data.toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  if (!dataISO) return "—";
+  const s = String(dataISO);
+  // Captura HH:mm após o 'T' (ou espaço) sem converter fuso
+  const m = s.match(/[T ](\d{2}):(\d{2})/);
+  if (m) {
+    const [, hh, min] = m;
+    return `${hh}:${min}`;
+  }
+  // Fallback: retorna string original se não encontrar padrão
+  return s;
 };
 
 /**
@@ -91,8 +100,12 @@ export const abreviarNome = (nomeCompleto, limiteNomes = 1) => {
 
   // Define o primeiro sobrenome (logo após os nomes selecionados)
   const primeiroSobrenome = partes[limite] ?? partes[partes.length - 1];
+  // Aplica Title Case nos nomes selecionados (não altera o sobrenome completo, só inicial)
+  const nomesFormatados = nomesSelecionados.map(p =>
+    p.charAt(0).toLocaleUpperCase('pt-BR') + p.slice(1).toLocaleLowerCase('pt-BR')
+  );
 
-  // Retorna o nome abreviado com a inicial do primeiro sobrenome
-  return `${nomesSelecionados.join(" ")} ${primeiroSobrenome[0].toUpperCase()}.`;
+  // Retorna o nome abreviado com a inicial do primeiro sobrenome em maiúscula
+  return `${nomesFormatados.join(" ")} ${primeiroSobrenome[0].toLocaleUpperCase('pt-BR')}.`;
 };
 
