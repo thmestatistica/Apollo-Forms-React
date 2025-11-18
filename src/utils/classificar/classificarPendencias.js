@@ -68,6 +68,7 @@ export const classificarPendencias = async (idsPendentes, carregarAgendamento) =
                 "Paciente": paciente.trim().toLowerCase() === "paciente de testes" ? "VAGO" : paciente,
                 "Slot": slotNome,
                 "Sigla": slotSigla,
+                "TipoAtendimento": ag?.tipo || "—",
             });
         } catch (err) {
             console.log("[classificarPendencias] erro ao carregar id=", agId);

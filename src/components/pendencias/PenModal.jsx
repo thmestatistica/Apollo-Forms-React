@@ -14,6 +14,8 @@ import MultiSelect from "../input/MultiSelect.jsx";
 
 // Hook customizado para acessar o contexto de formulários
 import { useFormContext } from "../../hooks/useFormContext";
+// Mapeamento de formulários por Slot/Tipo
+import { tipoForms } from "../../config/tipoSlot";
 
 /**
  * Componente responsável por exibir as pendências de um agendamento específico,
@@ -99,6 +101,36 @@ const PenModal = ({ penData, escalasDisponiveis }) => {
     });
   };
 
+  /**
+   * Determina automaticamente o formulário a preencher com base no tipo de atendimento
+   * e no Slot/Sigla do agendamento, usando o mapeamento de `tipoSlot`.
+   */
+  const handlePreencherAuto = () => {
+    const tipoRaw = String(penData?.["TipoAtendimento"] || "").toUpperCase();
+    const isAvaliacao = tipoRaw.includes("AVALIACAO") || tipoRaw.includes("REAVALIACAO");
+    const grupo = isAvaliacao ? "Avaliações" : "Evoluções";
+
+    const sigla = penData?.["Sigla"] || penData?.["Slot"] || penData?.["ProfissionalEspecialidade"] || "";
+    const mapa = tipoForms?.[grupo] || {};
+
+    let alvoId = null;
+    for (const [fid, slots] of Object.entries(mapa)) {
+      if (Array.isArray(slots) && slots.includes(sigla)) {
+        alvoId = Number(fid);
+        break;
+      }
+    }
+
+    if (!alvoId) {
+      alert("Nenhum formulário configurado para este atendimento/slot.");
+      return;
+    }
+
+    const titulo = `${isAvaliacao ? "Avaliação" : "Evolução"} ${sigla}`.trim();
+    const tipoParam = isAvaliacao ? "Avaliacao" : "Evolucao"; // sem acento para URL
+    handleNavForm(alvoId, tipoParam, titulo, { id: null, agendamentoId, pacienteId: null }, !isAvaliacao);
+  };
+
   return (
     <div className="flex flex-col gap-4">
       {/* Título do modal */}
@@ -167,12 +199,12 @@ const PenModal = ({ penData, escalasDisponiveis }) => {
         </div>
       )}
 
-      {/* Botão para preencher evolução geral */}
+      {/* Botão inteligente para preencher o formulário do agendamento */}
       <button
-        onClick={() => handleNavForm(4, "Evolução", "Evolução", { id: null, agendamentoId, pacienteId: null }, true)}
+        onClick={handlePreencherAuto}
         className="mt-6 bg-apollo-500 hover:bg-apollo-600 text-white font-semibold py-2 px-4 rounded-xl transition"
       >
-        Preencher Evolução
+        Preencher {penData["TipoAtendimento"] === 'AVALIACAO_INICIAL' || penData["TipoAtendimento"] === 'REAVALIACAO' ? 'Avaliação' : 'Evolução'}
       </button>
     </div>
   );

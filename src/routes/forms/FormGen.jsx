@@ -49,7 +49,7 @@ const FormularioGenerico = () => {
                 ]);
 
                 if (Array.isArray(perguntas) && perguntas.length > 0) {
-                    const titulo = tituloFromNav ?? info?.nome ?? info?.nomeEscala ?? info?.titulo ?? undefined;
+                    const titulo = info.nome_formulario || tituloFromNav || `Formulário ${id_form}`;
                     const f = montarFormularioGenerico(id_form, perguntas, { titulo });
                     setFormulario(f);
                     return;
