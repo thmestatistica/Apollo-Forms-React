@@ -51,6 +51,15 @@ export const FormProvider = ({ children }) => {
     }));
   };
 
+  /** Remove completamente registro de um agendamento (quando não há mais escalas) */
+  const removerAgendamentoEscalas = (agendamentoId) => {
+    setEscalasPorAgendamento((prev) => {
+      const next = { ...prev };
+      delete next[agendamentoId];
+      return next;
+    });
+  };
+
   /** Abre modal e define pendência */
   const openModal = (pendencia) => {
     setPendenciaSelecionada(pendencia);
@@ -67,6 +76,7 @@ export const FormProvider = ({ children }) => {
         pendenciaSelecionada,
         escalasPorAgendamento,
         atualizarEscalas,
+        removerAgendamentoEscalas,
         openModal,
         closeModal,
       }}

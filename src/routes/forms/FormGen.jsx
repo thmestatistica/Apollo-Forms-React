@@ -13,7 +13,7 @@ import LoadingGen from "../../components/info/LoadingGen.jsx";
 
 import { formularios } from "../../data/formulario.jsx";
 import { carregar_perguntas_form, montarFormularioGenerico, carregar_info_form, enviar_respostas_form } from "../../api/forms/forms_utils";
-// import { remover_presenca_profissional } from "../../api/profissionais/profissionais_utils";
+import { remover_presenca_profissional } from "../../api/profissionais/profissionais_utils";
 import { concluir_pendencia_escala } from "../../api/pendencias/pendencias_utils";
 import { useAuth } from "../../hooks/useAuth";
 import { useFormContext } from "../../hooks/useFormContext";
@@ -23,7 +23,7 @@ const FormularioGenerico = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
-    const { escalasPorAgendamento, atualizarEscalas } = useFormContext();
+    const { escalasPorAgendamento, atualizarEscalas, removerAgendamentoEscalas, closeModal } = useFormContext();
     const pendencia = location.state?.pendencia;
 
     const [formulario, setFormulario] = useState(null);
@@ -148,20 +148,24 @@ const FormularioGenerico = () => {
         // =====================
         const paciente_id = pendencia?.["PacienteID"] ?? pendencia?.pacienteId ?? null;
         const profissional_id = user?.profissionalId ?? user?.id ?? user?.usuarioId ?? null;
+        const agendamento_id = pendencia?.["AgendamentoID"] ?? pendencia?.agendamentoId ?? null;
         const payloadRespostas = {
             paciente_id,
             profissional_id,
             disponibilizado_id: null,
             respostas: respostasForm,
+            agendamento_id: agendamento_id
         };
+
+        console.log("Payload de respostas preparado:", payloadRespostas);
 
         // =====================
         // 3. Execução das Requisições
         //    Todas precisam ter ok === true
         // =====================
         const pendEscala = location.state?.pendenciaEscala;
-        const agendamentoId = pendencia?.["AgendamentoID"] ?? pendencia?.agendamentoId;
-        // const isEvolucao = location.state?.isEvolucao === true || /evolu/i.test(tipo_form ?? "");
+        const isEvolucao = location.state?.isEvolucao === true || /evolu/i.test(tipo_form ?? "");
+        const isAvaliacao = location.state?.isAvaliacao === true || /avaliac/i.test(tipo_form ?? "");
 
         const resultados = { enviar: null, concluirPendencia: null, removerPresenca: null };
         let houveErro = false;
@@ -179,7 +183,7 @@ const FormularioGenerico = () => {
             resultados.concluirPendencia = await concluir_pendencia_escala({
                 id: pendEscala.id,
                 pacienteId: pendEscala.pacienteId ?? paciente_id,
-                agendamentoId: pendEscala.agendamentoId ?? agendamentoId,
+                agendamentoId: pendEscala.agendamentoId ?? agendamento_id,
                 formularioId: pendEscala.formularioId ?? Number(id_form),
                 diagnosticoMacro: pendEscala.diagnosticoMacro,
                 especialidade: pendEscala.especialidade,
@@ -190,14 +194,7 @@ const FormularioGenerico = () => {
             }
         }
 
-        // // Remover presença do profissional (somente se Evolução)
-        // if (!houveErro && isEvolucao && profissional_id && agendamentoId) {
-        //     resultados.removerPresenca = await remover_presenca_profissional(profissional_id, agendamentoId);
-        //     if (!resultados.removerPresenca?.ok) {
-        //         houveErro = true;
-        //         mensagensErro.push("Falha ao remover presença do profissional.");
-        //     }
-        // }
+        // (Remoção de presença movida para depois da verificação de sucesso total)
 
         // =====================
         // 4. Tratamento de Erros
@@ -209,21 +206,46 @@ const FormularioGenerico = () => {
         }
 
         // =====================
-        // 5. Atualiza Contexto (Escalas restantes) somente após sucesso geral
+        // 5. Remover presença (após sucesso geral) para Evolução/Avaliação
         // =====================
-        if (agendamentoId) {
-            const idStr = String(id_form);
-            const atuais = escalasPorAgendamento?.[agendamentoId] || [];
-            const atualizadas = atuais.filter((v) => String(v) !== idStr);
-            atualizarEscalas(agendamentoId, atualizadas);
+        if ((isEvolucao || isAvaliacao) && profissional_id && agendamento_id) {
+            try {
+                resultados.removerPresenca = await remover_presenca_profissional(profissional_id, agendamento_id);
+                if (!resultados.removerPresenca?.ok) {
+                    // Falha não crítica: alerta mas continua fluxo
+                    alert("Formulário salvo, porém falha ao remover presença do profissional.");
+                }
+            } catch (errRem) {
+                console.error("Erro ao remover presença:", errRem);
+                alert("Formulário salvo, porém erro inesperado ao remover presença do profissional.");
+            }
         }
 
         // =====================
-        // 6. Navegação de Sucesso
+        // 6. Atualiza Contexto (Escalas restantes) somente após sucesso geral
         // =====================
+        if (agendamento_id) {
+            const idStr = String(id_form);
+            const atuais = escalasPorAgendamento?.[agendamento_id] || [];
+            const atualizadas = atuais.filter((v) => String(v) !== idStr);
+            if (atualizadas.length === 0) {
+                removerAgendamentoEscalas(agendamento_id);
+            } else {
+                atualizarEscalas(agendamento_id, atualizadas);
+            }
+        }
+
+        // =====================
+        // 7. Navegação de Sucesso
+        // =====================
+
+        // Fecha modal apenas para evolução/avaliação bem sucedida
+        if (isEvolucao || isAvaliacao) {
+            closeModal();
+        }
         navigate("/forms-terapeuta/tela-inicial", {
             replace: true,
-            state: { reopenModal: true, formSuccess: true, formTitulo: formulario?.titulo }
+            state: { formSuccess: true, formTitulo: formulario?.titulo, reopenModal: !(isEvolucao || isAvaliacao) }
         });
     };
 

@@ -17,6 +17,7 @@ const LoginTerapeuta = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [sucesso, setSucesso] = useState('');
+    const [loading, setLoading] = useState(false);
 
     // Tipo de usuário para login
     const tipo = "terapeuta";
@@ -25,12 +26,14 @@ const LoginTerapeuta = () => {
         e.preventDefault();
         setError('');
         setSucesso('');
+        setLoading(true);
 
         const usuario = { username, password };
 
         const result = await login(usuario, tipo, { redirect: true, delayMs: 800 });
         if (result.success) {
             setSucesso('Login realizado com sucesso!');
+            setLoading(false)
         } else {
             setError('Falha no login. Verifique suas credenciais.');
             console.error('Erro no login do terapeuta:', result.error);
@@ -66,7 +69,9 @@ const LoginTerapeuta = () => {
                         </div>
                         {error && <ErroGen error={error} />}
                         {sucesso && <SucessGen sucesso={sucesso} />}
-                        <button type="submit" className='bg-apollo-500 text-white p-2 rounded-md font-bold hover:bg-apollo-600 transition-colors duration-300 cursor-pointer'>Entrar</button>
+                        <button type="submit" disabled={loading} className='bg-apollo-500 text-white p-2 rounded-md font-bold hover:bg-apollo-600 transition-colors duration-300 cursor-pointer'>
+                            {loading ? '⌛ Entrando...' : 'Entrar'}
+                        </button>
                     </form>
 
                     <Link to='/' className='text-apollo-200 hover:underline hover:underline-offset-4'>← Voltar para a página inicial</Link>
