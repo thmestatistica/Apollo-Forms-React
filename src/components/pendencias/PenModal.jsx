@@ -15,7 +15,7 @@ import MultiSelect from "../input/MultiSelect.jsx";
 // Hook customizado para acessar o contexto de formulários
 import { useFormContext } from "../../hooks/useFormContext";
 // Mapeamento de formulários por Slot/Tipo
-import { tipoForms } from "../../config/tipoSlot";
+import { tipoForms, tipoPorEspecialidade } from "../../config/tipoSlot";
 
 /**
  * Componente responsável por exibir as pendências de um agendamento específico,
@@ -113,15 +113,36 @@ const PenModal = ({ penData, escalasDisponiveis }) => {
     const sigla = penData?.["Sigla"] || penData?.["Slot"] || penData?.["ProfissionalEspecialidade"] || "";
     const mapa = tipoForms?.[grupo] || {};
 
+    const especialidade = penData?.["ProfissionalEspecialidade"] || "";
+    const lista_slots_equipamentos = ['LKM', 'CML', 'ARM', 'KTS', 'ORT', 'TMS']
+
+    // alvoId precisa existir fora dos blocos para ser usado depois
     let alvoId = null;
-    for (const [fid, slots] of Object.entries(mapa)) {
-      if (Array.isArray(slots) && slots.includes(sigla)) {
-        alvoId = Number(fid);
-        break;
+    const siglaNorm = String(sigla || "").toUpperCase();
+
+    // Se é um equipamento, procurar o formulário cujo array contém a sigla
+    if (lista_slots_equipamentos.includes(siglaNorm)) {
+      for (const [fid, slots] of Object.entries(mapa)) {
+        if (!Array.isArray(slots)) continue;
+        const slotsUpper = slots.map(s => String(s).toUpperCase());
+        if (slotsUpper.includes(siglaNorm)) {
+          const parsed = Number(fid);
+          if (Number.isFinite(parsed)) alvoId = parsed;
+          break;
+        }
+      }
+    } else {
+      // Por especialidade: mapeamento direto para o ID conforme grupo
+      const idPorEsp = tipoPorEspecialidade?.[especialidade]?.[grupo] ?? null;
+      if (idPorEsp != null) {
+        const parsed = Number(idPorEsp);
+        if (Number.isFinite(parsed)) {
+          alvoId = parsed;
+        }
       }
     }
 
-    if (!alvoId) {
+    if (alvoId === null) {
       alert("Nenhum formulário configurado para este atendimento/slot.");
       return;
     }
@@ -142,6 +163,7 @@ const PenModal = ({ penData, escalasDisponiveis }) => {
         <p><strong>Data:</strong> {penData["Data"]}</p>
         <p><strong>Horário:</strong> {penData["Início"]} até {penData["Fim"]}</p>
         <p><strong>ID:</strong> {penData["AgendamentoID"]}</p>
+        <p><strong>Slot:</strong> {penData['Sigla']}</p>
       </div>
 
       {/* Checkbox indicando se houve aplicação de escala */}

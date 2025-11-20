@@ -94,6 +94,9 @@ const EvoCard = ({ paginaAtual = [] }) => {
                   <p>
                     <strong>Horário:</strong> {pen["Início"]} - {pen["Fim"]}
                   </p>
+                  <p>
+                    <strong>Slot:</strong> {pen['Sigla']}
+                  </p>
                 </div>
               </div>
 

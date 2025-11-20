@@ -166,6 +166,7 @@ const FormularioGenerico = () => {
         const pendEscala = location.state?.pendenciaEscala;
         const isEvolucao = location.state?.isEvolucao === true || /evolu/i.test(tipo_form ?? "");
         const isAvaliacao = location.state?.isAvaliacao === true || /avaliac/i.test(tipo_form ?? "");
+        const cameFromEscalaTag = location.state?.fromEscalaTag === true;
 
         const resultados = { enviar: null, concluirPendencia: null, removerPresenca: null };
         let houveErro = false;
@@ -243,9 +244,15 @@ const FormularioGenerico = () => {
         if (isEvolucao || isAvaliacao) {
             closeModal();
         }
+        
         navigate("/forms-terapeuta/tela-inicial", {
-            replace: true,
-            state: { formSuccess: true, formTitulo: formulario?.titulo, reopenModal: !(isEvolucao || isAvaliacao) }
+                replace: true,
+                state: {
+                    formSuccess: true,
+                    formTitulo: formulario?.titulo,
+                    // Só reabrir modal se NÃO veio de tag de escala e não for evolução/avaliação
+                    reopenModal: !cameFromEscalaTag && !(isEvolucao || isAvaliacao)
+                }
         });
     };
 
