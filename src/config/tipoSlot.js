@@ -6,6 +6,7 @@ export const tipoForms = {
         // 40: ['NUT'],
         46: ['CML'],
         // 3: ['FONO1', 'FONO2'],
+        48: ['TMS'],
     },
 
     "Avaliações": {
@@ -17,7 +18,7 @@ export const tipoForms = {
         // 39: ['NUT'],
         // 44: ['PSI'],
         47: ['CML'],
-
+        49: ['TMS'],
     }
 };
 
