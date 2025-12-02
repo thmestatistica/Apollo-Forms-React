@@ -5,7 +5,7 @@ export const tipoForms = {
         // 15: ['PSI'],
         // 40: ['NUT'],
         46: ['CML'],
-        // 3: ['FONO1', 'FONO2'],
+        14: ['ARM'],
         48: ['TMS'],
     },
 
@@ -16,7 +16,7 @@ export const tipoForms = {
         // 20: ['FONO1', 'FONO2'],
         // 32: ['TO1', 'TO2'],
         // 39: ['NUT'],
-        // 44: ['PSI'],
+        32: ['ARM'],
         47: ['CML'],
         49: ['TMS'],
     }
