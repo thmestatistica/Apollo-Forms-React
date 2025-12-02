@@ -16,6 +16,7 @@ import MultiSelect from "../input/MultiSelect.jsx";
 import { useFormContext } from "../../hooks/useFormContext";
 // Mapeamento de formulários por Slot/Tipo
 import { tipoForms, tipoPorEspecialidade } from "../../config/tipoSlot";
+import { carregar_escalas_pendentes } from "../../api/agenda/agenda_utils";
 
 /**
  * Componente responsável por exibir as pendências de um agendamento específico,
@@ -32,7 +33,7 @@ import { tipoForms, tipoPorEspecialidade } from "../../config/tipoSlot";
  * @param {number} props.penData.AgendamentoID - ID único do agendamento.
  * @returns {JSX.Element} O modal de pendência renderizado.
  */
-const PenModal = ({ penData, escalasDisponiveis }) => {
+const PenModal = ({ penData }) => {
   const navigate = useNavigate();
 
   // Contexto global com informações sobre formulários e escalas
@@ -46,6 +47,40 @@ const PenModal = ({ penData, escalasDisponiveis }) => {
 
   /** Estado local para controlar o checkbox "foi feita alguma escala?" */
   const [temEscala, setTemEscala] = useState(escalasAtuais.length > 0);
+
+  // Estado local para escalas disponíveis + carregamento
+  const [escalasDisponiveis, setEscalasDisponiveis] = useState([]);
+  const [loadingEscalas, setLoadingEscalas] = useState(false);
+  const [erroEscalas, setErroEscalas] = useState(null);
+
+  // Carrega escalas com base no paciente e especialidade da pendência
+  useEffect(() => {
+    const pacienteId = penData?.["PacienteID"] ?? null;
+    const profissionalEspecialidade = penData?.["ProfissionalEspecialidade"] ?? null;
+
+    if (!pacienteId || !profissionalEspecialidade) {
+      setEscalasDisponiveis([]);
+      return;
+    }
+
+    let ativo = true;
+    setLoadingEscalas(true);
+    setErroEscalas(null);
+    carregar_escalas_pendentes(pacienteId, profissionalEspecialidade)
+      .then((lista) => {
+        if (ativo) setEscalasDisponiveis(Array.isArray(lista) ? lista : []);
+      })
+      .catch(() => {
+        if (ativo) setErroEscalas("Não foi possível carregar as escalas.");
+      })
+      .finally(() => {
+        if (ativo) setLoadingEscalas(false);
+      });
+
+    return () => {
+      ativo = false;
+    };
+  }, [penData]);
 
   /**
    * Mantém o estado do checkbox sincronizado caso a lista de escalas
@@ -183,41 +218,49 @@ const PenModal = ({ penData, escalasDisponiveis }) => {
       {/* Seleção e listagem das escalas (apenas se o checkbox estiver marcado) */}
       {temEscala && (
         <div className="mt-3">
-          {/* Campo de seleção múltipla */}
-          <MultiSelect
-            options={options}
-            value={selectedValues}
-            onChange={handleChange}
-            placeholder="Selecione as escalas..."
-            className="text-sm"
-          />
+          {loadingEscalas ? (
+            <p className="text-sm text-apollo-200">Carregando escalas…</p>
+          ) : erroEscalas ? (
+            <p className="text-sm text-red-600">{erroEscalas}</p>
+          ) : (
+            <>
+              {/* Campo de seleção múltipla */}
+              <MultiSelect
+                options={options}
+                value={selectedValues}
+                onChange={handleChange}
+                placeholder="Selecione as escalas..."
+                className="text-sm"
+              />
 
-          {/* Lista de escalas selecionadas com botão para preenchimento */}
-          <ul className="mt-4 flex flex-col gap-2">
-            {selectedValues.map((escala) => (
-              <li
-                key={escala.formularioId}
-                className="flex justify-between items-center p-3 border border-gray-200 rounded-lg shadow-sm bg-white"
-              >
-                <span className="font-medium text-apollo-200">{escala.formulario?.nomeEscala || escala.label}</span>
+              {/* Lista de escalas selecionadas com botão para preenchimento */}
+              <ul className="mt-4 flex flex-col gap-2">
+                {selectedValues.map((escala) => (
+                  <li
+                    key={escala.formularioId}
+                    className="flex justify-between items-center p-3 border border-gray-200 rounded-lg shadow-sm bg-white"
+                  >
+                    <span className="font-medium text-apollo-200">{escala.formulario?.nomeEscala || escala.label}</span>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleNavForm(
-                      escala.formularioId,
-                      "Escala",
-                      escala.formulario?.nomeEscala || escala.label,
-                      escala
-                    )
-                  }
-                  className="bg-apollo-200 hover:bg-apollo-300 text-white py-1 px-3 rounded-lg text-sm transition"
-                >
-                  Preencher
-                </button>
-              </li>
-            ))}
-          </ul>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleNavForm(
+                          escala.formularioId,
+                          "Escala",
+                          escala.formulario?.nomeEscala || escala.label,
+                          escala
+                        )
+                      }
+                      className="bg-apollo-200 hover:bg-apollo-300 text-white py-1 px-3 rounded-lg text-sm transition"
+                    >
+                      Preencher
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
       )}
 
@@ -236,6 +279,4 @@ export default PenModal;
 
 PenModal.propTypes = {
   penData: PropTypes.object.isRequired,
-  // Aceita lista bruta vinda da API ou já no formato label/value
-  escalasDisponiveis: PropTypes.arrayOf(PropTypes.object),
 };

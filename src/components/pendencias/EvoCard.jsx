@@ -3,8 +3,6 @@ import { Modal } from "../modal/Modal";
 import PenModal from "./PenModal";
 import { useFormContext } from "../../hooks/useFormContext";
 import { abreviarNome } from "../../utils/format/formatar_utils";
-import { useEffect, useState } from "react";
-import { carregar_escalas_pendentes } from "../../api/agenda/agenda_utils";
 
 /**
  * Retorna classes de cor de fundo e borda para o nível da pendência.
@@ -40,20 +38,7 @@ const getCorBotao = (nivel) => {
  */
 const EvoCard = ({ paginaAtual = [] }) => {
   const { openModal, isModalOpen, pendenciaSelecionada, closeModal } = useFormContext();
-  const [escalasDisponiveis, setEscalasDisponiveis] = useState([]);
-
-  useEffect(() => {
-    
-    const fetchPendenciasEscalas = async () => {
-      const pacienteId = paginaAtual.length > 0 ? paginaAtual[0]["PacienteID"] : null;
-      const profissionalEspecialidade = paginaAtual.length > 0 ? paginaAtual[0]["ProfissionalEspecialidade"] : null;
-
-      const escalas = await carregar_escalas_pendentes(pacienteId, profissionalEspecialidade);
-      setEscalasDisponiveis(escalas);
-    };
-
-    fetchPendenciasEscalas();
-  }, [paginaAtual]);
+  
 
 
   return (
@@ -120,7 +105,7 @@ const EvoCard = ({ paginaAtual = [] }) => {
       {/* Modal global controlado via contexto */}
       <Modal isOpen={isModalOpen} onClose={closeModal}>
         {pendenciaSelecionada ? (
-          <PenModal penData={pendenciaSelecionada} escalasDisponiveis={escalasDisponiveis} />
+          <PenModal penData={pendenciaSelecionada} />
         ) : (
           <p>Carregando pendência...</p>
         )}

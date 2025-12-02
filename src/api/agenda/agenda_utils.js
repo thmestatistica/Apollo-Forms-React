@@ -167,6 +167,7 @@ export const carregar_escalas_pendentes = async (pacienteId, especialidade) => {
 
     const data = response?.data;
     console.log("Escalas pendentes carregadas:", data);
+    console.log(`PacienteID: ${pacienteId}, Especialidade: ${especialidade}, Status: ${status}`);
 
     // Garante retorno previsível (array) para o chamador
     if (Array.isArray(data)) return data;
