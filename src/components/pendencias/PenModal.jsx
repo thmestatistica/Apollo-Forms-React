@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 // useNavigate para navegação programática
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 
 // Componentes
 // MultiSelect para seleção múltipla de escalas
@@ -17,6 +18,7 @@ import { useFormContext } from "../../hooks/useFormContext";
 // Mapeamento de formulários por Slot/Tipo
 import { tipoForms, tipoPorEspecialidade } from "../../config/tipoSlot";
 import { carregar_escalas_pendentes } from "../../api/agenda/agenda_utils";
+import { nao_aplicar_pendencia_escala } from "../../api/pendencias/pendencias_utils.js";
 
 /**
  * Componente responsável por exibir as pendências de um agendamento específico,
@@ -45,8 +47,25 @@ const PenModal = ({ penData }) => {
   /** Escalas selecionadas para este agendamento (vindas do contexto) */
   const escalasAtuais = escalasPorAgendamento[agendamentoId] || [];
 
-  /** Estado local para controlar o checkbox "foi feita alguma escala?" */
-  const [temEscala, setTemEscala] = useState(escalasAtuais.length > 0);
+  /**
+   * Estado local para controlar a pergunta "foi feita alguma escala?"
+   * Tri-state: null (não respondido), true (Sim), false (Não)
+   */
+  const [temEscala, setTemEscala] = useState(
+    escalasAtuais.length > 0 ? true : null
+  );
+
+  // Restaura a opção do rádio ao reabrir o modal
+  useEffect(() => {
+    const storageKey = `penModal:temEscala:${agendamentoId}`;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved === "true") setTemEscala(true);
+      else if (saved === "false") setTemEscala(false);
+    } catch {
+      // Ignorar erros de acesso ao localStorage
+    }
+  }, [agendamentoId]);
 
   // Estado local para escalas disponíveis + carregamento
   const [escalasDisponiveis, setEscalasDisponiveis] = useState([]);
@@ -87,8 +106,21 @@ const PenModal = ({ penData }) => {
    * seja atualizada externamente (ex: outro componente).
    */
   useEffect(() => {
-    setTemEscala(escalasAtuais.length > 0);
+    // Se alguma escala foi selecionada externamente, marcar como "Sim" automaticamente
+    if (escalasAtuais.length > 0) setTemEscala(true);
   }, [escalasAtuais.length]);
+
+  // Persiste a escolha do rádio para lembrar ao voltar
+  useEffect(() => {
+    const storageKey = `penModal:temEscala:${agendamentoId}`;
+    try {
+      if (temEscala === true) localStorage.setItem(storageKey, "true");
+      else if (temEscala === false) localStorage.setItem(storageKey, "false");
+      else localStorage.removeItem(storageKey);
+    } catch {
+      // Ignorar erros de acesso ao localStorage
+    }
+  }, [temEscala, agendamentoId]);
 
   /**
    * Atualiza as escalas selecionadas no contexto global.
@@ -134,6 +166,63 @@ const PenModal = ({ penData }) => {
     navigate(`/forms-terapeuta/formulario/${tipo_form.toLowerCase()}/${id}`, {
       state: { pendencia: penData, formTitulo: titulo, pendenciaEscala, isEvolucao },
     });
+  };
+
+  /**
+   * Faz a marcação de uma pendência de escala como "Não Aplicável".
+   *
+   * @param {Object} escala - Dados da escala a ser marcada como não aplicável.
+   */
+  const handleNaoAplicar = async (escala) => {
+    const result = await Swal.fire({
+      title: "Marcar como não aplicável?",
+      text: `A escala "${escala.formulario?.nomeEscala || escala.label}" será marcada como não aplicável para este paciente.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#5A2779",
+      cancelButtonColor: "#E0AC00",
+      confirmButtonText: "Sim, confirmar",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (result.isConfirmed) {
+      // Lógica para marcar a pendência como "Não Aplicável"
+      console.log("Marcar pendência como Não Aplicável para escala:", escala);
+
+      const resposta = await nao_aplicar_pendencia_escala(escala);
+      if (!resposta?.ok) {
+        await Swal.fire({
+          title: "Erro",
+          text: "Não foi possível marcar a escala como não aplicável.",
+          icon: "error",
+          timer: 1800,
+          showConfirmButton: false,
+        });
+
+        console.error("Erro ao marcar pendência como não aplicável:", resposta?.error);
+      } else {
+        await Swal.fire({
+          title: "Sucesso",
+          text: "A escala foi marcada como não aplicável.",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+
+        // Recarregar dados mantendo o modal aberto (soft refresh)
+        try {
+          setLoadingEscalas(true);
+          const pacienteId = penData?.["PacienteID"] ?? null;
+          const profissionalEspecialidade = penData?.["ProfissionalEspecialidade"] ?? null;
+          const lista = await carregar_escalas_pendentes(pacienteId, profissionalEspecialidade);
+          setEscalasDisponiveis(Array.isArray(lista) ? lista : []);
+        } catch (err) {
+          console.error("Erro ao recarregar escalas após marcação:", err);
+        } finally {
+          setLoadingEscalas(false);
+        }
+      }
+    }
   };
 
   /**
@@ -201,22 +290,40 @@ const PenModal = ({ penData }) => {
         <p><strong>Slot:</strong> {penData['Sigla']}</p>
       </div>
 
-      {/* Checkbox indicando se houve aplicação de escala */}
-      <div className="flex items-center gap-2 mt-3">
-        <input
-          type="checkbox"
-          id="checkboxEscala"
-          checked={temEscala}
-          onChange={() => setTemEscala(!temEscala)}
-          className="accent-apollo-200 w-5 h-5 hover:scale-110 transition-all"
-        />
-        <label htmlFor="checkboxEscala" className="font-semibold text-apollo-200">
-          Foi feita alguma escala?
-        </label>
+      {/* Pergunta Sim/Não indicando se houve aplicação de escala */}
+      <div className="flex flex-col gap-2 mt-3">
+        <span className="font-semibold text-apollo-200">Foi feita alguma escala?</span>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="escala-feita"
+              value="sim"
+              checked={temEscala === true}
+              onChange={() => setTemEscala(true)}
+              className="accent-apollo-200 w-5 h-5 hover:scale-110 transition-all"
+            />
+            <span className="text-apollo-200">Sim</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="escala-feita"
+              value="nao"
+              checked={temEscala === false}
+              onChange={() => setTemEscala(false)}
+              className="accent-apollo-200 w-5 h-5 hover:scale-110 transition-all"
+            />
+            <span className="text-apollo-200">Não</span>
+          </label>
+        </div>
+        {temEscala === null && (
+          <p className="text-xs text-apollo-200/80">Selecione uma opção para continuar.</p>
+        )}
       </div>
 
       {/* Seleção e listagem das escalas (apenas se o checkbox estiver marcado) */}
-      {temEscala && (
+      {temEscala === true && (
         <div className="mt-3">
           {loadingEscalas ? (
             <p className="text-sm text-apollo-200">Carregando escalas…</p>
@@ -242,20 +349,29 @@ const PenModal = ({ penData }) => {
                   >
                     <span className="font-medium text-apollo-200">{escala.formulario?.nomeEscala || escala.label}</span>
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleNavForm(
-                          escala.formularioId,
-                          "Escala",
-                          escala.formulario?.nomeEscala || escala.label,
-                          escala
-                        )
-                      }
-                      className="bg-apollo-200 hover:bg-apollo-300 text-white py-1 px-3 rounded-lg text-sm transition"
-                    >
-                      Preencher
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="bg-apollo-200 hover:bg-apollo-300 text-white py-1 px-3 rounded-lg text-sm transition"
+                        onClick={() => handleNaoAplicar(escala)}
+                      >
+                        Não aplicável
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleNavForm(
+                            escala.formularioId,
+                            "Escala",
+                            escala.formulario?.nomeEscala || escala.label,
+                            escala
+                          )
+                        }
+                        className="bg-apollo-200 hover:bg-apollo-300 text-white py-1 px-3 rounded-lg text-sm transition"
+                      >
+                        Preencher
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -267,7 +383,12 @@ const PenModal = ({ penData }) => {
       {/* Botão inteligente para preencher o formulário do agendamento */}
       <button
         onClick={handlePreencherAuto}
-        className="mt-6 bg-apollo-500 hover:bg-apollo-600 text-white font-semibold py-2 px-4 rounded-xl transition"
+        disabled={temEscala === null}
+        className={`mt-6 font-semibold py-2 px-4 rounded-xl transition ${
+          temEscala === null
+            ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+            : "bg-apollo-500 hover:bg-apollo-600 text-white"
+        }`}
       >
         Preencher {penData["TipoAtendimento"] === 'AVALIACAO_INICIAL' || penData["TipoAtendimento"] === 'REAVALIACAO' ? 'Avaliação' : 'Evolução'}
       </button>

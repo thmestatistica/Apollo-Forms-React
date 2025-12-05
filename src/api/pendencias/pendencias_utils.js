@@ -54,3 +54,37 @@ export const concluir_pendencia_escala = async (pendencia) => {
     return { ok: false, error: err };
   }
 };
+
+
+export const nao_aplicar_pendencia_escala = async (pendencia) => {
+  try {
+    const id = pendencia?.id ?? pendencia?.pendenciaId;
+    if (!id) throw new Error("ID da pendência não informado");
+    const criadaEmFormatada = formatDateBackend(pendencia?.criadaEm) || formatDateBackend(new Date());
+    const resolvidaEmFormatada = formatDateBackend(new Date());
+
+    const rawPayload = {
+      pacienteId: pendencia?.pacienteId != null ? Number(pendencia.pacienteId) : undefined,
+      agendamentoId: pendencia?.agendamentoId != null ? Number(pendencia.agendamentoId) : undefined,
+      formularioId: pendencia?.formularioId != null ? Number(pendencia.formularioId) : undefined,
+      status: "NAO_APLICA",
+      criadaEm: criadaEmFormatada,
+      resolvidaEm: resolvidaEmFormatada,
+      diagnosticoMacro: pendencia?.diagnosticoMacro ?? undefined,
+      especialidade: pendencia?.especialidade ?? undefined,
+    };
+    // Limpa chaves com undefined ou null
+    const payload = Object.fromEntries(
+      Object.entries(rawPayload).filter(([, v]) => v !== undefined && v !== null)
+    );
+    const { data } = await axiosInstance.put(`/pendencias/${Number(id)}`, payload);
+    return { ok: true, data };
+  } catch (err) {
+    console.error("Erro ao marcar pendência de escala como NÃO APLICAR:", {
+      message: err?.message,
+      status: err?.response?.status,
+      data: err?.response?.data,
+    });
+    return { ok: false, error: err };
+  }
+};
