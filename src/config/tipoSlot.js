@@ -4,6 +4,7 @@ export const tipoForms = {
         // 14: ['TO1', 'TO2'],
         // 15: ['PSI'],
         // 40: ['NUT'],
+        13: ['LKM'],
         46: ['CML'],
         14: ['ARM'],
         48: ['TMS'],
