@@ -1,8 +1,10 @@
 import CreateIcon from "@mui/icons-material/Create";
+import { useEffect, useState } from "react";
 import { Modal } from "../modal/Modal";
 import PenModal from "./PenModal";
 import { useFormContext } from "../../hooks/useFormContext";
 import { abreviarNome } from "../../utils/format/formatar_utils";
+import { carregar_escalas_pendentes } from "../../api/agenda/agenda_utils";
 
 /**
  * Retorna classes de cor de fundo e borda para o nível da pendência.
@@ -38,8 +40,54 @@ const getCorBotao = (nivel) => {
  */
 const EvoCard = ({ paginaAtual = [] }) => {
   const { openModal, isModalOpen, pendenciaSelecionada, closeModal } = useFormContext();
-  
 
+  // Cache local das escalas pendentes por agendamento
+  const [escalasPorAgendamento, setEscalasPorAgendamento] = useState({});
+  const [carregandoEscalasIds, setCarregandoEscalasIds] = useState(new Set());
+
+  // Carrega escalas pendentes para cada item da página atual (apenas para exibir tags)
+  useEffect(() => {
+    let ativo = true;
+    const carregarParaItem = async (pen) => {
+      const agendamentoId = pen?.["AgendamentoID"];
+      const pacienteId = pen?.["PacienteID"];
+      const profissionalEspecialidade = pen?.["ProfissionalEspecialidade"];
+      if (!agendamentoId || !pacienteId || !profissionalEspecialidade) return;
+
+      // Evitar recarregar se já temos no cache
+      if (escalasPorAgendamento[agendamentoId]) return;
+
+      setCarregandoEscalasIds((prev) => new Set([...prev, agendamentoId]));
+      try {
+        const lista = await carregar_escalas_pendentes(pacienteId, profissionalEspecialidade);
+        if (!ativo) return;
+        const normalizadas = Array.isArray(lista)
+          ? lista.map((item) => ({
+              id: item?.formularioId ?? null,
+              nome: item?.formulario?.nomeEscala || item?.label || "Escala",
+            }))
+          : [];
+        setEscalasPorAgendamento((prev) => ({ ...prev, [agendamentoId]: normalizadas }));
+      } catch {
+        if (!ativo) return;
+        setEscalasPorAgendamento((prev) => ({ ...prev, [agendamentoId]: [] }));
+      } finally {
+        setCarregandoEscalasIds((prev) => {
+          const novo = new Set([...prev]);
+          novo.delete(agendamentoId);
+          return novo;
+        });
+      }
+    };
+
+    // Dispara carregamento paralelo leve para os itens visíveis
+    paginaAtual.forEach(carregarParaItem);
+
+    return () => {
+      ativo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paginaAtual]);
 
   return (
     <>
@@ -82,6 +130,21 @@ const EvoCard = ({ paginaAtual = [] }) => {
                   <p>
                     <strong>Slot:</strong> {pen['Sigla']}
                   </p>
+                </div>
+
+                {/* Tags de pendências de escala (somente exibição) */}
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {(escalasPorAgendamento[pen["AgendamentoID"]] || []).map((esc) => (
+                    <span
+                      key={`${pen["AgendamentoID"]}-${esc.id}-${esc.nome}`}
+                      className="text-xs px-2 py-1 rounded-full bg-apollo-200/10 text-apollo-200 border border-apollo-200/40"
+                    >
+                      {esc.nome}
+                    </span>
+                  ))}
+                  {carregandoEscalasIds.has(pen["AgendamentoID"]) && (
+                    <span className="text-xs text-apollo-200/70">Carregando escalas…</span>
+                  )}
                 </div>
               </div>
 
