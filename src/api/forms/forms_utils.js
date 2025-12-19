@@ -206,31 +206,52 @@ export const upsert_perguntas_form = async (formId, perguntas = []) => {
     };
   };
 
-  const body = payload.map(normalize);
-
-  try {
-    const { data } = await axiosInstanceForms.put(`/forms/${formId}/questions`, body);
-    return { ok: true, data };
-  } catch (err1) {
-    // Fallback 1: POST bulk
-    try {
-      const { data } = await axiosInstanceForms.post(`/forms/${formId}/questions/bulk`, body);
-      return { ok: true, data };
-    } catch (err2) {
-      // Fallback 2: POST simples
-      try {
-        const { data } = await axiosInstanceForms.post(`/forms/${formId}/questions`, body);
-        return { ok: true, data };
-      } catch (err3) {
-        console.error("Erro ao upsert perguntas do formulário:", {
-          message: err3?.message,
-          status: err3?.response?.status,
-          data: err3?.response?.data,
-          firstError: err1?.response?.data,
-          secondError: err2?.response?.data,
-        });
-        return { ok: false, error: err3 };
-      }
+  const bodyArray = payload.map(normalize);
+  // Constrói o payload no formato esperado pelo backend
+  const updates = [];
+  const new_questions = [];
+  const toSlug = (txt, idx) => {
+    const base = String(txt || "pergunta").toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    return base ? `${base}_${idx + 1}` : `pergunta_${idx + 1}`;
+  };
+  bodyArray.forEach((p, idx) => {
+    const opcoes = Array.isArray(p?.opcoes_resposta) ? p.opcoes_resposta : [];
+    if (p?.pergunta_id) {
+      updates.push({
+        pergunta_id: p.pergunta_id,
+        chave_pergunta: p?.chave_pergunta,
+        texto_pergunta: p?.texto_pergunta,
+        tipo_resposta_esperada: p?.tipo_resposta_esperada,
+        ordem_pergunta: p?.ordem_pergunta ?? idx + 1,
+        opcoes_resposta: opcoes,
+        metadados_pergunta: p?.metadados_pergunta,
+        inativa: p?.inativa === true,
+      });
+    } else {
+      new_questions.push({
+        formulario_id: Number(formId),
+        chave_pergunta: p?.chave_pergunta ?? toSlug(p?.texto_pergunta, idx),
+        texto_pergunta: p?.texto_pergunta,
+        tipo_resposta_esperada: p?.tipo_resposta_esperada,
+        ordem_pergunta: p?.ordem_pergunta ?? idx + 1,
+        opcoes_resposta: opcoes,
+        metadados_pergunta: p?.metadados_pergunta,
+        inativa: p?.inativa === true,
+      });
     }
+  });
+
+  const requestBody = { updates, new_questions };
+  try {
+    const { data } = await axiosInstanceForms.put(`/forms/${formId}/questions`, requestBody);
+    return { ok: true, data };
+  } catch (err) {
+    console.error("Erro ao upsert perguntas do formulário (schema esperado updates/new_questions):", {
+      message: err?.message,
+      status: err?.response?.status,
+      data: err?.response?.data,
+      requestBody,
+    });
+    return { ok: false, error: err };
   }
 }

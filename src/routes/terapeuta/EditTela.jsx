@@ -17,6 +17,7 @@ import AdaptiveInput from "../../components/input/AdaptiveInput.jsx";
 import { carregar_info_form, carregar_perguntas_form, upsert_perguntas_form, atualizar_info_form } from "../../api/forms/forms_utils";
 import ErroGen from "../../components/info/ErroGen.jsx";
 import SucessGen from "../../components/info/SucessGen.jsx";
+import Swal from "sweetalert2";
 
 /**
  * Componente de edição de formulário.
@@ -594,11 +595,52 @@ function EditTela() {
     setSaving(false);
     if (detailsRes?.ok && perguntasRes?.ok) {
       setSuccess("Formulário e perguntas atualizados com sucesso!");
+      try {
+        await Swal.fire({
+          title: "Sucesso",
+          text: "Formulário atualizado com sucesso!",
+          icon: "success",
+          confirmButtonText: "OK",
+        });
+      } catch {
+        // ignore
+      }
+      navigate('/forms-terapeuta/editar-formulario');
     } else if (!detailsRes?.ok && !perguntasRes?.ok) {
+      try {
+        await Swal.fire({
+          title: "Erro",
+          text: "Falha ao salvar detalhes e perguntas.",
+          icon: "error",
+          confirmButtonText: "OK",
+        });
+      } catch {
+        // ignore
+      }
       setError("Falha ao salvar detalhes e perguntas.");
     } else if (!detailsRes?.ok) {
+      try {
+        await Swal.fire({
+          title: "Erro",
+          text: "Perguntas salvas, mas falhou ao salvar detalhes do formulário.",
+          icon: "error",
+          confirmButtonText: "OK",
+        });
+      } catch {
+        // ignore
+      }
       setError("Perguntas salvas, mas falhou ao salvar detalhes do formulário.");
     } else {
+      try {
+        await Swal.fire({
+          title: "Erro",
+          text: "Detalhes salvos, mas falhou ao salvar perguntas.",
+          icon: "error",
+          confirmButtonText: "OK",
+        });
+      } catch {
+        // ignore
+      }
       setError("Detalhes salvos, mas falhou ao salvar perguntas.");
     }
   };
