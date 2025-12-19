@@ -26,6 +26,8 @@ import PacienteForms from './routes/paciente/PacienteForms.jsx'
 import TelaInicialTerapeuta from './routes/terapeuta/TelaInicialTerapeuta.jsx'
 import TelaInicialPaciente from './routes/paciente/TelaInicialPaciente.jsx'
 import FormularioGenerico from './routes/forms/FormGen.jsx'
+import EditarFormulario from './routes/terapeuta/EditarFormulario.jsx'
+import EditTela from './routes/terapeuta/EditTela.jsx'
 
 // --- Configuração simples das Rotas com createBrowserRouter ---
 const router = createBrowserRouter([
@@ -58,6 +60,14 @@ const router = createBrowserRouter([
                         {
                             element: <FormularioGenerico />,
                             path: 'formulario/:tipo_form/:id_form' // Rota dinâmica baseada no id
+                        },
+                        {
+                            element: <EditarFormulario />,
+                            path: 'editar-formulario',
+                        },
+                        {
+                            element: <EditTela />,
+                            path: "editar-formulario/:id_form"
                         }
                     ]
                 }

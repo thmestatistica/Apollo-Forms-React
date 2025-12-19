@@ -118,3 +118,119 @@ export const montarFormularioGenerico = (formId, perguntas, meta = {}) => {
     campos,
   };
 };
+
+/**
+ * Lista todos os formulários disponíveis.
+ */
+export const listar_formularios =async () => {
+  try {
+    const { data } = await axiosInstanceForms.get(`/forms/all`);
+
+    if (Array.isArray(data)) return data;
+
+    return [];
+  } catch (err) {
+    console.error("Erro ao listar formulários:", {
+      message: err?.message,
+      status: err?.response?.status,
+      data: err?.response?.data,
+    });
+    return [];
+  }
+}
+
+/**
+ * Atualiza metadados do formulário por ID.
+ * Tenta PUT /forms/:id e faz fallback para PATCH.
+ * Remove `pagina_streamlit` do payload para evitar sobrescrita acidental.
+ */
+export const atualizar_info_form = async (formId, payload = {}) => {
+  if (!formId) return { ok: false, error: new Error("formId inválido") };
+  const body = { ...payload };
+  delete body.pagina_streamlit;
+  try {
+    const { data } = await axiosInstanceForms.put(`/forms/${formId}`, body);
+    return { ok: true, data };
+  } catch (err1) {
+    try {
+      const { data } = await axiosInstanceForms.patch(`/forms/${formId}`, body);
+      return { ok: true, data };
+    } catch (err2) {
+      console.error("Erro ao atualizar informações do formulário:", {
+        message: err2?.message,
+        status: err2?.response?.status,
+        data: err2?.response?.data,
+        firstError: err1?.response?.data,
+      });
+      return { ok: false, error: err2 };
+    }
+  }
+}
+
+/**
+ * Atualiza ou cria perguntas de um formulário (upsert em lote).
+ * Tenta `PUT /forms/:id/questions` com um array de perguntas.
+ * Caso o backend não suporte, faz fallback para `POST /forms/:id/questions/bulk` ou `POST /forms/:id/questions`.
+ * Cada pergunta deve conter ao menos: { texto_pergunta, tipo_resposta_esperada, ordem_pergunta }
+ * Para perguntas de seleção, enviar `opcoes_resposta` como array de { valor, label }.
+ */
+export const upsert_perguntas_form = async (formId, perguntas = []) => {
+  if (!formId) return { ok: false, error: new Error("formId inválido") };
+  const payload = Array.isArray(perguntas) ? perguntas : [];
+
+  // Sanitiza: remove chaves internas e normaliza options
+  const normalize = (p, idx) => {
+    const tipo = p?.tipo_resposta_esperada ?? "TEXTO_LIVRE";
+    const opcoes = Array.isArray(p?.opcoes_resposta)
+      ? p.opcoes_resposta
+          .filter((o) => o != null)
+          .map((o) => {
+            if (typeof o === "object") {
+              const valor = o?.valor ?? o?.value ?? o?.id ?? String(o?.label ?? "opcao");
+              const label = o?.label ?? o?.nome ?? String(valor);
+              return { valor, label };
+            }
+            return { valor: o, label: String(o) };
+          })
+      : [];
+
+    return {
+      pergunta_id: p?.pergunta_id ?? p?.id ?? undefined,
+      texto_pergunta: p?.texto_pergunta ?? p?.label ?? "Pergunta",
+      tipo_resposta_esperada: tipo,
+      ordem_pergunta: p?.ordem_pergunta ?? idx + 1,
+      chave_pergunta: p?.chave_pergunta ?? undefined,
+      metadados_pergunta: p?.metadados_pergunta ?? p?.meta_dados ?? undefined,
+      opcoes_resposta: opcoes,
+      inativa: p?.inativa === true,
+    };
+  };
+
+  const body = payload.map(normalize);
+
+  try {
+    const { data } = await axiosInstanceForms.put(`/forms/${formId}/questions`, body);
+    return { ok: true, data };
+  } catch (err1) {
+    // Fallback 1: POST bulk
+    try {
+      const { data } = await axiosInstanceForms.post(`/forms/${formId}/questions/bulk`, body);
+      return { ok: true, data };
+    } catch (err2) {
+      // Fallback 2: POST simples
+      try {
+        const { data } = await axiosInstanceForms.post(`/forms/${formId}/questions`, body);
+        return { ok: true, data };
+      } catch (err3) {
+        console.error("Erro ao upsert perguntas do formulário:", {
+          message: err3?.message,
+          status: err3?.response?.status,
+          data: err3?.response?.data,
+          firstError: err1?.response?.data,
+          secondError: err2?.response?.data,
+        });
+        return { ok: false, error: err3 };
+      }
+    }
+  }
+}

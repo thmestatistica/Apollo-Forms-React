@@ -24,6 +24,7 @@
     "react-loader-spinner": "^8.0.0",
     "react-router-dom": "^7.9.5",
     "react-select": "^5.10.2",
+    "swiper": "^11.1.7",
     "sweetalert2": "^11.14.5",
     "serve": "^14.2.5",
     "tailwindcss": "^4.1.16"

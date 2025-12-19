@@ -157,6 +157,15 @@ const CampoDinamico = ({ campo, initialValues = {} }) => {
                     ))}
                     </>
                 );
+            case "TEXTO_TOPICO":
+                return(
+                    <hr></hr>
+                )
+            
+            case "TEXTO_SUBTOPICO":
+                return(
+                    <h2 className="text-xl font-semibold">{valorInicial}</h2>
+                )
 
             /** Tipo padrão — campo de texto simples */
             default:
@@ -165,7 +174,7 @@ const CampoDinamico = ({ campo, initialValues = {} }) => {
                     id={nome}
                     name={nome}
                     type="text"
-                    className="border rounded p-2"
+                    className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-gray-800 text-sm placeholder-gray-400 shadow-sm outline-none transition-all duration-200 focus:border-apollo-200 focus:ring-2 focus:ring-apollo-200/30 hover:border-apollo-200"
                     defaultValue={valorInicial}
                     />
                 );
@@ -175,9 +184,22 @@ const CampoDinamico = ({ campo, initialValues = {} }) => {
     return (
         <div className="flex flex-col gap-1">
             {/* Rótulo do campo */}
-            <label htmlFor={nome} className="font-medium text-sm">
-                {label}
-            </label>
+            {(tipo_resposta_esperada === "TEXTO_TOPICO" || tipo_resposta_esperada === "TEXTO_SUBTOPICO") ? (
+                <label
+                    htmlFor={nome}
+                    className={
+                        tipo_resposta_esperada === "TEXTO_TOPICO"
+                            ? "font-bold text-lg mb-2"
+                            : "font-med text-md"
+                    }
+                >
+                    {label}
+                </label>
+            ) : (
+                <label htmlFor={nome} className="font-medium text-sm">
+                    {label}
+                </label>
+            )}
 
             {/* Campo dinâmico conforme tipo */}
             {renderCampo()}
