@@ -44,6 +44,9 @@ function EditTela() {
   // Refs para scroll e imagem de arraste
   const scrollRef = useRef(null);
   const dragImageRef = useRef(null);
+  // Refs para inputs de texto das perguntas e foco pendente
+  const inputRefs = useRef([]);
+  const [pendingFocusIndex, setPendingFocusIndex] = useState(null);
 
   /**
    * Rola o container de scroll para o final (fallback: janela).
@@ -451,6 +454,83 @@ function EditTela() {
     }
   };
 
+  // Adiciona nova pergunta em um índice específico (entre perguntas)
+  /**
+   * Insere uma nova pergunta na posição informada.
+   *
+   * @param {number} index Posição onde a pergunta será inserida.
+   * @returns {void}
+   */
+  const insertQuestionAt = (index) => {
+    setQuestions((prev) => {
+      const arr = [...prev];
+      const newQ = {
+        id: undefined,
+        texto: "Nova pergunta",
+        tipo: "TEXTO_LIVRE",
+        ordem: index + 1,
+        opcoes: [],
+      };
+      if (index < 0) index = 0;
+      if (index > arr.length) index = arr.length;
+      arr.splice(index, 0, newQ);
+      return arr.map((q, idx) => ({ ...q, ordem: idx + 1 }));
+    });
+    setPendingFocusIndex(index);
+    // Após inserir, rola até a pergunta inserida (centralizada)
+    const scrollToInserted = () => {
+      try {
+        const container = scrollRef.current || document;
+        const selector = `[data-q-index="${index}"]`;
+        const el = (container instanceof HTMLElement ? container : document).querySelector(selector);
+        if (el && typeof el.scrollIntoView === "function") {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          return;
+        }
+      } catch {
+        // ignore
+      }
+      // Fallback: rolar ao final
+      scrollToBottom();
+    };
+    try {
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(() => requestAnimationFrame(scrollToInserted));
+      } else {
+        setTimeout(scrollToInserted, 0);
+      }
+    } catch {
+      setTimeout(scrollToInserted, 0);
+    }
+  };
+
+  // Efeito: quando há foco pendente, foca o input correspondente
+  useEffect(() => {
+    if (pendingFocusIndex == null) return;
+    const el = inputRefs.current?.[pendingFocusIndex];
+    if (el && typeof el.focus === "function") {
+      try {
+        el.focus();
+        if (typeof el.setSelectionRange === "function") {
+          const len = (el.value ?? "").length;
+          el.setSelectionRange(0, len);
+        }
+      } catch {
+        // ignore
+      }
+      setPendingFocusIndex(null);
+    } else {
+      // tenta novamente no próximo frame se ainda não montou
+      try {
+        if (typeof requestAnimationFrame === "function") {
+          requestAnimationFrame(() => setPendingFocusIndex((i) => i));
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }, [pendingFocusIndex, questions]);
+
   // Adiciona nova opção à pergunta de índice informado
   /**
    * Adiciona uma nova opção à pergunta indicada.
@@ -688,7 +768,24 @@ function EditTela() {
               </div>
 
               {/* Lista de perguntas com suporte a DnD */}
-              {questions.map((q, i) => (
+                  {/* Barra de inserção ANTES da primeira pergunta */}
+                  <div
+                    className="relative my-2 h-6 group hover:bg-gray-50 rounded-md transition cursor-pointer"
+                    onClick={() => insertQuestionAt(0)}
+                  >
+                    <div className="absolute inset-y-0 left-0 right-0 flex items-center">
+                      <div className="w-full h-px bg-gray-200"></div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); insertQuestionAt(0); }}
+                      className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 text-xs px-2 py-1 rounded-full bg-white border border-gray-200 shadow-sm opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-gray-50"
+                    >
+                      + Adicionar pergunta aqui
+                    </button>
+                  </div>
+
+                  {questions.map((q, i) => (
                 <React.Fragment key={q?.id ?? i}>
                   {/* Indicador de inserção ANTES do card */}
                   {dragOverIndex === i && dragOverEdge === "top" && (
@@ -698,6 +795,7 @@ function EditTela() {
                   )}
                   <div
                     className={`draggable-card border rounded-xl p-4 shadow-sm transition-all duration-200 ${q?.inativa === true ? "opacity-50" : ""} ${dragIndex === i ? "ring-2 ring-apollo-200 shadow-lg scale-[0.99] bg-gray-50" : ""} ${dragOverIndex === i ? "" : ""}`}
+                    data-q-index={i}
                     onDragOver={(e) => onDragOver(i, e)}
                     onDrop={(e) => onDrop(i, e)}
                   >
@@ -739,6 +837,7 @@ function EditTela() {
                         disabled={q?.inativa === true}
                         ariaLabel="Texto da pergunta"
                         maxChars={60}
+                        ref={(el) => { inputRefs.current[i] = el; }}
                       />
                     </div>
 
@@ -810,8 +909,30 @@ function EditTela() {
                       <div className="h-1 rounded bg-apollo-200 animate-pulse"></div>
                     </div>
                   )}
+
+                  {/* Barra de inserção ENTRE os cards (após o atual) */}
+                  <div
+                    className="relative my-2 h-6 group hover:bg-gray-50 rounded-md transition cursor-pointer"
+                    onClick={() => insertQuestionAt(i + 1)}
+                  >
+                    <div className="absolute inset-y-0 left-0 right-0 flex items-center">
+                      <div className="w-full h-px bg-gray-200"></div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); insertQuestionAt(i + 1); }}
+                      className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 text-xs px-2 py-1 rounded-full bg-white border border-gray-200 shadow-sm opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-gray-50"
+                    >
+                      + Adicionar pergunta aqui
+                    </button>
+                  </div>
                 </React.Fragment>
               ))}
+
+              {/* Barra de inserção APÓS a última pergunta (fallback extra) */}
+              {questions.length === 0 && (
+                <div className="text-sm text-gray-500">Nenhuma pergunta ainda. Use os botões para adicionar.</div>
+              )}
 
               {/* Footer Actions */}
               <div className="grid md:grid-cols-2 grid-cols-1 gap-4 mt-6">

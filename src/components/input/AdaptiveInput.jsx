@@ -1,11 +1,11 @@
-import React, { useEffect, useRef, useMemo } from "react";
+import React, { useEffect, useRef, useMemo, forwardRef } from "react";
 
 /**
  * AdaptiveInput
  * Renders an <input> for short text and switches to an auto-growing <textarea>
  * when content exceeds a character threshold or contains newlines.
  */
-function AdaptiveInput({
+const AdaptiveInput = forwardRef(function AdaptiveInput({
   value,
   onChange,
   disabled = false,
@@ -13,7 +13,7 @@ function AdaptiveInput({
   className,
   maxChars = 50,
   ariaLabel,
-}) {
+}, ref) {
   const val = value ?? "";
   const textareaRef = useRef(null);
 
@@ -38,7 +38,11 @@ function AdaptiveInput({
   if (shouldTextarea) {
     return (
       <textarea
-        ref={textareaRef}
+        ref={(el) => {
+          textareaRef.current = el;
+          if (typeof ref === "function") ref(el);
+          else if (ref) ref.current = el;
+        }}
         className={`${baseClass} overflow-hidden resize-none`}
         value={val}
         onChange={(e) => onChange?.(e.target.value)}
@@ -59,6 +63,7 @@ function AdaptiveInput({
   return (
     <input
       type="text"
+      ref={ref}
       className={baseClass}
       value={val}
       onChange={(e) => onChange?.(e.target.value)}
@@ -67,6 +72,6 @@ function AdaptiveInput({
       aria-label={ariaLabel}
     />
   );
-}
+});
 
 export default AdaptiveInput;

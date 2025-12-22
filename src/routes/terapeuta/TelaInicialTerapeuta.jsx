@@ -162,10 +162,20 @@ const TelaInicialTerapeuta = () => {
             <h2 className="font-extrabold text-2xl text-left md:col-span-2 col-span-1">
               🔎 Navegação
             </h2>
-            <div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {
+                [8, 43, 17].includes(Number(user?.profissionalId)) && (
+                  <button
+                    onClick={() => navigate("/forms-terapeuta/editar-formulario")}
+                    className="w-full bg-apollo-200 hover:bg-apollo-300 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 col-auto"
+                  >
+                    Editar Formulários
+                  </button>
+                )
+              }
               <button
                 onClick={logout}
-                className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200"
+                className="grid-auto w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200"
               >
                 Sair da Conta
               </button>
