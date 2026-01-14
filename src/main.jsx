@@ -28,6 +28,7 @@ import TelaInicialPaciente from './routes/paciente/TelaInicialPaciente.jsx'
 import FormularioGenerico from './routes/forms/FormGen.jsx'
 import EditarFormulario from './routes/terapeuta/EditarFormulario.jsx'
 import EditTela from './routes/terapeuta/EditTela.jsx'
+import JornadaPage from './routes/terapeuta/Jornada.jsx'
 
 // --- Configuração simples das Rotas com createBrowserRouter ---
 const router = createBrowserRouter([
@@ -64,6 +65,10 @@ const router = createBrowserRouter([
                         {
                             element: <EditarFormulario />,
                             path: 'editar-formulario',
+                        },
+                        {
+                            element: <JornadaPage />,
+                            path: 'jornada' 
                         },
                         {
                             element: <EditTela />,
