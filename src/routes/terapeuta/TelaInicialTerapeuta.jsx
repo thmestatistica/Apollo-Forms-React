@@ -183,8 +183,9 @@ const TelaInicialTerapeuta = () => {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {
-                // laura, tiago, teste, lou e isadora
-                [8, 43, 17, 19, 13].includes(Number(user?.profissionalId)) && (
+                // Profissional ID
+                // 15 = Lou | 13 = Isadora | 17 = Tiago | 43 = Teste | 8 = Laura
+                [8, 43, 17, 13, 15].includes(Number(user?.profissionalId)) && (
                   <button
                     onClick={() => navigate("/forms-terapeuta/editar-formulario")}
                     className="w-full bg-apollo-200 hover:bg-apollo-300 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 col-auto cursor-pointer"
