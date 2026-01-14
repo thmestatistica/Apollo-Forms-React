@@ -121,7 +121,7 @@ const JornadaPage = () => {
              
              <button 
                 onClick={() => navigate('/forms-terapeuta/tela-inicial')}
-                className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 shadow-sm cursor-pointer"
+                className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 shadow-sm cursor-pointer    "
             >
                 Voltar ao Painel
             </button>
@@ -130,26 +130,26 @@ const JornadaPage = () => {
           {/* --- Seletor de Paciente (Estilo Apollo) --- */}
           <div className="w-full">
             <label className="block font-bold text-xl text-gray-700 mb-2">
-                👤 Selecione o Paciente
+                 Selecione o Paciente
             </label>
             <select
                 value={pacienteSelecionadoId}
                 onChange={(e) => setPacienteSelecionadoId(e.target.value)}
-                className="w-full md:w-1/2 bg-gray-50 border border-gray-300 text-gray-900 text-lg rounded-lg focus:ring-apollo-300 focus:border-apollo-300 block p-3 shadow-sm transition-all"
+                className="w-full md:w-1/2 bg-gray-50 border border-gray-300 text-gray-900 text-lg rounded-lg focus:ring-apollo-300 focus:border-apollo-300 block p-3 shadow-sm transition-all cursor-pointer"
             >
-                <option value="">-- Clique para buscar --</option>
+                <option className='cursor-pointer' value="">----</option>
                 {pacientes.map((p) => (
-                    <option key={p.id} value={p.id}>{p.nome}</option>
+                    <option className='cursor-pointer' key={p.id} value={p.id}>{p.nome}</option>
                 ))}
             </select>
           </div>
 
           {pacienteSelecionadoId && pacienteDetalhes && !loadingDados ? (
-            <div className="flex flex-col gap-8 animate-fade-in w-full">
+            <div className="flex flex-col gap-8 animate-fade-in w-full cursor-pointer">
                 
                 {/* --- 📝 Dados do Paciente --- */}
                 <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm">
-                    <h2 className="font-bold text-2xl mb-4 text-gray-800">📝 Dados Cadastrais</h2>
+                    <h2 className="font-bold text-2xl mb-4 text-gray-800">Dados Cadastrais</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-700">
                         <div className='space-y-2'>
                             <p><span className="font-bold">Nome:</span> {pacienteDetalhes.nome}</p>
@@ -165,7 +165,7 @@ const JornadaPage = () => {
 
                 {/* --- 💻 Sessões de Equipamentos --- */}
                 <div>
-                    <h2 className="font-bold text-2xl mb-4 text-gray-800">💻 Sessões Realizadas (Robótica)</h2>
+                    <h2 className="font-bold text-2xl mb-4 text-gray-800">Sessões Realizadas (Robótica)</h2>
                     {stats && (
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                             <DashboardCard title="Armeo" value={stats.ARM} color="bg-blue-500" />
@@ -182,7 +182,7 @@ const JornadaPage = () => {
                 {/* --- 📅 Histórico Recente --- */}
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4">
-                        <h2 className="font-bold text-2xl text-gray-800">📅 Histórico Recente</h2>
+                        <h2 className="font-bold text-2xl text-gray-800">Histórico Recente</h2>
                         
                         {/* Filtros de Especialidade */}
                         <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-lg border border-gray-200">
@@ -226,7 +226,7 @@ const JornadaPage = () => {
                 {/* --- 🧘 Prontuário (Placeholder Visual) --- */}
                 <div className="mt-4">
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="font-bold text-2xl text-gray-800">🧘 Prontuário Clínico</h2>
+                        <h2 className="font-bold text-2xl text-gray-800">Prontuário Clínico</h2>
                         <button className="text-apollo-300 hover:text-apollo-400 font-bold text-sm flex items-center gap-1 transition-colors">
                             🔄 Atualizar
                         </button>
@@ -294,7 +294,7 @@ const AppointmentRow = ({ ag }) => {
             {/* Centro: Profissional */}
             <div className="flex flex-col md:items-start">
                 <span className="font-bold text-gray-700 flex items-center gap-2">
-                    🧑‍⚕️ {profissionalNome}
+                     {profissionalNome}
                 </span>
                 <span className="text-xs text-apollo-300 font-bold uppercase tracking-wide bg-apollo-50 px-2 py-0.5 rounded w-fit">
                     {especialidade}
