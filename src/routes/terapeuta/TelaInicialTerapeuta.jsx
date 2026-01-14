@@ -111,6 +111,25 @@ const TelaInicialTerapeuta = () => {
     fetchAgendamentosPendentes();
   }, [user?.profissionalId, user?.id, user?.usuarioId]);
 
+  // Função para confirmar o logout
+  const handleLogout = () => {
+    Swal.fire({
+      title: 'Tem certeza que quer sair?',
+      text: "Você precisará fazer login novamente para acessar.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444', // Vermelho (combina com o botão)
+      cancelButtonColor: '#6b7280', // Cinza neutro
+      confirmButtonText: 'Sim, sair',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        logout();
+      }
+    });
+  };
+
   // Enquanto qualquer fetch inicial não resolveu, mostrar loading global
   const carregandoInicial = !agendamentosCarregados || !pendenciasCarregadas;
 
@@ -175,8 +194,14 @@ const TelaInicialTerapeuta = () => {
                 )
               }
               <button
-                onClick={logout}
-                className="grid-auto w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200"
+                onClick={() => navigate("/forms-terapeuta/jornada")}
+                className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 cursor-pointer"
+              >
+                Jornada
+              </button>
+              <button
+                onClick={handleLogout}
+                className="grid-auto w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 cursor-pointer"
               >
                 Sair da Conta
               </button>

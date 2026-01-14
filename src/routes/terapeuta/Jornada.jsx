@@ -121,7 +121,7 @@ const JornadaPage = () => {
              
              <button 
                 onClick={() => navigate('/forms-terapeuta/tela-inicial')}
-                className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 shadow-sm"
+                className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 shadow-sm cursor-pointer"
             >
                 Voltar ao Painel
             </button>
