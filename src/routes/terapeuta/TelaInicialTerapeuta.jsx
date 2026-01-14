@@ -149,13 +149,13 @@ const TelaInicialTerapeuta = () => {
 
           {/* Área de agendamentos */}
           <div className="flex flex-col gap-4 col-span-1 md:row-span-3">
-            <h2 className="font-bold text-2xl">📅 Agendamentos de Hoje</h2>
+            <h2 className="font-bold text-2xl">Agendamentos de Hoje</h2>
 
             {carregandoAgendamentos && <InfoGen message="⏳ Carregando agendamentos..." />}
             {erroAgendamentos && <InfoGen message={erroAgendamentos} />}
             {!carregandoAgendamentos && !erroAgendamentos && (
               agendamentos.length === 0 ? (
-                <InfoGen message="📑 Nenhum agendamento para hoje." />
+                <InfoGen message="Nenhum agendamento para hoje." />
               ) : (
                 <AgenPag agendamentos={agendamentos} />
               )
@@ -164,12 +164,12 @@ const TelaInicialTerapeuta = () => {
 
           {/* Área de evoluções pendentes */}
           <div className="flex flex-col gap-4 col-span-1 md:row-span-3 h-full">
-            <h2 className="font-bold text-2xl">📝 Evoluções/Avaliações Pendentes</h2>
+            <h2 className="font-bold text-2xl">Evoluções/Avaliações Pendentes</h2>
             {carregandoPendencias && <InfoGen message="⏳ Carregando pendências..." />}
             {erroPendencias && <InfoGen message={erroPendencias} />}
             {!carregandoPendencias && !erroPendencias && (
               agendamentosPendentes.length === 0 ? (
-                <InfoGen message="🗒️ Nenhuma evolução ou avaliação pendente." />
+                <InfoGen message="Nenhuma evolução ou avaliação pendente." />
               ) : (
                 <EvoPag pendenciasLista={agendamentosPendentes} />
               )
@@ -179,7 +179,7 @@ const TelaInicialTerapeuta = () => {
           {/* Área de Navegação */}
           <div className="flex flex-col row-span-1 md:col-span-2 gap-5">
             <h2 className="font-extrabold text-2xl text-left md:col-span-2 col-span-1">
-              🔎 Navegação
+              Navegação
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {

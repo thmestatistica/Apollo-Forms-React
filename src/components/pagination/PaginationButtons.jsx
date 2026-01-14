@@ -27,7 +27,7 @@ const PaginationButtons = ({ currentPage, totalPages, onPrev, onNext }) => {
       <div className="flex items-center gap-4">
         {/* Botão para página anterior */}
         <button
-          className="px-3 py-1 bg-apollo-200 text-white rounded-md transition-all hover:bg-apollo-300 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="px-3 py-1 bg-apollo-200 text-white rounded-md transition-all hover:bg-apollo-300 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           disabled={currentPage === 1}
           onClick={onPrev}
         >
@@ -41,7 +41,7 @@ const PaginationButtons = ({ currentPage, totalPages, onPrev, onNext }) => {
 
         {/* Botão para próxima página */}
         <button
-          className="px-3 py-1 bg-apollo-200 text-white rounded-md transition-all hover:bg-apollo-300 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="px-3 py-1 bg-apollo-200 text-white rounded-md transition-all hover:bg-apollo-300 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           disabled={currentPage === totalPages}
           onClick={onNext}
         >

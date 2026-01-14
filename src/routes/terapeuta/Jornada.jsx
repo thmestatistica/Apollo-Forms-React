@@ -243,8 +243,7 @@ const JornadaPage = () => {
             /* Estado Vazio */
             !loadingDados && (
                 <div className="flex flex-col items-center justify-center py-24 opacity-50">
-                    <span className="text-8xl mb-6">🔍</span>
-                    <p className="text-3xl font-extrabold text-gray-300">Aguardando Seleção</p>
+                    <p className="text-3xl font-extrabold text-gray-300">Aguardando Seleção do Paciente</p>
                 </div>
             )
           )}

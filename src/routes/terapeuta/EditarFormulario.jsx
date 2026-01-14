@@ -110,17 +110,27 @@ function EditarFormulario() {
             ✍️ Editar Formulário
           </h1>
 
-          {/* Filtro por Tipo */}
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold">Filtrar por tipo de formulário</label>
-            <MultiSelect
-              options={tipoOptions}
-              value={selectedTipos}
-              onChange={setSelectedTipos}
-              placeholder="Selecione um ou mais tipos"
-              className="text-sm"
-            />
+          <div className="flex items-end justify-between gap-6">
+            {/* Filtro por Tipo */}
+            <div className="flex flex-col gap-2 w-full">
+              <label className="text-sm font-semibold">Filtrar por tipo de formulário</label>
+              <MultiSelect
+                options={tipoOptions}
+                value={selectedTipos}
+                onChange={setSelectedTipos}
+                placeholder="Selecione um ou mais tipos"
+                className="text-sm"
+              />
+            </div>
+
+            <button 
+              onClick={() => navigate('/forms-terapeuta/tela-inicial')}
+              className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 shadow-sm cursor-pointer"
+            >
+              Voltar ao Painel
+            </button>
           </div>
+
 
           {/* Status de carregamento/erro */}
           {loading && (
@@ -145,9 +155,9 @@ function EditarFormulario() {
                     </div>
                     <button
                       onClick={() => handleEdit(f)}
-                      className="mt-4 w-full py-2 px-3 rounded-lg bg-apollo-200 text-white font-semibold hover:bg-apollo-300 active:scale-[0.99]"
+                      className="mt-4 w-full py-2 px-3 rounded-lg bg-apollo-200 text-white font-semibold hover:bg-apollo-300 active:scale-[0.99] cursor-pointer"
                     >
-                      ✍️ Editar
+                      Editar
                     </button>
                   </div>
                 ))
