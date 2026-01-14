@@ -97,7 +97,11 @@ function AgenCard({ agendamentosPaginados = [] }) {
                       className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-800 font-medium px-2 py-1 rounded-full transition-colors"
                       title="Abrir formulário da escala"
                     >
-                      {escala?.nome ?? escala?.titulo ?? `Escala ${escala.id}`}
+                      {escala?.formulario?.nomeEscala 
+                        ?? escala?.nome 
+                        ?? escala?.titulo 
+                        ?? `Escala ${escala.id}`}
+
                     </button>
                   ))}
                 </div>
