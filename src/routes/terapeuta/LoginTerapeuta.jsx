@@ -24,8 +24,10 @@ const LoginTerapeuta = () => {
         setError('');
         setSucesso('');
 
+        const cleanUsername = username.trim();
+
         // 2. Validação local (Antes de chamar API)
-        if (!username.trim() || !password.trim()) {
+        if (!cleanUsername || !password.trim()) {
             setError('Por favor, preencha usuário e senha.');
             return;
         }
@@ -34,7 +36,7 @@ const LoginTerapeuta = () => {
         setLoading(true);
 
         try {
-            const usuario = { username, password };
+            const usuario = { username: cleanUsername, password };
             const result = await login(usuario, tipo, { redirect: true, delayMs: 800 });
             
             if (result.success) {
