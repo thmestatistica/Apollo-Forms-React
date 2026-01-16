@@ -29,6 +29,8 @@ import FormularioGenerico from './routes/forms/FormGen.jsx'
 import EditarFormulario from './routes/terapeuta/EditarFormulario.jsx'
 import EditTela from './routes/terapeuta/EditTela.jsx'
 import JornadaPage from './routes/terapeuta/Jornada.jsx'
+import VisualizarFormulario from './routes/terapeuta/VisualizarFormulario.jsx'
+import VisualizarListaFormulario from './routes/terapeuta/VisualizarListaFormularios.jsx'
 
 // --- Configuração simples das Rotas com createBrowserRouter ---
 const router = createBrowserRouter([
@@ -71,6 +73,14 @@ const router = createBrowserRouter([
                             path: 'jornada' 
                         },
                         {
+                            element: <VisualizarFormulario />,
+                            path: 'visualizar-formulario/:id' 
+                        },
+                        {
+                            element: <VisualizarListaFormulario />,
+                            path: 'visualizar-formularios' 
+                        },
+                        {
                             element: <EditTela />,
                             path: "editar-formulario/:id_form"
                         }
@@ -97,7 +107,6 @@ const router = createBrowserRouter([
     ]
 }])
 
-// Renderizando a aplicação com o RouterProvider
 // Renderizando a aplicação com o RouterProvider
 createRoot(document.getElementById('root')).render(
   <StrictMode>

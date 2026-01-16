@@ -37,6 +37,8 @@ const LoginTerapeuta = () => {
         } else {
             setError('Falha no login. Verifique suas credenciais.');
             console.error('Erro no login do terapeuta:', result.error);
+
+            setLoading(false);
         }
     };
 

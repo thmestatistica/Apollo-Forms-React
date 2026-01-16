@@ -182,23 +182,29 @@ const TelaInicialTerapeuta = () => {
               Navegação
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <button
+                onClick={() => navigate("/forms-terapeuta/jornada")}
+                className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 cursor-pointer"
+              >
+                Jornada
+              </button>
               {
                 // Profissional ID
                 // 15 = Lou | 13 = Isadora | 17 = Tiago | 43 = Teste | 8 = Laura | 40 = Caetano MAXIMUSSSS
                 [8, 43, 17, 13, 15, 40].includes(Number(user?.profissionalId)) && (
                   <button
                     onClick={() => navigate("/forms-terapeuta/editar-formulario")}
-                    className="w-full bg-apollo-200 hover:bg-apollo-300 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 col-auto cursor-pointer"
+                    className="w-full bg-apollo-200 hover:bg-apollo-800 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 col-auto cursor-pointer"
                   >
                     Editar Formulários
                   </button>
                 )
               }
               <button
-                onClick={() => navigate("/forms-terapeuta/jornada")}
-                className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 cursor-pointer"
+                onClick={()=> navigate("/forms-terapeuta/visualizar-formularios")}
+                className="grid-auto w-full bg-amber-500 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 cursor-pointer"
               >
-                Jornada
+                Visualizar Formulários
               </button>
               <button
                 onClick={handleLogout}
@@ -206,6 +212,7 @@ const TelaInicialTerapeuta = () => {
               >
                 Sair da Conta
               </button>
+              
             </div>
           </div>
           

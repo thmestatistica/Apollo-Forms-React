@@ -731,6 +731,21 @@ function EditTela() {
         <div ref={scrollRef} className="bg-white h-full rounded-xl flex flex-col gap-6 xl:shadow-md w-full md:p-8 p-4 overflow-y-auto">
           <div className="flex items-center justify-between">
             <h1 className="font-extrabold text-3xl md:text-4xl">✍️ Editar Formulário</h1>
+            <button
+              type="button"
+              onClick={() => navigate(`/forms-terapeuta/visualizar-formulario/${id_form}`)}
+              className="bg-apollo-200 hover:bg-apollo-300 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-sm cursor-pointer flex items-center gap-2 flex-1 md:flex-none"
+              title="Visualizar como o usuário verá este formulário"
+            >
+              👁️ Visualizar Modo Leitura
+            </button>
+            <button
+                type="button"
+                onClick={() => navigate('/forms-terapeuta/editar-formulario')} // Volta para a lista de edição
+                className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 shadow-sm cursor-pointer"
+            >
+                Voltar
+            </button>
           </div>
           <p className="text-apollo-200/80">Formulário ID: <span className="font-semibold">{id_form}</span></p>
 

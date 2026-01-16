@@ -2,16 +2,10 @@ import React, { useMemo } from 'react';
 import { useNavigate } from "react-router-dom";
 import LoadingGen from "../../components/info/LoadingGen.jsx";
 import InfoGen from "../../components/info/InfoGen.jsx";
-
-// Hook
 import { useJornadaController } from "../../hooks/useJornadaController";
-
-// UI Components (Ajuste o caminho se necessário!)
-// Se JornadaUI.jsx estiver na mesma pasta que Jornada.jsx, use "./components/JornadaUI"
 import { DashboardCard, DayCard, ProntuarioItem, Pagination, SearchableSelect } from "../../components/jornada/JornadaUI.jsx";
 
 // Utils
-// 👇 IMPORT RENOMEADO
 import { formatarDataHora } from "../../utils/jornada/format";
 import { calcularIdade } from "../../utils/jornada/stats";
 
@@ -51,7 +45,6 @@ const JornadaPage = () => {
       return Object.values(grupos).sort((a, b) => b.dataOriginal - a.dataOriginal);
   }, [agendamentos, especialidadeFiltro]);
 
-  // ... (Resto do código igual ao anterior: diasPaginados, specsProntuario, prontuarioPaginado, return JSX) ...
   const diasPaginados = useMemo(() => {
       const start = (histPage - 1) * histLimit;
       return historicoAgrupado.slice(start, start + histLimit);
