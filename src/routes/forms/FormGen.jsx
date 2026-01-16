@@ -17,6 +17,7 @@ import { remover_presenca_profissional } from "../../api/profissionais/profissio
 import { concluir_pendencia_escala } from "../../api/pendencias/pendencias_utils";
 import { useAuth } from "../../hooks/useAuth";
 import { useFormContext } from "../../hooks/useFormContext";
+import Swal from "sweetalert2";
 
 const FormularioGenerico = () => {
     const { id_form, tipo_form } = useParams();
@@ -138,9 +139,15 @@ const FormularioGenerico = () => {
         }
 
         if (obrigatoriosFaltando.length > 0) {
-            alert(`Preencha os campos obrigatórios antes de enviar:\n\n- ${obrigatoriosFaltando.join("\n- ")}`);
-            setSubmitting(false);
-            return;
+            Swal.fire({
+                    icon: 'warning',
+                    title: 'Campos Obrigatórios',
+                    html: `<div style="text-align: left;">Preencha os seguintes campos antes de enviar: <br><br><b>- ${obrigatoriosFaltando.join("<br>- ")}</b></div>`,
+                    confirmButtonColor: '#7C3AED',
+                    confirmButtonText: 'Entendido'
+                });
+                setSubmitting(false);
+                return;
         }
 
         // =====================
@@ -201,9 +208,15 @@ const FormularioGenerico = () => {
         // 4. Tratamento de Erros
         // =====================
         if (houveErro) {
-            alert(`Erros encontrados ao enviar formulário:\n\n- ${mensagensErro.join("\n- ")}`);
+            Swal.fire({
+                icon: 'error',
+                title: 'Falha no Envio',
+                html: `<div style="text-align: left;">Encontramos os seguintes problemas: <br><br><b>- ${mensagensErro.join("<br>- ")}</b></div>`,
+                confirmButtonColor: '#EF4444',
+                confirmButtonText: 'Tentar Novamente'
+            });
             setSubmitting(false);
-            return; // Não navega
+            return;
         }
 
         // =====================
@@ -214,11 +227,35 @@ const FormularioGenerico = () => {
                 resultados.removerPresenca = await remover_presenca_profissional(profissional_id, agendamento_id);
                 if (!resultados.removerPresenca?.ok) {
                     // Falha não crítica: alerta mas continua fluxo
-                    alert("Formulário salvo, porém falha ao remover presença do profissional.");
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                    Toast.fire({
+                        icon: 'info',
+                        title: 'Salvo, mas houve uma falha interna ao remover presença.'
+                    });
                 }
             } catch (errRem) {
                 console.error("Erro ao remover presença:", errRem);
-                alert("Formulário salvo, porém erro inesperado ao remover presença do profissional.");
+    
+                // Alerta profissional para erro inesperado (Non-blocking)
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 4000,
+                    timerProgressBar: true
+                });
+
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Formulário salvo!',
+                    text: 'Porém, ocorreu um erro inesperado ao processar a presença.'
+                });
             }
         }
 

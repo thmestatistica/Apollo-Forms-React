@@ -1,13 +1,6 @@
-/**
- * TelaInicialTerapeuta
- * ------------------------
- * Exibe o painel do terapeuta com os agendamentos do dia atual.
- * Cada agendamento mostra data, horário, paciente e equipamento.
- */
-// Componentes
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../../hooks/useAuth.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
 import { useFormContext } from "../../hooks/useFormContext";
 import AgenPag from "../../components/agenda/AgenPag.jsx";
 import InfoGen from "../../components/info/InfoGen";
@@ -16,44 +9,42 @@ import LoadingGen from "../../components/info/LoadingGen.jsx";
 import { listar_agendamentos_filtrados, agendamentos_pendentes } from "../../api/agenda/agenda_utils.js";
 import Swal from "sweetalert2";
 
-// Componente principal
 const TelaInicialTerapeuta = () => {
 
   const { logout, user } = useAuth();
+  
+  // Lógica de Permissão
+  const EDITORES_PERMITIDOS = [8, 43, 17, 13, 15, 40];
+  const podeEditar = EDITORES_PERMITIDOS.includes(Number(user?.profissionalId));
+
   const location = useLocation();
   const navigate = useNavigate();
   const { openModal, pendenciaSelecionada } = useFormContext();
 
-  // Estado para armazenar agendamentos carregados da API
   const [agendamentos, setAgendamentos] = useState([]);
   const [agendamentosPendentes, setAgendamentosPendentes] = useState([]);
-
-  // Estados de carregamento separados
+  
   const [carregandoAgendamentos, setCarregandoAgendamentos] = useState(false);
   const [carregandoPendencias, setCarregandoPendencias] = useState(false);
-
-  // Erros separados
+  
   const [erroAgendamentos, setErroAgendamentos] = useState(null);
   const [erroPendencias, setErroPendencias] = useState(null);
-
-  // Flags para saber se já houve a primeira resolução de cada fetch
+  
   const [agendamentosCarregados, setAgendamentosCarregados] = useState(false);
   const [pendenciasCarregadas, setPendenciasCarregadas] = useState(false);
 
-  // Carrega agendamentos ao montar o componente
+  // 1. Fetch Agendamentos
   useEffect(() => {
     const fetchAgendamentos = async () => {
       setCarregandoAgendamentos(true);
       setErroAgendamentos(null);
       try {
-        // Usa id do usuário se disponível para filtrar; ajuste conforme estrutura real do objeto user
         const usuarioId = user?.id ?? user?.usuarioId ?? user?.idUsuario;
-        const startDate = new Date().toISOString().split('T')[0]; // Data atual no formato YYYY-MM-DD
-        console.log("Buscando agendamentos para usuárioId:", usuarioId, "e startDate:", startDate);
+        const startDate = new Date().toISOString().split('T')[0];
         const dados = await listar_agendamentos_filtrados({ usuarioId, startDate });
         setAgendamentos(dados || []);
       } catch (err) {
-        console.error("Erro ao carregar agendamentos", err);
+        console.error("Erro agenda", err);
         setErroAgendamentos("Falha ao carregar agendamentos.");
       } finally {
         setCarregandoAgendamentos(false);
@@ -64,34 +55,29 @@ const TelaInicialTerapeuta = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Ao voltar do formulário: mostrar sucesso (se houver) e reabrir modal
+  // 2. Feedback Ações
   useEffect(() => {
     const { reopenModal, formSuccess, formTitulo } = location.state || {};
-
     const run = async () => {
       if (formSuccess) {
         await Swal.fire({
           icon: "success",
           title: "Enviado com sucesso!",
           text: formTitulo ? `${formTitulo} foi salvo corretamente.` : "As respostas foram salvas corretamente.",
-          confirmButtonColor: "#7C3AED", // apollo-200 vibe
+          confirmButtonColor: "#7C3AED",
         });
       }
-
       if (reopenModal && pendenciaSelecionada) {
         openModal(pendenciaSelecionada);
       }
-
       if (reopenModal || formSuccess) {
-        // Limpa o state para não repetir a ação ao navegar
         navigate(location.pathname, { replace: true, state: {} });
       }
     };
-
     run();
   }, [location.state, location.pathname, pendenciaSelecionada, openModal, navigate]);
 
-
+  // 3. Fetch Pendências
   useEffect(() => {
     const fetchAgendamentosPendentes = async () => {
       setCarregandoPendencias(true);
@@ -101,8 +87,8 @@ const TelaInicialTerapeuta = () => {
         const dados = await agendamentos_pendentes(profissionalId);
         setAgendamentosPendentes(dados || []);
       } catch (err) {
-        console.error("Erro ao carregar agendamentos pendentes", err);
-        setErroPendencias("Falha ao carregar agendamentos pendentes.");
+        console.error("Erro pendências", err);
+        setErroPendencias("Falha ao carregar pendências.");
       } finally {
         setCarregandoPendencias(false);
         setPendenciasCarregadas(true);
@@ -111,45 +97,43 @@ const TelaInicialTerapeuta = () => {
     fetchAgendamentosPendentes();
   }, [user?.profissionalId, user?.id, user?.usuarioId]);
 
-  // Função para confirmar o logout
   const handleLogout = () => {
     Swal.fire({
       title: 'Tem certeza que quer sair?',
       text: "Você precisará fazer login novamente para acessar.",
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#ef4444', // Vermelho (combina com o botão)
-      cancelButtonColor: '#6b7280', // Cinza neutro
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
       confirmButtonText: 'Sim, sair',
       cancelButtonText: 'Cancelar',
       reverseButtons: true
     }).then((result) => {
-      if (result.isConfirmed) {
-        logout();
-      }
+      if (result.isConfirmed) logout();
     });
   };
 
-  // Enquanto qualquer fetch inicial não resolveu, mostrar loading global
   const carregandoInicial = !agendamentosCarregados || !pendenciasCarregadas;
 
-  if (carregandoInicial) {
-    return <LoadingGen mensagem="Carregando painel do terapeuta..." />;
-  }
+  if (carregandoInicial) return <LoadingGen mensagem="Carregando painel do terapeuta..." />;
 
   return (
     <div className="flex flex-col items-center justify-center h-screen gap-8">
       <div className="w-screen h-full flex flex-col gap-12 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-4 p-2 xl:shadow-lg items-center">
         <div className="bg-white h-full rounded-xl grid md:grid-cols-2 grid-cols-1 auto-rows-min gap-6 xl:shadow-md justify-center items-start w-full md:p-8 p-4 overflow-y-auto">
           
-          {/* Título */}
-          <h1 className="font-extrabold text-4xl md:text-left md:col-span-2 col-span-1 text-center">
-            🧑‍⚕️ Painel do Terapeuta
+          {/* Título com animação sutil */}
+          <h1 className="font-extrabold text-4xl md:text-left md:col-span-2 col-span-1 text-center animate-fade-in-down">
+            <span className="bg-clip-text text-transparent bg-linear-to-r from-gray-800 to-gray-500">Painel do Terapeuta</span>
           </h1>
 
-          {/* Área de agendamentos */}
-          <div className="flex flex-col gap-4 col-span-1 md:row-span-3">
-            <h2 className="font-bold text-2xl">Agendamentos de Hoje</h2>
+          {/* Área de agendamentos - Adicionei borda leve e hover effect */}
+          <div className="
+            flex flex-col gap-4 col-span-1 md:row-span-3 
+            bg-white border border-gray-100 rounded-xl p-4
+            shadow-sm hover:shadow-md transition-all duration-300
+          ">
+            <h2 className="font-bold text-2xl text-gray-800">📅 Agendamentos de Hoje</h2>
 
             {carregandoAgendamentos && <InfoGen message="⏳ Carregando agendamentos..." />}
             {erroAgendamentos && <InfoGen message={erroAgendamentos} />}
@@ -162,9 +146,14 @@ const TelaInicialTerapeuta = () => {
             )}
           </div>
 
-          {/* Área de evoluções pendentes */}
-          <div className="flex flex-col gap-4 col-span-1 md:row-span-3 h-full">
-            <h2 className="font-bold text-2xl">Evoluções/Avaliações Pendentes</h2>
+          {/* Área de evoluções pendentes - Adicionei borda leve e hover effect */}
+          <div className="
+            flex flex-col gap-4 col-span-1 md:row-span-3 h-full
+            bg-white border border-gray-100 rounded-xl p-4
+            shadow-sm hover:shadow-md transition-all duration-300
+          ">
+            <h2 className="font-bold text-2xl text-gray-800">⚠️ Pendências</h2>
+            
             {carregandoPendencias && <InfoGen message="⏳ Carregando pendências..." />}
             {erroPendencias && <InfoGen message={erroPendencias} />}
             {!carregandoPendencias && !erroPendencias && (
@@ -177,40 +166,64 @@ const TelaInicialTerapeuta = () => {
           </div>
 
           {/* Área de Navegação */}
-          <div className="flex flex-col row-span-1 md:col-span-2 gap-5">
-            <h2 className="font-extrabold text-2xl text-left md:col-span-2 col-span-1">
+          <div className="flex flex-col row-span-1 md:col-span-2 gap-5 pt-4 border-t border-gray-100 mt-2">
+            <h2 className="font-extrabold text-2xl text-left md:col-span-2 col-span-1 text-gray-800">
               Navegação
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              
               <button
                 onClick={() => navigate("/forms-terapeuta/jornada")}
-                className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 cursor-pointer"
+                className="
+                  w-full bg-indigo-500 hover:bg-indigo-600 text-white 
+                  font-bold py-3 px-4 rounded-xl 
+                  shadow-md hover:shadow-lg hover:shadow-indigo-200/40 
+                  hover:-translate-y-0.5 active:scale-95 
+                  transition-all duration-200 cursor-pointer flex items-center justify-center gap-2
+                "
               >
-                Jornada
+                <span>💫</span> Jornada
               </button>
-              {
-                // Profissional ID
-                // 15 = Lou | 13 = Isadora | 17 = Tiago | 43 = Teste | 8 = Laura | 40 = Caetano MAXIMUSSSS
-                [8, 43, 17, 13, 15, 40].includes(Number(user?.profissionalId)) && (
-                  <button
-                    onClick={() => navigate("/forms-terapeuta/editar-formulario")}
-                    className="w-full bg-apollo-200 hover:bg-apollo-800 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 col-auto cursor-pointer"
-                  >
-                    Editar Formulários
-                  </button>
-                )
-              }
+              
+              {podeEditar &&(
+                <button
+                  onClick={() => navigate("/forms-terapeuta/editar-formulario")}
+                  className="
+                    w-full bg-apollo-200 hover:bg-apollo-300 text-white 
+                    font-bold py-3 px-4 rounded-xl 
+                    shadow-md hover:shadow-lg hover:shadow-apollo-200/40 
+                    hover:-translate-y-0.5 active:scale-95 
+                    transition-all duration-200 col-auto cursor-pointer flex items-center justify-center gap-2
+                  "
+                >
+                  <span>✍️</span> Editar Forms
+                </button>
+              )}
+
               <button
                 onClick={()=> navigate("/forms-terapeuta/visualizar-formularios")}
-                className="grid-auto w-full bg-amber-500 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 cursor-pointer"
+                className="
+                  w-full bg-amber-500 hover:bg-amber-600 text-white 
+                  font-bold py-3 px-4 rounded-xl 
+                  shadow-md hover:shadow-lg hover:shadow-amber-200/40 
+                  hover:-translate-y-0.5 active:scale-95 
+                  transition-all duration-200 cursor-pointer flex items-center justify-center gap-2
+                "
               >
-                Visualizar Formulários
+                <span>👁️</span> Visualizar Forms
               </button>
+
               <button
                 onClick={handleLogout}
-                className="grid-auto w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 cursor-pointer"
+                className="
+                  w-full bg-red-500 hover:bg-red-600 text-white 
+                  font-bold py-3 px-4 rounded-xl 
+                  shadow-md hover:shadow-lg hover:shadow-red-200/40 
+                  hover:-translate-y-0.5 active:scale-95 
+                  transition-all duration-200 cursor-pointer flex items-center justify-center gap-2
+                "
               >
-                Sair da Conta
+                <span>↩ </span> Sair da Conta
               </button>
               
             </div>

@@ -116,7 +116,7 @@ const VisualizarFormulario = () => {
                                     onClick={handleGoToEdit}
                                     className="flex-1 md:flex-none bg-apollo-200 hover:bg-apollo-300 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2"
                                 >
-                                    ✏️ Editar
+                                    ✏️ Editar Formulário
                                 </button>
                             )}  
 

@@ -631,12 +631,17 @@ function EditTela() {
   const save = async () => {
     setSuccess("");
     setError("");
+    
+    // 1. Validação
     const errs = validate();
     if (errs.length) {
       setError(errs.join("\n"));
       return;
     }
+    
     setSaving(true);
+
+    // 2. Preparação do Payload
     const payload = questions.map((q, idx) => ({
       id: q?.id,
       texto_pergunta: q?.texto,
@@ -645,14 +650,14 @@ function EditTela() {
       opcoes_resposta: q?.opcoes ?? [],
       inativa: q?.inativa === true,
     }));
-    // Diff dos detalhes do formulário (somente primitivos editáveis)
+
+    // 3. Diff dos detalhes (Metadados)
     let detailsRes = { ok: true };
     try {
       if (formInfo && formInfoEdit) {
         const diff = {};
         for (const [k, v] of Object.entries(formInfoEdit)) {
           const kk = String(k).toLowerCase();
-          // Mesma regra de exclusão usada na renderização
           if (
             kk === "pagina_streamlit" ||
             kk === "id" ||
@@ -671,57 +676,43 @@ function EditTela() {
       detailsRes = { ok: false, error: e };
     }
 
+    // 4. Envio das Perguntas
     const perguntasRes = await upsert_perguntas_form(id_form, payload);
     setSaving(false);
+
     if (detailsRes?.ok && perguntasRes?.ok) {
-      setSuccess("Formulário e perguntas atualizados com sucesso!");
-      try {
-        await Swal.fire({
-          title: "Sucesso",
-          text: "Formulário atualizado com sucesso!",
-          icon: "success",
-          confirmButtonText: "OK",
-        });
-      } catch {
-        // ignore
+      setSuccess("Formulário salvo com sucesso!");
+      
+      const result = await Swal.fire({
+        title: "Salvo com Sucesso! 🎉",
+        text: "As alterações foram aplicadas. O que deseja fazer agora?",
+        icon: "success",
+        showCancelButton: true,
+        confirmButtonColor: "#3B82F6", // Azul (Visualizar)
+        cancelButtonColor: "#6B7280", // Cinza (Voltar)
+        confirmButtonText: "👁️ Visualizar Formulário",
+        cancelButtonText: "Voltar para Lista",
+        reverseButtons: true
+      });
+
+      if (result.isConfirmed) {
+        // Vai para a tela de visualização (Sandbox)
+        navigate(`/forms-terapeuta/visualizar-formulario/${id_form}`);
+      } else {
+        // Volta para a lista de edição
+        navigate('/forms-terapeuta/editar-formulario');
       }
-      navigate('/forms-terapeuta/editar-formulario');
+
     } else if (!detailsRes?.ok && !perguntasRes?.ok) {
-      try {
-        await Swal.fire({
-          title: "Erro",
-          text: "Falha ao salvar detalhes e perguntas.",
-          icon: "error",
-          confirmButtonText: "OK",
-        });
-      } catch {
-        // ignore
-      }
-      setError("Falha ao salvar detalhes e perguntas.");
+        // Tratamento de Erros (Mantido igual)
+        Swal.fire({ title: "Erro", text: "Falha ao salvar tudo.", icon: "error" });
+        setError("Falha ao salvar detalhes e perguntas.");
     } else if (!detailsRes?.ok) {
-      try {
-        await Swal.fire({
-          title: "Erro",
-          text: "Perguntas salvas, mas falhou ao salvar detalhes do formulário.",
-          icon: "error",
-          confirmButtonText: "OK",
-        });
-      } catch {
-        // ignore
-      }
-      setError("Perguntas salvas, mas falhou ao salvar detalhes do formulário.");
+        Swal.fire({ title: "Erro Parcial", text: "Perguntas salvas, erro nos detalhes.", icon: "warning" });
+        setError("Perguntas salvas, mas falhou ao salvar detalhes.");
     } else {
-      try {
-        await Swal.fire({
-          title: "Erro",
-          text: "Detalhes salvos, mas falhou ao salvar perguntas.",
-          icon: "error",
-          confirmButtonText: "OK",
-        });
-      } catch {
-        // ignore
-      }
-      setError("Detalhes salvos, mas falhou ao salvar perguntas.");
+        Swal.fire({ title: "Erro Parcial", text: "Detalhes salvos, erro nas perguntas.", icon: "warning" });
+        setError("Detalhes salvos, mas falhou ao salvar perguntas.");
     }
   };
 
@@ -729,23 +720,39 @@ function EditTela() {
     <div className="flex flex-col items-center justify-center h-screen gap-8">
       <div className="w-screen h-full flex flex-col gap-4 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-4 p-2 xl:shadow-lg items-center">
         <div ref={scrollRef} className="bg-white h-full rounded-xl flex flex-col gap-6 xl:shadow-md w-full md:p-8 p-4 overflow-y-auto">
-          <div className="flex items-center justify-between">
-            <h1 className="font-extrabold text-3xl md:text-4xl">✍️ Editar Formulário</h1>
-            <button
-              type="button"
-              onClick={() => navigate(`/forms-terapeuta/visualizar-formulario/${id_form}`)}
-              className="bg-apollo-200 hover:bg-apollo-300 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-sm cursor-pointer flex items-center gap-2 flex-1 md:flex-none"
-              title="Visualizar como o usuário verá este formulário"
-            >
-              👁️ Visualizar Modo Leitura
-            </button>
-            <button
-                type="button"
-                onClick={() => navigate('/forms-terapeuta/editar-formulario')} // Volta para a lista de edição
-                className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 shadow-sm cursor-pointer"
-            >
-                Voltar
-            </button>
+          {/* 👇 CABEÇALHO ATUALIZADO: Layout organizado + Cores padrão do sistema */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b pb-4 mb-6">
+            
+            {/* Lado Esquerdo: Título */}
+            <div className="flex flex-col">
+                <h1 className="font-extrabold text-3xl md:text-4xl text-gray-800">✍️ Editar Formulário</h1>
+                <p className="text-apollo-200/80 text-sm mt-1">
+                  ID: <span className="font-semibold">{id_form}</span>
+                </p>
+            </div>
+
+            {/* Lado Direito: Botões (Estilo igual ao Painel e Lista) */}
+            <div className="flex gap-2 w-full md:w-auto">
+                
+                {/* Botão Visualizar (Estilo Apollo) */}
+                <button
+                    type="button"
+                    onClick={() => navigate(`/forms-terapeuta/visualizar-formulario/${id_form}`)}
+                    className="flex-1 md:flex-none bg-apollo-200 hover:bg-apollo-300 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2"
+                    title="Visualizar modo leitura"
+                >
+                    👁️ Ver Formulário
+                </button>
+
+                {/* Botão Voltar (Estilo Vermelho Padrão) */}
+                <button
+                    type="button"
+                    onClick={() => navigate('/forms-terapeuta/editar-formulario')}
+                    className="flex-1 md:flex-none bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 shadow-sm cursor-pointer flex items-center justify-center"
+                >
+                    Voltar
+                </button>
+            </div>
           </div>
           <p className="text-apollo-200/80">Formulário ID: <span className="font-semibold">{id_form}</span></p>
 
@@ -949,20 +956,31 @@ function EditTela() {
                 <div className="text-sm text-gray-500">Nenhuma pergunta ainda. Use os botões para adicionar.</div>
               )}
 
-              {/* Footer Actions */}
-              <div className="grid md:grid-cols-2 grid-cols-1 gap-4 mt-6">
+              {/* Footer Action*/}
+              <div className="flex flex-col sm:flex-row gap-3 justify-end mt-8 pt-6 border-t border-gray-100">
+                
+                {/* Botão Cancelar */}
                 <button
-                  className="py-2 px-3 rounded-lg bg-gray-100 hover:bg-gray-200"
+                  className="px-6 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors shadow-sm"
                   onClick={() => navigate(-1)}
                 >
                   Cancelar
                 </button>
+
+                {/* Botão Salvar */}
                 <button
-                  className="py-2 px-3 rounded-lg bg-apollo-200 text-white hover:bg-apollo-300"
+                  className="px-6 py-2 rounded-lg bg-apollo-200 text-white font-bold hover:bg-apollo-300 transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                   onClick={save}
                   disabled={saving}
                 >
-                  {saving ? "Salvando..." : "Salvar"}
+                  {saving ? (
+                    <>
+                      <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                      Salvando...
+                    </>
+                  ) : (
+                    "💾 Salvar Alterações"
+                  )}
                 </button>
               </div>
             </div>
