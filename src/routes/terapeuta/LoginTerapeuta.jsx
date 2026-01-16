@@ -82,7 +82,7 @@ const LoginTerapeuta = () => {
                         <input 
                             placeholder="Digite seu usuário..." 
                             value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            onChange={(e) => setUsername(e.target.value.trim())}
                             disabled={loading}
                             className='
                                 w-full bg-gray-50 text-gray-800 font-medium text-lg
