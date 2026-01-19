@@ -839,16 +839,18 @@ function EditTela() {
                         <span className="text-sm text-gray-500">Pergunta #{i + 1}</span>
                       </div>
                       <div className="flex gap-4 items-center">
-                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer hover:text-apollo-200 transition-colors">
-                          <input
-                            type="checkbox"
-                            className="w-4 h-4 accent-apollo-200 cursor-pointer"
-                            checked={q?.obrigatoria === true}
-                            onChange={(e) => updateField(i, "obrigatoria", e.target.checked)}
-                            disabled={q?.inativa === true}
-                          />
-                          Obrigatória
-                        </label>
+                      {q?.tipo !== "TEXTO_TOPICO" && q?.tipo !== "TEXTO_SUBTOPICO" && (
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer hover:text-apollo-200 transition-colors">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 accent-apollo-200 cursor-pointer"
+                              checked={q?.obrigatoria === true}
+                              onChange={(e) => updateField(i, "obrigatoria", e.target.checked)}
+                              disabled={q?.inativa === true}
+                            />
+                            Obrigatória
+                          </label>
+                        )}
                         <label className="flex items-center gap-2 text-sm">
                           <input
                             type="checkbox"
@@ -883,6 +885,9 @@ function EditTela() {
                         onChange={(opt) => {
                           const newTipo = opt?.value ?? "TEXTO_LIVRE";
                           updateField(i, "tipo", newTipo);
+                          if (newTipo === "TEXTO_TOPICO" || newTipo === "TEXTO_SUBTOPICO") {
+                              updateField(i, "obrigatoria", false);
+                          }
                           if (!requiresOptions(newTipo)) {
                             updateField(i, "opcoes", []);
                           } else if (requiresOptions(newTipo) && (!q?.opcoes || q.opcoes.length === 0)) {
