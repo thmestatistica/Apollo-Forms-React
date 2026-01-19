@@ -92,6 +92,7 @@ function EditTela() {
             tipo: p?.tipo_resposta_esperada ?? "TEXTO_LIVRE",
             ordem: p?.ordem_pergunta ?? idx + 1,
             inativa: p?.inativa === true,
+            obrigatoria: p?.obrigatoria === true,
             opcoes: Array.isArray(p?.opcoes_resposta)
               ? p.opcoes_resposta.map((o) => {
                   if (typeof o === "object") {
@@ -649,6 +650,7 @@ function EditTela() {
       ordem_pergunta: q?.ordem ?? idx + 1,
       opcoes_resposta: q?.opcoes ?? [],
       inativa: q?.inativa === true,
+      obrigatoria: q?.obrigatoria === true
     }));
 
     // 3. Diff dos detalhes (Metadados)
@@ -837,6 +839,16 @@ function EditTela() {
                         <span className="text-sm text-gray-500">Pergunta #{i + 1}</span>
                       </div>
                       <div className="flex gap-4 items-center">
+                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer hover:text-apollo-200 transition-colors">
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 accent-apollo-200 cursor-pointer"
+                            checked={q?.obrigatoria === true}
+                            onChange={(e) => updateField(i, "obrigatoria", e.target.checked)}
+                            disabled={q?.inativa === true}
+                          />
+                          Obrigatória
+                        </label>
                         <label className="flex items-center gap-2 text-sm">
                           <input
                             type="checkbox"

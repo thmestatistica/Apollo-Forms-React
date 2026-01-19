@@ -203,6 +203,7 @@ export const upsert_perguntas_form = async (formId, perguntas = []) => {
       metadados_pergunta: p?.metadados_pergunta ?? p?.meta_dados ?? undefined,
       opcoes_resposta: opcoes,
       inativa: p?.inativa === true,
+      obrigatoria: p?.obrigatoria === true,
     };
   };
 
@@ -226,6 +227,7 @@ export const upsert_perguntas_form = async (formId, perguntas = []) => {
         opcoes_resposta: opcoes,
         metadados_pergunta: p?.metadados_pergunta,
         inativa: p?.inativa === true,
+        obrigatoria: p?.obrigatoria === true,
       });
     } else {
       new_questions.push({
@@ -237,6 +239,7 @@ export const upsert_perguntas_form = async (formId, perguntas = []) => {
         opcoes_resposta: opcoes,
         metadados_pergunta: p?.metadados_pergunta,
         inativa: p?.inativa === true,
+        obrigatoria: p?.obrigatoria === true,
       });
     }
   });
