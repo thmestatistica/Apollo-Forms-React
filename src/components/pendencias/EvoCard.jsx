@@ -148,7 +148,9 @@ const EvoCard = ({ paginaAtual = [] }) => {
                     return (
                       <span
                         key={`${pen["AgendamentoID"]}-${esc.id}-${esc.nome}`}
-                        className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-apollo-200/10 text-apollo-200 border border-apollo-200/40 cursor-pointer"
+                        className="flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full transition-all 
+                          text-purple-700 border border-purple-400
+                          hover:bg-purple-100 hover:border-purple-500 hover:scale-105 cursor-pointer"
                         title={dataFormatada ? `Aplicar em/por volta de: ${new Date(esc.data_referencia).toLocaleDateString('pt-BR')}` : "Pendente"}
                       >
                         {esc.nome}
