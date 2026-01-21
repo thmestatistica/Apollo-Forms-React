@@ -53,7 +53,7 @@ function AgenCard({ agendamentosPaginados = [] }) {
     const nome = escala?.formulario?.nomeEscala ?? escala?.nome ?? escala?.titulo ?? `Escala ${escala.id}`;
     
     // Propriedade identificada no log: criadaEm
-    const dataRaw = escala.criadaEm || escala.createdAt; 
+    const dataRaw = escala.data_referencia
     
     if (dataRaw) {
         // Formata para DD/MM
@@ -123,15 +123,17 @@ function AgenCard({ agendamentosPaginados = [] }) {
 
                     {escalas.map((escala) => (
                       <button
-                      key={escala.id}
-                      type="button"
-                      onClick={(e) => handleEscalaClick(e, agendamento, escala)}
-                      className="
-                      flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full transition-all 
-                      bg-purple-50 text-purple-700 border border-purple-200
-                      hover:bg-purple-100 hover:border-purple-300 hover:scale-105 cursor-pointer
-                      "
-                      title={`Pendente desde: ${formatarData(escala.criadaEm)}`}
+                        key={escala.id}
+                        type="button"
+                        onClick={(e) => handleEscalaClick(e, agendamento, escala)}
+                        className="
+                          flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full transition-all 
+                          bg-purple-50 text-purple-700 border border-purple-200
+                          hover:bg-purple-100 hover:border-purple-300 hover:scale-105 cursor-pointer
+                        "
+                        title={
+                          escala.data_referencia ? `Aplicar em/por volta de: ${formatarData(escala.data_referencia)}` : null
+                        }
                       >
                         {getEscalaLabel(escala)}
                       </button>
