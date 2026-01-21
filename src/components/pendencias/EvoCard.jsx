@@ -61,10 +61,12 @@ const EvoCard = ({ paginaAtual = [] }) => {
       try {
         const lista = await carregar_escalas_pendentes(pacienteId, profissionalEspecialidade);
         if (!ativo) return;
+        
         const normalizadas = Array.isArray(lista)
           ? lista.map((item) => ({
               id: item?.formularioId ?? null,
               nome: item?.formulario?.nomeEscala || item?.label || "Escala",
+              data_referencia: item?.data_referencia || null 
             }))
           : [];
         setEscalasPorAgendamento((prev) => ({ ...prev, [agendamentoId]: normalizadas }));
@@ -134,14 +136,33 @@ const EvoCard = ({ paginaAtual = [] }) => {
 
                 {/* Tags de pendências de escala (somente exibição) */}
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {(escalasPorAgendamento[pen["AgendamentoID"]] || []).map((esc) => (
-                    <span
-                      key={`${pen["AgendamentoID"]}-${esc.id}-${esc.nome}`}
-                      className="text-xs px-2 py-1 rounded-full bg-apollo-200/10 text-apollo-200 border border-apollo-200/40"
-                    >
-                      {esc.nome}
-                    </span>
-                  ))}
+                  {(escalasPorAgendamento[pen["AgendamentoID"]] || []).map((esc) => {
+                    
+                    let dataFormatada = null;
+                    if (esc.data_referencia) {
+                        // Ajusta fuso se necessário e formata DD/MM
+                        const d = new Date(esc.data_referencia);
+                        dataFormatada = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                    }
+
+                    return (
+                      <span
+                        key={`${pen["AgendamentoID"]}-${esc.id}-${esc.nome}`}
+                        className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-apollo-200/10 text-apollo-200 border border-apollo-200/40 cursor-pointer"
+                        title={dataFormatada ? `Aplicar em/por volta de: ${new Date(esc.data_referencia).toLocaleDateString('pt-BR')}` : "Pendente"}
+                      >
+                        {esc.nome}
+                        
+                        {/* Se tiver data, mostra entre parênteses */}
+                        {dataFormatada && (
+                            <strong className="opacity-70 font-normal text-[10px] bg-black/5 px-1 rounded-sm text-purple-700">
+                                ({dataFormatada})
+                            </strong>
+                        )}
+                      </span>
+                    );
+                  })}
+
                   {carregandoEscalasIds.has(pen["AgendamentoID"]) && (
                     <span className="text-xs text-apollo-200/70">Carregando escalas…</span>
                   )}
