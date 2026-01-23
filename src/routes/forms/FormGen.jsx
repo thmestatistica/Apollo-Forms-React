@@ -300,6 +300,7 @@ const FormularioGenerico = () => {
                 <h1 className="text-2xl font-semibold text-center text-gray-800">
                     {formulario.titulo}
                 </h1>
+                
 
                 {/* Bloco com informações da pendência */}
                 {pendencia && (

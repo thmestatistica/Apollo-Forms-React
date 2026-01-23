@@ -31,6 +31,7 @@ import EditTela from './routes/terapeuta/EditTela.jsx'
 import JornadaPage from './routes/terapeuta/Jornada.jsx'
 import VisualizarFormulario from './routes/terapeuta/VisualizarFormulario.jsx'
 import VisualizarListaFormulario from './routes/terapeuta/VisualizarListaFormularios.jsx'
+import  GestaoReavaliacao from './routes/terapeuta/GestaoReavaliacao.jsx'
 
 // --- Configuração simples das Rotas com createBrowserRouter ---
 const router = createBrowserRouter([
@@ -79,6 +80,10 @@ const router = createBrowserRouter([
                         {
                             element: <VisualizarListaFormulario />,
                             path: 'visualizar-formularios' 
+                        },
+                        {
+                            element: <GestaoReavaliacao />,
+                            path: 'gestao' 
                         },
                         {
                             element: <EditTela />,

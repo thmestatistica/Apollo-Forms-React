@@ -31,63 +31,52 @@
  */
 
 import { useState } from "react";
-import AgenCard from "./AgenCard.jsx"; // Componente filho responsável por renderizar os cartões individuais.
+import AgenCard from "./AgenCard.jsx";
 import PaginationButtons from "../pagination/PaginationButtons.jsx";
 
-/**
- * Componente funcional principal
- * Utiliza React Hooks e renderização condicional para exibir agendamentos paginados.
- */
 const AgenPag = ({ agendamentos = [] }) => {
-  /**
-   * Estado que controla a página atual da listagem.
-   * Inicia em 1 por padrão.
-   */
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Ordena todos os agendamentos por horário de início (mais antigos primeiro)
   const agendamentosOrdenados = [...agendamentos].sort((a, b) => {
     const ta = a?.inicio ? new Date(a.inicio).getTime() : Number.POSITIVE_INFINITY;
     const tb = b?.inicio ? new Date(b.inicio).getTime() : Number.POSITIVE_INFINITY;
     return ta - tb;
   });
 
-  // Configuração de paginação: quantidade de agendamentos por página
   const itensPorPagina = 3;
   const totalPaginas = Math.ceil(agendamentosOrdenados.length / itensPorPagina) || 1;
-
-  // Índices para fatiar a lista de agendamentos conforme a página atual
   const indexInicio = (currentPage - 1) * itensPorPagina;
   const indexFim = indexInicio + itensPorPagina;
-
-  // Agendamentos a exibir na página atual
   const agendamentosPaginados = agendamentosOrdenados.slice(indexInicio, indexFim);
-
-  // Exibir paginação somente se houver mais itens que cabem em uma página
   const pagination = agendamentosOrdenados.length > itensPorPagina;
 
   return (
-    <div className="flex flex-col w-full max-w-full mx-auto border border-gray-200 rounded-lg shadow-sm bg-white min-h-[500px] relative">
-      {/* 
-        Conteúdo principal:
-        - Envia os dados agrupados e os pacientes da página atual para o componente AgenCard.
-        - O AgenCard será responsável por renderizar cada bloco de agendamentos.
+    // Container com altura mínima e posição relativa para ancorar a paginação
+    <div className="flex flex-col w-full max-w-full mx-auto border border-gray-200 rounded-lg shadow-sm bg-white min-h-[500px] relative overflow-hidden">
+      
+      {/* Área de Scroll 
+         - h-full: Ocupa a altura toda.
+         - overflow-y-auto: Permite rolar.
+         - pb-20: O TRUQUE! Adiciona espaço no final para o último card não ficar atrás da paginação.
       */}
-      <AgenCard agendamentosPaginados={agendamentosPaginados} />
+      <div className="h-full overflow-y-auto p-4 pb-20 custom-scrollbar">
+        <AgenCard agendamentosPaginados={agendamentosPaginados} />
+      </div>
 
-      {/* 
-        Paginação fixa:
-        - Fica ancorada ao final do container (position: absolute bottom-0).
-        - Exibe botões para avançar e retroceder páginas.
-        - Desativa os botões quando o usuário está na primeira ou última página.
+      {/* Paginação Fixa no Rodapé
+         - absolute bottom-0: Cola no fundo.
+         - w-full: Ocupa a largura toda.
+         - bg-white/95 + backdrop-blur: Garante que o texto passando por trás não atrapalhe a leitura.
       */}
       {pagination && (
-        <PaginationButtons
+        <div className="absolute bottom-0 left-0 w-full p-3 border-t border-gray-200 bg-white/95 backdrop-blur-sm rounded-b-lg z-10">
+          <PaginationButtons
             currentPage={currentPage}
             totalPages={totalPaginas}
             onPrev={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
             onNext={() => setCurrentPage((prev) => Math.min(totalPaginas, prev + 1))}
-        />
+          />
+        </div>
       )}
     </div>
   );

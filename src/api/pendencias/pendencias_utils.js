@@ -6,7 +6,6 @@ const formatDateBackend = (date) => {
   try {
     const d = typeof date === 'string' ? new Date(date) : date;
     if (isNaN(d.getTime())) return null;
-    // ISO: 2025-11-17T17:06:30.312Z -> 2025-11-17 17:06:30.312
     return d.toISOString().replace('T', ' ').replace('Z', '');
   } catch {
     return null;
@@ -14,16 +13,59 @@ const formatDateBackend = (date) => {
 };
 
 /**
+ * ============================================================
+ * 🛡️ FUNÇÕES ADMINISTRATIVAS (Painel de Gestão)
+ * ============================================================
+ */
+
+// 1. LISTAR TUDO (ADMIN)
+export const buscar_todas_pendencias = async (filtros = {}) => {
+  try {
+    const { data } = await axiosInstance.get('/pendencias/admin/todas', { params: filtros });
+    return data;
+  } catch (error) {
+    console.error("Erro ao buscar pendências admin:", error);
+    throw error;
+  }
+};
+
+// 2. ATUALIZAR NA FORÇA BRUTA (ADMIN)
+export const atualizar_pendencia_admin = async (id, dadosAtualizados) => {
+  try {
+    const { data } = await axiosInstance.put(`/pendencias/admin/${id}`, dadosAtualizados);
+    return data;
+  } catch (error) {
+    console.error(`Erro ao atualizar pendência ${id}:`, error);
+    throw error;
+  }
+};
+
+// 3. DELETAR REGISTRO (ADMIN)
+export const deletar_pendencia_admin = async (id) => {
+  try {
+    const { data } = await axiosInstance.delete(`/pendencias/admin/${id}`);
+    return data;
+  } catch (error) {
+    console.error(`Erro ao deletar pendência ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * ============================================================
+ * 🩺 FUNÇÕES DO TERAPEUTA (Uso Diário)
+ * ============================================================
+ */
+
+/**
  * Atualiza uma pendência de escala para CONCLUIDA.
  * PUT /pendencias/:id
- * Ajustes:
- * - Remove campos undefined/null antes de enviar.
- * - Não envia `criadaEm` se não vier válido (evita erro Invalid date).
  */
 export const concluir_pendencia_escala = async (pendencia) => {
   try {
     const id = pendencia?.id ?? pendencia?.pendenciaId;
     if (!id) throw new Error("ID da pendência não informado");
+    
     const criadaEmFormatada = formatDateBackend(pendencia?.criadaEm) || formatDateBackend(new Date());
     const resolvidaEmFormatada = formatDateBackend(new Date());
 
@@ -36,9 +78,10 @@ export const concluir_pendencia_escala = async (pendencia) => {
       resolvidaEm: resolvidaEmFormatada,
       diagnosticoMacro: pendencia?.diagnosticoMacro ?? undefined,
       especialidade: pendencia?.especialidade ?? undefined,
+      // Mantém a data de referência se existir
+      data_referencia: pendencia?.data_referencia ?? undefined 
     };
 
-    // Limpa chaves com undefined ou null
     const payload = Object.fromEntries(
       Object.entries(rawPayload).filter(([, v]) => v !== undefined && v !== null)
     );
@@ -46,41 +89,56 @@ export const concluir_pendencia_escala = async (pendencia) => {
     const { data } = await axiosInstance.put(`/pendencias/${Number(id)}`, payload);
     return { ok: true, data };
   } catch (err) {
-    console.error("Erro ao concluir pendência de escala:", {
-      message: err?.message,
-      status: err?.response?.status,
-      data: err?.response?.data,
-    });
+    console.error("Erro ao concluir pendência:", err);
     return { ok: false, error: err };
   }
 };
 
-
+/**
+ * Marca uma pendência como NÃO APLICÁVEL.
+ * * ATENÇÃO: Esta função agora é híbrida.
+ * - Se vier com ID: Atualiza (PUT) -> Caso dos cards da Direita.
+ * - Se não vier com ID: Cria (POST) -> Caso dos cards da Esquerda (Agendamentos).
+ */
 export const nao_aplicar_pendencia_escala = async (pendencia) => {
   try {
     const id = pendencia?.id ?? pendencia?.pendenciaId;
-    if (!id) throw new Error("ID da pendência não informado");
     const criadaEmFormatada = formatDateBackend(pendencia?.criadaEm) || formatDateBackend(new Date());
     const resolvidaEmFormatada = formatDateBackend(new Date());
 
+    // Payload base comum
     const rawPayload = {
       pacienteId: pendencia?.pacienteId != null ? Number(pendencia.pacienteId) : undefined,
       agendamentoId: pendencia?.agendamentoId != null ? Number(pendencia.agendamentoId) : undefined,
       formularioId: pendencia?.formularioId != null ? Number(pendencia.formularioId) : undefined,
-      status: "NAO_APLICA",
+      status: "NAO_APLICA", // Status de dispensa
       criadaEm: criadaEmFormatada,
       resolvidaEm: resolvidaEmFormatada,
       diagnosticoMacro: pendencia?.diagnosticoMacro ?? undefined,
       especialidade: pendencia?.especialidade ?? undefined,
+      data_referencia: pendencia?.data_referencia ?? undefined
     };
-    // Limpa chaves com undefined ou null
+
+    // Limpa undefined/null
     const payload = Object.fromEntries(
       Object.entries(rawPayload).filter(([, v]) => v !== undefined && v !== null)
     );
-    const { data } = await axiosInstance.put(`/pendencias/${Number(id)}`, payload);
-    return { ok: true, data };
+
+    let resposta;
+
+    if (id) {
+      // CENÁRIO A: Pendência já existe (PUT)
+      resposta = await axiosInstance.put(`/pendencias/${Number(id)}`, payload);
+    } else {
+      // CENÁRIO B: Pendência nova/sugerida (POST)
+      // O backend deve aceitar criação já com status NAO_APLICA
+      resposta = await axiosInstance.post(`/pendencias`, payload);
+    }
+
+    return { ok: true, data: resposta.data };
+
   } catch (err) {
-    console.error("Erro ao marcar pendência de escala como NÃO APLICAR:", {
+    console.error("Erro ao marcar como NÃO APLICAR:", {
       message: err?.message,
       status: err?.response?.status,
       data: err?.response?.data,

@@ -22,7 +22,7 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     const { config, response } = error;
-    const isLoginAttempt = config.url.endsWith('/login') || config.url.endsWith('/login/paciente');
+    const isLoginAttempt = config && (config.url.endsWith('/login') || config.url.endsWith('/login/paciente'));
 
     // Se o erro for 401 e NÃO for uma tentativa de login, redirecione.
     if (response?.status === 401 && !isLoginAttempt) {
@@ -36,5 +36,7 @@ axiosInstance.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+export const api = axiosInstance; 
 
 export default axiosInstance;

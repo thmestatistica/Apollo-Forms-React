@@ -45,6 +45,14 @@ const EvoCard = ({ paginaAtual = [] }) => {
   const [escalasPorAgendamento, setEscalasPorAgendamento] = useState({});
   const [carregandoEscalasIds, setCarregandoEscalasIds] = useState(new Set());
 
+  // FUNÇÃO DE AJUSTE DE DATA (Subtrai 5 dias visualmente)
+  const getDataVisual = (dataIso) => {
+    if (!dataIso) return null;
+    const d = new Date(dataIso);
+    d.setDate(d.getDate() - 4); // Subtrai 5 dias
+    return d.toLocaleDateString('pt-BR'); // Retorna DD/MM/AAAA
+  };
+
   // Carrega escalas pendentes para cada item da página atual (apenas para exibir tags)
   useEffect(() => {
     let ativo = true;
@@ -138,11 +146,12 @@ const EvoCard = ({ paginaAtual = [] }) => {
                 <div className="mt-2 flex flex-wrap gap-2">
                   {(escalasPorAgendamento[pen["AgendamentoID"]] || []).map((esc) => {
                     
+                    // Lógica de Data Visual (-5 dias)
                     let dataFormatada = null;
                     if (esc.data_referencia) {
-                        // Ajusta fuso se necessário e formata DD/MM
-                        const d = new Date(esc.data_referencia);
-                        dataFormatada = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                        const dataFull = getDataVisual(esc.data_referencia);
+                        // Pega apenas DD/MM para exibir na tag
+                        dataFormatada = dataFull ? dataFull.slice(0, 5) : null;
                     }
 
                     return (
@@ -151,7 +160,8 @@ const EvoCard = ({ paginaAtual = [] }) => {
                         className="flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full transition-all 
                           text-purple-700 border border-purple-400
                           hover:bg-purple-100 hover:border-purple-500 hover:scale-105 cursor-pointer"
-                        title={dataFormatada ? `Aplicar em/por volta de: ${new Date(esc.data_referencia).toLocaleDateString('pt-BR')}` : "Pendente"}
+                        // Tooltip com a data completa antecipada
+                        title={esc.data_referencia ? `Aplicar a partir de: ${getDataVisual(esc.data_referencia)}` : "Pendente"}
                       >
                         {esc.nome}
                         

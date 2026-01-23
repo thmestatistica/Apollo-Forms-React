@@ -13,9 +13,14 @@ const TelaInicialTerapeuta = () => {
 
   const { logout, user } = useAuth();
   
-  // Lógica de Permissão
+  // Lógica de Permissão Existente
   const EDITORES_PERMITIDOS = [8, 43, 17, 13, 15, 40];
   const podeEditar = EDITORES_PERMITIDOS.includes(Number(user?.profissionalId));
+
+  // --- NOVA LÓGICA PARA GESTÃO (TIAGO) ---
+  const ID_TIAGO = 17; 
+
+  const podeAcessarGestao = Number(user?.profissionalId) === ID_TIAGO;
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -127,7 +132,7 @@ const TelaInicialTerapeuta = () => {
             <span className="bg-clip-text text-transparent bg-linear-to-r from-gray-800 to-gray-500">Painel do Terapeuta</span>
           </h1>
 
-          {/* Área de agendamentos - Adicionei borda leve e hover effect */}
+          {/* Área de agendamentos */}
           <div className="
             flex flex-col gap-4 col-span-1 md:row-span-3 
             bg-white border border-gray-100 rounded-xl p-4
@@ -146,7 +151,7 @@ const TelaInicialTerapeuta = () => {
             )}
           </div>
 
-          {/* Área de evoluções pendentes - Adicionei borda leve e hover effect */}
+          {/* Área de evoluções pendentes */}
           <div className="
             flex flex-col gap-4 col-span-1 md:row-span-3 h-full
             bg-white border border-gray-100 rounded-xl p-4
@@ -197,6 +202,22 @@ const TelaInicialTerapeuta = () => {
                   "
                 >
                   <span>✍️</span> Editar Forms
+                </button>
+              )}
+
+              {/* --- NOVO BOTÃO DE GESTÃO (Exclusivo Tiago) --- */}
+              {podeAcessarGestao && (
+                <button
+                  onClick={() => navigate("/forms-terapeuta/gestao")}
+                  className="
+                    w-full bg-teal-500 hover:bg-teal-600 text-white 
+                    font-bold py-3 px-4 rounded-xl 
+                    shadow-md hover:shadow-lg hover:shadow-teal-200/40 
+                    hover:-translate-y-0.5 active:scale-95 
+                    transition-all duration-200 cursor-pointer flex items-center justify-center gap-2
+                  "
+                >
+                  <span>📋</span> Gestão
                 </button>
               )}
 
