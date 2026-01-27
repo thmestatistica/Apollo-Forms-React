@@ -8,16 +8,14 @@ import { nao_aplicar_pendencia_escala } from "../../api/pendencias/pendencias_ut
 
 function AgenCard({ agendamentosPaginados = [] }) {
   const [escalasMap, setEscalasMap] = useState({});
-  // eslint-disable-next-line no-unused-vars
-  const [carregandoEscalas, setCarregandoEscalas] = useState(false);
+  const [, setCarregandoEscalas] = useState(false);
   const navigate = useNavigate();
 
-  // Função auxiliar para subtrair 5 dias da data visualmente
   const getDataVisual = (dataIso) => {
     if (!dataIso) return null;
     const d = new Date(dataIso);
-    d.setDate(d.getDate() - 4); // Subtrai 5 dias
-    return d.toLocaleDateString('pt-BR'); // Retorna DD/MM/AAAA
+    d.setDate(d.getDate() - 4); 
+    return d.toLocaleDateString('pt-BR'); 
   };
 
   useEffect(() => {
@@ -59,15 +57,12 @@ function AgenCard({ agendamentosPaginados = [] }) {
   };
 
   const getEscalaLabel = (escala) => {
-    // Tenta pegar o nome de várias formas para garantir que não venha vazio
     const nome = escala?.formulario?.nomeEscala ?? escala?.nome ?? escala?.titulo ?? `Escala ${escala.id}`;
     const dataRaw = escala.data_referencia;
     
     if (dataRaw) {
-        // Usa a data com -5 dias para exibição
         const dataVisualFull = getDataVisual(dataRaw);
-        const dataCurta = dataVisualFull ? dataVisualFull.slice(0, 5) : ""; // Pega só DD/MM
-        
+        const dataCurta = dataVisualFull ? dataVisualFull.slice(0, 5) : ""; 
         return (
             <span className="flex items-center gap-1">
                 <span className="truncate max-w-[150px]">{nome}</span>
@@ -84,7 +79,6 @@ function AgenCard({ agendamentosPaginados = [] }) {
     e.stopPropagation(); 
 
     const formularioId = escala?.formularioId ?? escala?.formularioID ?? escala?.formulario_id;
-    // CORREÇÃO 1: Extração robusta do nome para o Swal
     const nomeReal = escala?.formulario?.nomeEscala ?? escala?.nome ?? escala?.titulo ?? "Escala";
 
     if (!formularioId) {
@@ -92,19 +86,16 @@ function AgenCard({ agendamentosPaginados = [] }) {
       return;
     }
 
-    // --- SWAL 1: DECISÃO ---
     const result = await Swal.fire({
       title: `${nomeReal}`, 
       text: "Selecione uma ação:",
       icon: 'question',
       showCancelButton: true,
       showDenyButton: true,
-      reverseButtons: true, // Botão de confirmação na esquerda
-      
+      reverseButtons: true, 
       confirmButtonColor: '#7C3AED',
       denyButtonColor: '#d33',
       cancelButtonColor: '#64748b',
-      
       confirmButtonText: '📝 Preencher',
       denyButtonText: '🚫 Não Aplicável',
       cancelButtonText: 'Cancelar'
@@ -124,33 +115,42 @@ function AgenCard({ agendamentosPaginados = [] }) {
         });
     }
     else if (result.isDenied) {
-        // --- SWAL 2: CONFIRMAÇÃO DE EXCLUSÃO ---
         const confirmacao = await Swal.fire({
             title: 'Tem certeza?',
-            html: `A escala <b>${nomeReal}</b> será removida deste atendimento.<br/>Essa ação não pode ser desfeita.`,
+            html: `A escala <b>${nomeReal}</b> será marcada como não aplicável.<br/>Essa pendência será removida da lista.`,
             icon: 'warning',
             showCancelButton: true,
-            reverseButtons: true, // CORREÇÃO 2: Inverte os botões aqui também
-            
-            confirmButtonColor: '#d33',    // Vermelho (Sim, remover)
-            cancelButtonColor: '#3085d6',  // Azul (Voltar)
-            
+            reverseButtons: true, 
+            confirmButtonColor: '#d33',    
+            cancelButtonColor: '#3085d6',  
             confirmButtonText: 'Sim, remover',
             cancelButtonText: 'Voltar'
         });
 
         if (confirmacao.isConfirmed) {
             try {
+                // CORREÇÃO CRÍTICA DO ERRO 400:
+                // O Backend exige string em 'especialidade' e 'diagnosticoMacro'.
+                // Se vier null/undefined, colocamos "Geral" ou "Não Informado" para passar na validação.
+                const diagRaw = agendamento?.paciente?.diagnosticoMacro;
+                const diagFinal = Array.isArray(diagRaw) && diagRaw.length > 0 ? diagRaw[0] : "Geral";
+                const espRaw = agendamento?.profissional?.especialidade?.[0];
+                const espFinal = espRaw || "Geral";
+
                 const payload = {
                     formularioId: formularioId,
                     agendamentoId: agendamento.id,
                     pacienteId: agendamento?.paciente?.id ?? agendamento?.PacienteID,
-                    status: 'NAO_APLICAVEL'
+                    status: 'NAO_APLICA', 
+                    // Aqui garantimos que nunca vai null
+                    especialidade: espFinal,
+                    diagnosticoMacro: diagFinal,
+                    data_referencia: escala.data_referencia ?? null
                 };
 
                 const resp = await nao_aplicar_pendencia_escala(payload);
 
-                if (resp) {
+                if (resp && resp.ok) {
                     await Swal.fire({
                         title: 'Atualizado!',
                         text: 'Escala removida.',
@@ -161,14 +161,19 @@ function AgenCard({ agendamentosPaginados = [] }) {
 
                     setEscalasMap(prev => {
                         const listaAntiga = prev[agendamento.id] || [];
-                        const listaNova = listaAntiga.filter(item => item.id !== escala.id);
+                        const listaNova = listaAntiga.filter(item => {
+                            const itemId = item.formularioId ?? item.id;
+                            return itemId !== formularioId;
+                        });
                         return { ...prev, [agendamento.id]: listaNova };
                     });
                 } else {
-                     throw new Error("Erro na API");
+                     // Captura detalhe do erro se vier do backend
+                     const msg = resp?.error?.response?.data?.error || "Erro na API";
+                     throw new Error(msg);
                 }
             } catch (error) {
-                console.error(error);
+                console.error("Erro ao remover escala:", error);
                 Swal.fire('Erro', 'Não foi possível atualizar.', 'error');
             }
         }
@@ -183,13 +188,13 @@ function AgenCard({ agendamentosPaginados = [] }) {
           return (
             <div 
                 key={agendamento.id} 
-                className="w-full border border-apollo-200 rounded-md bg-white hover:shadow-sm transition-shadow duration-200 flex flex-col"
+                className="w-full border border-apollo-200 rounded-md bg-white hover:shadow-sm transition-shadow duration-200 flex flex-col overflow-hidden"
             >
-              <div className="bg-apollo-200/20 px-4 py-2 rounded-t-md font-semibold text-black wrap-break-word">
+              <div className="bg-apollo-200/20 px-4 py-2 rounded-t-md font-semibold text-black wrap-break-words">
                 {abreviarNome(agendamento?.paciente?.nome ?? "Paciente", 2)}
               </div>
 
-              <div className="px-4 py-2 text-sm text-gray-700 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="px-4 py-2 text-sm text-gray-700 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2">
                 <p className="flex flex-col sm:flex-row sm:gap-1">
                     <strong className="text-black">Dia:</strong> 
                     <span className="whitespace-nowrap">{formatarData(agendamento.inicio)}</span>
@@ -200,9 +205,12 @@ function AgenCard({ agendamentosPaginados = [] }) {
                         {`${formatarHora(agendamento.inicio)} - ${formatarHora(agendamento.fim)}`}
                     </span>
                 </p>
-                <p className="flex flex-col sm:flex-row sm:gap-1">
+                
+                <p className="flex flex-col sm:flex-row sm:gap-1 min-w-0 sm:col-span-2 lg:col-span-1">
                     <strong className="text-black">Equipamento:</strong> 
-                    <span className="wrap-break-word">{agendamento?.slot?.nome ?? "-"}</span>
+                    <span className="wrap-break-word font-medium text-gray-800" title={agendamento?.slot?.nome ?? "-"}>
+                        {agendamento?.slot?.nome ?? "-"}
+                    </span>
                 </p>
               </div>
 
@@ -218,9 +226,8 @@ function AgenCard({ agendamentosPaginados = [] }) {
                           flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full transition-all 
                           bg-purple-100 text-purple-700 border border-purple-200
                           hover:bg-purple-200 hover:border-purple-300 hover:scale-[1.02] cursor-pointer
-                          max-w-full
+                          max-w-full text-left
                         "
-                        // Mostra a data antecipada no hover também
                         title={escala.data_referencia ? `Aplicar a partir de: ${getDataVisual(escala.data_referencia)}` : ""}
                       >
                         {getEscalaLabel(escala)}

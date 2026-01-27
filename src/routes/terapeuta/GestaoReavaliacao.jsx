@@ -26,7 +26,6 @@ const DIAGNOSTICO_OPCOES = [
 const ITENS_POR_PAGINA = 50; 
 
 // --- LISTA DE IDs PERMITIDOS ---
-// Adicione os IDs dos profissionais separados por vírgula dentro dos colchetes
 const IDS_PERMITIDOS = [8, 43, 17, 13, 15, 40]; 
 
 // === SUB-COMPONENTE DE LINHA ===
@@ -35,44 +34,44 @@ const AdminRow = React.memo(({ row, estaEditado, onSave, onDelete, onChange }) =
 
     const getStatusColorClass = (status) => {
         switch (status) {
-            case 'ABERTA': return 'text-green-700 bg-green-100 border-green-200';
-            case 'CONCLUIDA': return 'text-blue-700 bg-blue-100 border-blue-200';
-            case 'NAO_APLICA': return 'text-red-700 bg-red-100 border-red-200';
+            case 'ABERTA': return 'text-green-700 bg-green-50 border-green-200';
+            case 'CONCLUIDA': return 'text-blue-700 bg-blue-50 border-blue-200';
+            case 'NAO_APLICA': return 'text-red-700 bg-red-50 border-red-200';
             default: return 'text-slate-700 bg-white border-slate-200';
         }
     };
 
     return (
-        <tr className={`hover:bg-amber-50 transition-colors border-b border-slate-50 last:border-0 ${estaEditado ? 'bg-yellow-50' : ''}`}>
-            <td className="p-2 border-r border-slate-100 text-center text-slate-400 text-xs font-mono align-middle">{row.id}</td>
-            <td className="p-2 border-r border-slate-100 align-middle">
-                <div className="text-sm font-medium text-slate-700 whitespace-normal wrap-break-word leading-tight max-w-[200px]">
+        <tr className={`group hover:bg-apollo-50/30 transition-colors border-b border-gray-100 last:border-0 ${estaEditado ? 'bg-yellow-50/50' : ''}`}>
+            <td className="p-3 border-r border-gray-100 text-center text-slate-400 text-xs font-mono align-middle">{row.id}</td>
+            <td className="p-3 border-r border-gray-100 align-middle">
+                <div className="text-sm font-semibold text-slate-700 whitespace-normal wrap-break-word leading-tight max-w-[200px]">
                     {row.paciente?.nome || <span className="text-red-300 italic">Sem Paciente</span>}
                 </div>
             </td>
-            <td className="p-2 border-r border-slate-100 align-middle">
+            <td className="p-3 border-r border-gray-100 align-middle">
                  <div className="text-sm text-slate-600 whitespace-normal wrap-break-word leading-tight max-w-[200px]">
                     {row.formulario?.nomeEscala}
                  </div>
             </td>
-            <td className="p-0 border-r border-slate-100 align-middle h-full">
-                <input type="date" className="w-full h-full p-2 bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-amber-400 text-sm text-slate-600"
+            <td className="p-1 border-r border-gray-100 align-middle h-full">
+                <input type="date" className="w-full h-full p-2 bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-apollo-300 rounded text-sm text-slate-600 transition-all"
                     value={dataInputValue} onChange={(e) => onChange(row.id, 'data_referencia', e.target.value)} />
             </td>
-            <td className="p-0 border-r border-slate-100 align-middle">
-                <input type="text" className="w-full h-full p-2 bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-amber-400 text-sm text-slate-600"
+            <td className="p-1 border-r border-gray-100 align-middle">
+                <input type="text" className="w-full h-full p-2 bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-apollo-300 rounded text-sm text-slate-600 transition-all"
                     value={row.especialidade || ''} onChange={(e) => onChange(row.id, 'especialidade', e.target.value)} />
             </td>
-            <td className="p-0 border-r border-slate-100 align-middle">
-                <select className="w-full h-full p-2 bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-amber-400 text-xs text-slate-600 cursor-pointer"
+            <td className="p-1 border-r border-gray-100 align-middle">
+                <select className="w-full h-full p-2 bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-apollo-300 rounded text-xs text-slate-600 cursor-pointer transition-all"
                     value={row.diagnosticoMacro || ''} onChange={(e) => onChange(row.id, 'diagnosticoMacro', e.target.value)}>
                     <option value="">Selecione...</option>
                     {DIAGNOSTICO_OPCOES.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
                 </select>
             </td>
-            <td className="p-1 border-r border-slate-100 align-middle">
+            <td className="p-2 border-r border-gray-100 align-middle">
                 <div className="h-full w-full flex items-center">
-                    <select className={`w-full p-1.5 rounded text-xs font-bold border cursor-pointer outline-none transition-all appearance-none text-center ${getStatusColorClass(row.status)}`}
+                    <select className={`w-full p-1.5 rounded-lg text-xs font-bold border cursor-pointer outline-none transition-all appearance-none text-center ${getStatusColorClass(row.status)}`}
                         value={row.status || 'ABERTA'} onChange={(e) => onChange(row.id, 'status', e.target.value)}>
                         <option value="ABERTA">ABERTA</option>
                         <option value="CONCLUIDA">CONCLUIDA</option>
@@ -81,13 +80,13 @@ const AdminRow = React.memo(({ row, estaEditado, onSave, onDelete, onChange }) =
                 </div>
             </td>
             <td className="p-2 text-center align-middle">
-                <div className="flex justify-center items-center gap-2 h-full">
+                <div className="flex justify-center items-center gap-2 h-full opacity-60 group-hover:opacity-100 transition-opacity">
                     {estaEditado ? (
-                        <button onClick={() => onSave(row)} className="text-white bg-green-600 hover:bg-green-700 p-1.5 rounded shadow-sm animate-pulse transition-all" title="Salvar alterações desta linha">
+                        <button onClick={() => onSave(row)} className="text-white bg-green-500 hover:bg-green-600 p-2 rounded-lg shadow-sm animate-pulse transition-all hover:scale-105" title="Salvar alterações desta linha">
                             <CheckCircleIcon className="w-5 h-5" />
                         </button>
                     ) : (
-                        <button onClick={() => onDelete(row)} className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded transition-all" title="Excluir registro">
+                        <button onClick={() => onDelete(row)} className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-all hover:scale-105" title="Excluir registro">
                             <TrashIcon className="w-5 h-5" />
                         </button>
                     )}
@@ -401,79 +400,80 @@ const GestaoReavaliacao = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
-      <div className="max-w-7xl mx-auto mb-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
-            <div>
-                <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-indigo-600 to-purple-600 cursor-default">
-                Gerenciador de Reavaliações
-                </h1>
-                <p className="text-slate-500 mt-1 text-sm md:text-base cursor-default">
-                Gestão automatizada e administrativa.
-                </p>
-            </div>
-            
-            {/* BARRA DE NAVEGAÇÃO UNIFICADA */}
-            <div className="bg-white p-1 rounded-xl shadow-sm border border-slate-200 flex gap-1">
-                {/* BOTÃO VOLTAR MOVIDO PARA CÁ */}
-                <button 
-                    onClick={() => navigate('/forms-terapeuta/tela-inicial')}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all text-slate-500 hover:bg-red-50 hover:text-red-600 cursor-pointer"
-                    title="Voltar para o início"
-                >
-                    <ChevronLeftIcon className="w-5 h-5" />
-                    Voltar
-                </button>
+    <div className="flex flex-col items-center justify-center min-h-screen gap-8 bg-gray-100">
+      {/* Container Principal com Gradiente Apollo - Consistente com JornadaPage */}
+      <div className="w-screen min-h-screen flex flex-col gap-12 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-4 p-2 xl:shadow-lg items-center">
+        
+        {/* Card Branco Base */}
+        <div className="bg-white h-full rounded-2xl w-full md:p-10 p-5 overflow-y-auto max-w-7xl xl:shadow-2xl pb-20">
+          
+          {/* --- CABEÇALHO --- */}
+          <div className="flex flex-col md:flex-row justify-between items-center w-full border-b border-gray-100 pb-6 mb-8 gap-4">
+              <div className="flex flex-col items-center md:items-start gap-1">
+                  <h1 className="font-extrabold text-4xl text-gray-800 flex items-center gap-3 animate-fade-in-down">
+                    <span className="bg-clip-text text-transparent bg-linear-to-r from-gray-800 to-gray-500">Gestão de Reavaliações</span>
+                  </h1>
+                  <p className="text-gray-400 text-sm hidden md:block">Gestão automatizada e administrativa.</p>
+              </div>
+              
+              <div className="flex gap-2">
+                  <button 
+                    onClick={() => navigate('/forms-terapeuta/tela-inicial')} 
+                    className="bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 px-6 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer flex items-center gap-2 text-sm"
+                  >
+                    <ChevronLeftIcon className="w-5 h-5" /> Voltar
+                  </button>
+                  
+                  <div className="bg-gray-100 p-1 rounded-xl flex gap-1 shadow-inner">
+                    <button onClick={() => setActiveTab('gerar')} className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${activeTab === 'gerar' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>
+                        <PlusCircleIcon className="w-5 h-5" /> Gerador
+                    </button>
+                    <button onClick={() => setActiveTab('admin')} className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${activeTab === 'admin' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>
+                        <TableCellsIcon className="w-5 h-5" /> Admin
+                    </button>
+                  </div>
+              </div>
+          </div>
 
-                <div className="w-px bg-slate-200 my-1 mx-1"></div>
-
-                <button onClick={() => setActiveTab('gerar')} className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${activeTab === 'gerar' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>
-                    <PlusCircleIcon className="w-5 h-5" /> Gerador
-                </button>
-                <button onClick={() => setActiveTab('admin')} className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${activeTab === 'admin' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>
-                    <TableCellsIcon className="w-5 h-5" /> Admin
-                </button>
-            </div>
-        </div>
-
-        {activeTab === 'gerar' && (
-            <div className="flex flex-col gap-8 animate-fade-in">
+          {activeTab === 'gerar' && (
+            <div className="flex flex-col gap-8 animate-fade-in w-full">
                 {/* 1. CONTROLES */}
-                <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden w-full">
-                    <div className="bg-indigo-50/50 p-4 border-b border-indigo-100">
-                        <h2 className="text-indigo-900 font-bold flex items-center gap-2 cursor-default">
-                        <MagnifyingGlassIcon className="w-5 h-5" /> Configurar Análise
+                <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden w-full">
+                    <div className="bg-indigo-50/50 p-6 border-b border-indigo-100">
+                        <h2 className="text-indigo-900 font-bold flex items-center gap-2 cursor-default text-xl">
+                        <MagnifyingGlassIcon className="w-6 h-6" /> Configurar Análise
                         </h2>
                     </div>
-                    <div className="p-6">
-                        <div className="flex flex-col md:flex-row gap-6 items-end">
-                            <div className="w-full md:flex-1">
-                                <label className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                    <div className="p-8">
+                        <div className="grid md:grid-cols-3 gap-6 items-end">
+                            <div className="w-full">
+                                <label className="text-sm font-bold text-gray-500 tracking-wide uppercase mb-2 flex items-center gap-2 ml-1">
                                 <UserIcon className="w-4 h-4 text-slate-400" /> Paciente
                                 </label>
                                 <div className="relative">
                                     <select 
-                                            className="w-full border border-slate-300 rounded-xl p-3 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all appearance-none text-slate-700 font-medium cursor-pointer hover:border-indigo-400"
+                                            className="w-full appearance-none bg-white border-2 border-gray-200 text-gray-700 text-sm font-bold rounded-xl py-3 pl-4 pr-10 cursor-pointer outline-none focus:border-indigo-400 hover:border-indigo-200 transition-all shadow-sm"
                                             value={selectedPac} onChange={handleTrocaPaciente}
                                     >
                                             <option value="">Selecione...</option>
                                             {pacientes.map(p => (<option key={p.id} value={p.id}>{p.nome}</option>))}
                                     </select>
+                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">▼</div>
                                 </div>
                             </div>
-                            <div className="w-full md:w-64">
-                                <label className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                            <div className="w-full">
+                                <label className="text-sm font-bold text-gray-500 tracking-wide uppercase mb-2 flex items-center gap-2 ml-1">
                                 <CalendarDaysIcon className="w-4 h-4 text-slate-400" /> Data Ref.
                                 </label>
-                                <input type="date" className="w-full border border-slate-300 rounded-xl p-3 text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer"
+                                <input type="date" className="w-full bg-white border-2 border-gray-200 text-gray-700 text-sm font-bold rounded-xl py-2.5 pl-4 pr-4 cursor-pointer outline-none focus:border-indigo-400 hover:border-indigo-200 transition-all shadow-sm"
                                     value={dataManual} onChange={(e) => { setDataManual(e.target.value); setUltimoPacienteAnalisado(null); setRascunhos([]); }} />
                             </div>
-                            <div className="w-full md:w-auto">
+                            <div className="w-full">
                                 <button onClick={handleAnalyze} disabled={botaoBloqueado}
-                                    className={`w-full md:w-auto px-8 py-3.5 rounded-xl font-bold text-white shadow-lg transition-all flex justify-center items-center gap-3
+                                    className={`w-full py-3.5 rounded-xl font-bold text-white shadow-lg transition-all flex justify-center items-center gap-3 text-sm uppercase tracking-wider
                                     ${botaoBloqueado ? 'bg-slate-300 cursor-not-allowed shadow-none' : 'bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:-translate-y-0.5 active:scale-95'}`}
                                 >
-                                    {loadingGen ? '...' : (selectedPac && selectedPac === ultimoPacienteAnalisado ? 'Feito' : 'Buscar')}
+                                    {loadingGen ? 'Processando...' : (selectedPac && selectedPac === ultimoPacienteAnalisado ? 'Análise Concluída' : 'Buscar Pendências')}
                                 </button>
                             </div>
                         </div>
@@ -481,40 +481,57 @@ const GestaoReavaliacao = () => {
                 </div>
 
                 {/* 2. TABELA RASCUNHO */}
-                <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col min-h-[500px] overflow-hidden w-full">
-                    <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50/50">
+                <div className="bg-white rounded-2xl shadow-md border border-gray-100 flex flex-col min-h-[400px] overflow-hidden w-full">
+                    <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50">
                         <div>
-                            <h2 className="text-lg font-bold text-slate-800 cursor-default">Área de Preparação</h2>
+                            <h2 className="text-xl font-bold text-gray-800 cursor-default">Área de Preparação</h2>
                             <div className="flex items-center gap-2 mt-1">
                                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${rascunhos.length > 0 ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-500'}`}>
                                 {rascunhos.length}
-                                </span><span className="text-sm text-slate-500">itens encontrados</span>
+                                </span><span className="text-sm text-gray-500">itens encontrados</span>
                             </div>
                         </div>
                         {rascunhos.length > 0 && (
-                            <button onClick={handleSalvarTudo} className="cursor-pointer flex items-center gap-2 bg-teal-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-teal-700 shadow-md transition-all active:scale-95">
+                            <button onClick={handleSalvarTudo} className="cursor-pointer flex items-center gap-2 bg-teal-500 hover:bg-teal-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-md transition-all active:scale-95 hover:-translate-y-0.5">
                                 <CheckBadgeIcon className="w-5 h-5" /> Confirmar Tudo
                             </button>
                         )}
                     </div>
-                    <div className="flex-1 overflow-x-auto custom-scrollbar">
+                    <div className="flex-1 overflow-x-auto custom-scrollbar p-1">
                         {rascunhos.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-slate-400 p-10 min-h-[300px]">
-                                <MagnifyingGlassIcon className="w-12 h-12 text-slate-300 mb-4" />
-                                <p className="text-lg font-medium text-slate-500">Nenhuma sugestão no momento</p>
+                            <div className="h-full flex flex-col items-center justify-center text-gray-300 p-10 min-h-[300px]">
+                                <MagnifyingGlassIcon className="w-16 h-16 mb-4 opacity-50" />
+                                <p className="text-lg font-medium text-gray-400">Nenhuma sugestão no momento</p>
                             </div>
                         ) : (
                             <table className="w-full text-left border-collapse">
-                                <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold tracking-wider sticky top-0 z-10 shadow-sm">
-                                    <tr><th className="px-6 py-4">Detalhes</th><th className="px-6 py-4">Especialidade</th><th className="px-6 py-4">Data Ref.</th><th className="px-6 py-4 text-center">Ação</th></tr>
+                                <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-bold tracking-wider sticky top-0 z-10 shadow-sm">
+                                    <tr>
+                                        <th className="px-6 py-4 rounded-tl-lg">Detalhes</th>
+                                        <th className="px-6 py-4">Especialidade</th>
+                                        <th className="px-6 py-4">Data Ref.</th>
+                                        <th className="px-6 py-4 text-center rounded-tr-lg">Ação</th>
+                                    </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 text-sm">
+                                <tbody className="divide-y divide-gray-100 text-sm">
                                     {rascunhos.map((item) => (
-                                        <tr key={item.tempId} className="hover:bg-indigo-50/40 transition-colors">
-                                            <td className="px-6 py-4"><div className="font-bold text-slate-800">{item.nomePaciente}</div><div className="text-xs text-indigo-600">{item.nomeEscala}</div></td>
-                                            <td className="px-6 py-4"><div className="flex items-center gap-2 bg-white border border-slate-200 rounded px-2 py-1"><PencilSquareIcon className="w-4 h-4 text-slate-400" /><input type="text" value={item.especialidade} onChange={(e)=>atualizarRascunho(item.tempId, 'especialidade', e.target.value)} className="outline-none w-full text-slate-700"/></div></td>
-                                            <td className="px-6 py-4"><input type="date" value={item.dataReferencia} onChange={(e)=>atualizarRascunho(item.tempId, 'dataReferencia', e.target.value)} className="border rounded px-2 py-1 text-slate-700 w-full"/></td>
-                                            <td className="px-6 py-4 text-center"><button onClick={()=>removerRascunho(item.tempId)} className="text-red-500 hover:bg-red-50 p-2 rounded"><TrashIcon className="w-5 h-5"/></button></td>
+                                        <tr key={item.tempId} className="hover:bg-indigo-50/30 transition-colors group">
+                                            <td className="px-6 py-4">
+                                                <div className="font-bold text-gray-800">{item.nomePaciente}</div>
+                                                <div className="text-xs text-indigo-500 font-semibold mt-0.5">{item.nomeEscala}</div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 focus-within:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-100 transition-all shadow-sm">
+                                                    <PencilSquareIcon className="w-4 h-4 text-gray-400" />
+                                                    <input type="text" value={item.especialidade} onChange={(e)=>atualizarRascunho(item.tempId, 'especialidade', e.target.value)} className="outline-none w-full text-gray-700 bg-transparent font-medium"/>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <input type="date" value={item.dataReferencia} onChange={(e)=>atualizarRascunho(item.tempId, 'dataReferencia', e.target.value)} className="border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 w-full focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none transition-all shadow-sm bg-white"/>
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <button onClick={()=>removerRascunho(item.tempId)} className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-all"><TrashIcon className="w-5 h-5"/></button>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -523,59 +540,62 @@ const GestaoReavaliacao = () => {
                     </div>
                 </div>
             </div>
-        )}
+          )}
 
-        {/* ================= ABA 2: ADMIN (MELHORADO) ================= */}
-        {activeTab === 'admin' && (
-            <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden w-full animate-fade-in flex flex-col">
-                <div className="bg-amber-50 p-4 border-b border-amber-100 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <h2 className="text-amber-900 font-bold flex items-center gap-2 text-lg">
+          {/* ================= ABA 2: ADMIN (MELHORADO) ================= */}
+          {activeTab === 'admin' && (
+            <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden w-full animate-fade-in flex flex-col">
+                <div className="bg-amber-50/50 p-6 border-b border-amber-100 flex flex-col md:flex-row justify-between items-center gap-6">
+                    <h2 className="text-amber-800 font-bold flex items-center gap-2 text-xl">
                         <ExclamationTriangleIcon className="w-6 h-6" /> Administração Global
                     </h2>
-                    <div className="flex flex-wrap gap-3 items-center">
-                        <div className="relative group">
-                            <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-3 text-amber-400" />
-                            <input type="text" placeholder="Buscar ID, Paciente..." className="pl-9 pr-3 py-2 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none w-64 text-sm text-amber-900 placeholder-amber-400"
+                    <div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
+                        <div className="relative group flex-1 md:flex-none">
+                            <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-3.5 text-amber-400" />
+                            <input type="text" placeholder="Buscar ID, Paciente..." className="pl-9 pr-3 py-2.5 border-2 border-amber-100 rounded-xl focus:border-amber-400 outline-none w-full md:w-64 text-sm text-amber-900 placeholder-amber-300 font-medium bg-white transition-all"
                                 value={filtros.busca} onChange={e => setFiltros({...filtros, busca: e.target.value})} />
                         </div>
-                        <select className="p-2 border border-amber-200 rounded-lg text-sm outline-none bg-white text-amber-900 cursor-pointer hover:border-amber-400"
-                            value={filtros.status} onChange={e => setFiltros({...filtros, status: e.target.value})}>
-                            <option value="TODOS">Todos Status</option>
-                            <option value="ABERTA">ABERTA</option>
-                            <option value="CONCLUIDA">CONCLUIDA</option>
-                            <option value="NAO_APLICA">NAO_APLICA</option>
-                        </select>
-                        <button onClick={() => carregarDadosAdmin(true)} className="p-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 active:scale-95 transition-all shadow-sm">
+                        <div className="relative group flex-1 md:flex-none">
+                            <select className="appearance-none p-2.5 pl-4 pr-10 border-2 border-amber-100 rounded-xl text-sm outline-none bg-white text-amber-900 cursor-pointer hover:border-amber-300 focus:border-amber-400 font-bold transition-all w-full"
+                                value={filtros.status} onChange={e => setFiltros({...filtros, status: e.target.value})}>
+                                <option value="TODOS">Todos Status</option>
+                                <option value="ABERTA">ABERTA</option>
+                                <option value="CONCLUIDA">CONCLUIDA</option>
+                                <option value="NAO_APLICA">NAO_APLICA</option>
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-amber-500">▼</div>
+                        </div>
+                        <button onClick={() => carregarDadosAdmin(true)} className="p-2.5 bg-amber-500 text-white rounded-xl hover:bg-amber-600 active:scale-95 transition-all shadow-md hover:shadow-lg">
                             <ArrowPathIcon className={`w-5 h-5 ${loadingAdmin ? 'animate-spin' : ''}`} />
                         </button>
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-auto h-[600px] custom-scrollbar relative bg-slate-50">
+                <div className="flex-1 overflow-auto h-[600px] custom-scrollbar relative bg-white">
                     {loadingAdmin && (
-                        <div className="absolute inset-0 bg-white/60 z-20 flex items-center justify-center backdrop-blur-sm">
+                        <div className="absolute inset-0 bg-white/80 z-20 flex items-center justify-center backdrop-blur-sm">
                             <div className="flex flex-col items-center gap-3">
-                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-600"></div>
-                                <span className="text-amber-700 font-bold text-sm">Carregando dados...</span>
+                                <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-amber-500"></div>
+                                <span className="text-amber-600 font-bold text-sm uppercase tracking-wide">Carregando dados...</span>
                             </div>
                         </div>
                     )}
                     <table className="w-full text-left border-collapse">
-                        <thead className="bg-slate-100 sticky top-0 z-10 shadow-sm text-xs uppercase text-slate-500 font-bold tracking-wider">
+                        <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm text-xs uppercase text-gray-500 font-bold tracking-wider border-b border-gray-100">
                             <tr>
-                                <th className="p-3 w-16 text-center">ID</th>
-                                <th className="p-3">Paciente</th>
-                                <th className="p-3">Escala</th>
-                                <th className="p-3 w-32">Data Ref.</th>
-                                <th className="p-3 w-40">Especialidade</th>
-                                <th className="p-3 w-40">Diagnóstico</th>
-                                <th className="p-3 w-32">Status</th>
-                                <th className="p-3 w-24 text-center">Ações</th>
+                                <th className="p-4 w-20 text-center">ID</th>
+                                <th className="p-4">Paciente</th>
+                                <th className="p-4">Escala</th>
+                                <th className="p-4 w-36">Data Ref.</th>
+                                <th className="p-4 w-44">Especialidade</th>
+                                <th className="p-4 w-44">Diagnóstico</th>
+                                <th className="p-4 w-36">Status</th>
+                                <th className="p-4 w-28 text-center">Ações</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 text-sm font-sans bg-white">
+                        <tbody className="divide-y divide-gray-100 text-sm font-sans bg-white">
                             {dadosPaginados.length === 0 ? (
-                                <tr><td colSpan="8" className="p-12 text-center text-slate-400 italic">Nenhum registro encontrado.</td></tr>
+                                <tr><td colSpan="8" className="p-16 text-center text-gray-400 italic">Nenhum registro encontrado.</td></tr>
                             ) : (
                                 dadosPaginados.map(row => (
                                     <AdminRow 
@@ -591,34 +611,35 @@ const GestaoReavaliacao = () => {
                     </table>
                 </div>
 
-                <div className="bg-white p-3 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div className="bg-white p-4 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <div>
                         {editados.size > 0 ? (
                             <button 
                                 onClick={handleSalvarTudoAdmin}
-                                className="flex items-center gap-2 bg-amber-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-amber-700 active:scale-95 transition-all shadow-md animate-bounce-subtle"
+                                className="flex items-center gap-2 bg-amber-500 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-amber-600 active:scale-95 transition-all shadow-md hover:shadow-lg animate-bounce-subtle"
                             >
                                 <ArchiveBoxArrowDownIcon className="w-5 h-5" />
                                 Salvar {editados.size} Alterações
                             </button>
                         ) : (
-                            <span className="text-xs text-slate-400 font-medium">Nenhuma alteração pendente</span>
+                            <span className="text-xs text-gray-400 font-medium italic pl-2">Nenhuma alteração pendente</span>
                         )}
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs text-slate-600">
+                    <div className="flex items-center gap-3 text-xs font-bold text-gray-600 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100">
                         <span className="hidden sm:inline">Pág. {paginaAtual} de {totalPaginas}</span>
                         <div className="flex gap-1">
-                            <button disabled={paginaAtual === 1} onClick={() => setPaginaAtual(1)} className="p-1.5 rounded hover:bg-amber-100 text-amber-700 disabled:opacity-30"><ChevronDoubleLeftIcon className="w-4 h-4" /></button>
-                            <button disabled={paginaAtual === 1} onClick={() => setPaginaAtual(p => Math.max(1, p - 1))} className="p-1.5 rounded hover:bg-amber-100 text-amber-700 disabled:opacity-30"><ChevronLeftIcon className="w-4 h-4" /></button>
-                            <input type="number" min="1" max={totalPaginas} value={paginaAtual} onChange={handlePageInput} className="w-10 text-center border border-slate-300 rounded focus:ring-2 focus:ring-amber-500 outline-none" />
-                            <button disabled={paginaAtual === totalPaginas} onClick={() => setPaginaAtual(p => Math.min(totalPaginas, p + 1))} className="p-1.5 rounded hover:bg-amber-100 text-amber-700 disabled:opacity-30"><ChevronRightIcon className="w-4 h-4" /></button>
-                            <button disabled={paginaAtual === totalPaginas} onClick={() => setPaginaAtual(totalPaginas)} className="p-1.5 rounded hover:bg-amber-100 text-amber-700 disabled:opacity-30"><ChevronDoubleRightIcon className="w-4 h-4" /></button>
+                            <button disabled={paginaAtual === 1} onClick={() => setPaginaAtual(1)} className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-600 disabled:opacity-30 transition-colors"><ChevronDoubleLeftIcon className="w-4 h-4" /></button>
+                            <button disabled={paginaAtual === 1} onClick={() => setPaginaAtual(p => Math.max(1, p - 1))} className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-600 disabled:opacity-30 transition-colors"><ChevronLeftIcon className="w-4 h-4" /></button>
+                            <input type="number" min="1" max={totalPaginas} value={paginaAtual} onChange={handlePageInput} className="w-12 text-center border border-gray-300 rounded-md focus:border-amber-400 outline-none bg-white py-0.5" />
+                            <button disabled={paginaAtual === totalPaginas} onClick={() => setPaginaAtual(p => Math.min(totalPaginas, p + 1))} className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-600 disabled:opacity-30 transition-colors"><ChevronRightIcon className="w-4 h-4" /></button>
+                            <button disabled={paginaAtual === totalPaginas} onClick={() => setPaginaAtual(totalPaginas)} className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-600 disabled:opacity-30 transition-colors"><ChevronDoubleRightIcon className="w-4 h-4" /></button>
                         </div>
                     </div>
                 </div>
             </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import EvoPag from "../../components/pendencias/EvoPag.jsx";
 import LoadingGen from "../../components/info/LoadingGen.jsx";
 import { listar_agendamentos_filtrados, agendamentos_pendentes } from "../../api/agenda/agenda_utils.js";
 import Swal from "sweetalert2";
+import { ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline"; // Adicionei ícone de sair
 
 const TelaInicialTerapeuta = () => {
 
@@ -18,7 +19,6 @@ const TelaInicialTerapeuta = () => {
   const podeEditar = EDITORES_PERMITIDOS.includes(Number(user?.profissionalId));
 
   // --- NOVA LÓGICA PARA GESTÃO (LISTA DE IDs) ---
-  // Adicione os IDs aqui dentro do array, separados por vírgula
   const GESTAO_PERMITIDOS = [8, 43, 17, 13, 15, 40]; 
   const podeAcessarGestao = GESTAO_PERMITIDOS.includes(Number(user?.profissionalId));
 
@@ -127,10 +127,25 @@ const TelaInicialTerapeuta = () => {
       <div className="w-screen h-full flex flex-col gap-12 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-4 p-2 xl:shadow-lg items-center">
         <div className="bg-white h-full rounded-xl grid md:grid-cols-2 grid-cols-1 auto-rows-min gap-6 xl:shadow-md justify-center items-start w-full md:p-8 p-4 overflow-y-auto">
           
-          {/* Título com animação sutil */}
-          <h1 className="font-extrabold text-4xl md:text-left md:col-span-2 col-span-1 text-center animate-fade-in-down">
-            <span className="bg-clip-text text-transparent bg-linear-to-r from-gray-800 to-gray-500">Painel do Terapeuta</span>
-          </h1>
+          {/* --- CABEÇALHO UNIFICADO (TÍTULO + LOGOUT) --- */}
+          <div className="md:col-span-2 col-span-1 flex flex-col md:flex-row justify-between items-center gap-4 mb-2">
+            <h1 className="font-extrabold text-4xl text-center md:text-left animate-fade-in-down">
+                <span className="bg-clip-text text-transparent bg-linear-to-r from-gray-800 to-gray-500">Painel do Terapeuta</span>
+            </h1>
+            
+            <button
+                onClick={handleLogout}
+                className="
+                bg-white border border-red-200 text-red-500 hover:bg-red-50 hover:text-red-700 
+                font-bold py-2 px-6 rounded-xl 
+                shadow-sm hover:shadow-md 
+                hover:-translate-y-0.5 active:scale-95 
+                transition-all duration-200 cursor-pointer flex items-center gap-2 text-sm
+                "
+            >
+                <ArrowRightOnRectangleIcon className="w-8 h-5" /> Sair da conta
+            </button>
+          </div>
 
           {/* Área de agendamentos */}
           <div className="
@@ -170,12 +185,12 @@ const TelaInicialTerapeuta = () => {
             )}
           </div>
 
-          {/* Área de Navegação */}
+          {/* Área de Navegação (Botões de Ação) */}
           <div className="flex flex-col row-span-1 md:col-span-2 gap-5 pt-4 border-t border-gray-100 mt-2">
             <h2 className="font-extrabold text-2xl text-left md:col-span-2 col-span-1 text-gray-800">
               Navegação
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               
               <button
                 onClick={() => navigate("/forms-terapeuta/jornada")}
@@ -205,6 +220,19 @@ const TelaInicialTerapeuta = () => {
                 </button>
               )}
 
+              <button
+                onClick={()=> navigate("/forms-terapeuta/visualizar-formularios")}
+                className="
+                  w-full bg-amber-500 hover:bg-amber-600 text-white 
+                  font-bold py-3 px-4 rounded-xl 
+                  shadow-md hover:shadow-lg hover:shadow-amber-200/40 
+                  hover:-translate-y-0.5 active:scale-95 
+                  transition-all duration-200 cursor-pointer flex items-center justify-center gap-2
+                "
+              >
+                <span>👁️</span> Visualizar Forms
+              </button>
+              
               {/* --- BOTÃO DE GESTÃO (Visível para a lista GESTAO_PERMITIDOS) --- */}
               {podeAcessarGestao && (
                 <button
@@ -221,31 +249,6 @@ const TelaInicialTerapeuta = () => {
                 </button>
               )}
 
-              <button
-                onClick={()=> navigate("/forms-terapeuta/visualizar-formularios")}
-                className="
-                  w-full bg-amber-500 hover:bg-amber-600 text-white 
-                  font-bold py-3 px-4 rounded-xl 
-                  shadow-md hover:shadow-lg hover:shadow-amber-200/40 
-                  hover:-translate-y-0.5 active:scale-95 
-                  transition-all duration-200 cursor-pointer flex items-center justify-center gap-2
-                "
-              >
-                <span>👁️</span> Visualizar Forms
-              </button>
-
-              <button
-                onClick={handleLogout}
-                className="
-                  w-full bg-red-500 hover:bg-red-600 text-white 
-                  font-bold py-3 px-4 rounded-xl 
-                  shadow-md hover:shadow-lg hover:shadow-red-200/40 
-                  hover:-translate-y-0.5 active:scale-95 
-                  transition-all duration-200 cursor-pointer flex items-center justify-center gap-2
-                "
-              >
-                <span>↩ </span> Sair da Conta
-              </button>
               
             </div>
           </div>

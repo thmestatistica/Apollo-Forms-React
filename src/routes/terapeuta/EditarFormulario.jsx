@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { 
@@ -28,7 +28,7 @@ import LoadingGen from "../../components/info/LoadingGen.jsx";
 // API Utils
 import { listar_formularios, criar_formulario_completo } from "../../api/forms/forms_utils";
 
-// --- 1. OPÇÕES DE CLASSIFICAÇÃO ---
+// --- CONSTANTES (Mantidas iguais) ---
 const OPCOES_ESPECIALIDADES = [
     { value: 'Fisioterapia', label: 'Fisioterapia' },
     { value: 'Terapia Ocupacional', label: 'Terapia Ocupacional' },
@@ -51,7 +51,6 @@ const OPCOES_DIAGNOSTICOS = [
     { value: 'Geral', label: 'Geral / Outros' }
 ];
 
-// --- 2. OPÇÕES DE TIPO DE FORMULÁRIO ---
 const OPCOES_TIPO_FORMULARIO = [
     { value: 'Evoluções', label: 'Evoluções' },
     { value: 'Escalas/testes', label: 'Escalas/testes' },
@@ -60,7 +59,6 @@ const OPCOES_TIPO_FORMULARIO = [
     { value: 'Avaliações', label: 'Avaliações' }
 ];
 
-// --- 3. OPÇÕES DE PERGUNTAS ---
 const TIPO_PERGUNTA_OPTIONS = [
     { value: "TEXTO_LIVRE", label: "Texto livre" },
     { value: "DATA", label: "Data" },
@@ -77,16 +75,14 @@ function EditarFormulario() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('lista'); 
 
-  // =========================================================================
-  // ABA 1: LISTAR (Lógica)
-  // =========================================================================
+  // ================= ABA 1: LISTAR =================
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [forms, setForms] = useState([]);
   const [selectedTipos, setSelectedTipos] = useState([]); 
   const [busca, setBusca] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(6);
+  const [itemsPerPage] = useState(6);
 
   useEffect(() => {
     if (activeTab !== 'lista') return;
@@ -97,6 +93,7 @@ function EditarFormulario() {
       try {
         const data = await listar_formularios();
         if (isMounted) setForms(Array.isArray(data) ? data : []);
+      // eslint-disable-next-line no-unused-vars
       } catch (e) {
         if (isMounted) setError("Falha ao carregar formulários.");
       } finally {
@@ -107,7 +104,8 @@ function EditarFormulario() {
   }, [activeTab]);
 
   const getId = (f) => f?.formulario_id ?? f?.id ?? f?.formId;
-  const getTitulo = (f) => f?.nome_formulario ?? f?.titulo ?? f?.nomeEscala ?? `Formulário ${getId(f)}`;
+  // eslint-disable-next-line react-hooks/exhaustive-deps, no-undef
+  const getTitulo = useCallback((f) => f?.nome_formulario ?? f?.titulo ?? f?.nomeEscala ?? `Formulário ${getId(f)}`);
   const getTipo = (f) => f?.tipo_formulario ?? f?.tipo ?? "Geral";
 
   const filteredForms = useMemo(() => {
@@ -132,16 +130,7 @@ function EditarFormulario() {
         });
     }
     return resultado;
-  }, [forms, selectedTipos, user?.especialidade, busca]);
-
-  const tipoOptionsFilter = useMemo(() => {
-    const set = new Map();
-    for (const f of forms) {
-      const t = getTipo(f);
-      if (t && !set.has(t)) set.set(t, { value: t, label: String(t) });
-    }
-    return Array.from(set.values());
-  }, [forms]);
+  }, [forms, user.especialidade, selectedTipos, busca, getTitulo]);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil((filteredForms?.length || 0) / itemsPerPage)), [filteredForms, itemsPerPage]);
   const pageStart = (currentPage - 1) * itemsPerPage;
@@ -156,11 +145,17 @@ function EditarFormulario() {
       navigate(`/forms-terapeuta/editar-formulario/${id}`);
   };
 
+  const tipoOptionsFilter = useMemo(() => {
+    const set = new Map();
+    for (const f of forms) {
+      const t = getTipo(f);
+      if (t && !set.has(t)) set.set(t, { value: t, label: String(t) });
+    }
+    return Array.from(set.values());
+  }, [forms]);
 
-  // =========================================================================
-  // 🧠 ABA 2: CRIAR NOVO
-  // =========================================================================
-  
+
+  // ================= ABA 2: CRIAR NOVO =================
   const [novoForm, setNovoForm] = useState({ titulo: '', descricao: '', tipo: null });
   const [novasEspecialidades, setNovasEspecialidades] = useState([]);
   const [novosDiagnosticos, setNovosDiagnosticos] = useState([]);
@@ -262,8 +257,7 @@ function EditarFormulario() {
     });
   };
 
-  // Drag & Drop
-  const onDragStart = (index, e) => { try { e.dataTransfer.setData("text/plain", String(index)); } catch {} setDragIndex(index); };
+  const onDragStart = (index, e) => { try { e.dataTransfer.setData("text/plain", String(index)); } catch { /* empty */ } setDragIndex(index); };
   const onDragOver = (index, e) => {
     e.preventDefault();
     if (dragOverIndex !== index) setDragOverIndex(index);
@@ -291,9 +285,12 @@ function EditarFormulario() {
   };
 
   const handleSalvarNovo = async () => {
-    if (!novoForm.titulo.trim()) return Swal.fire('Erro', 'Nome do formulário é obrigatório.', 'error');
-    if (!novoForm.tipo) return Swal.fire('Erro', 'Selecione o Tipo do formulário.', 'error');
-    if (novasEspecialidades.length === 0) return Swal.fire('Aviso', 'Selecione ao menos uma especialidade.', 'warning');
+    // 🔒 VALIDAÇÃO RIGOROSA 🔒
+    if (!novoForm.titulo.trim()) return Swal.fire('Atenção', 'O <b>Nome do Formulário</b> é obrigatório.', 'warning');
+    if (!novoForm.tipo) return Swal.fire('Atenção', 'Selecione o <b>Tipo</b> do formulário.', 'warning');
+    if (!novoForm.descricao.trim()) return Swal.fire('Atenção', 'A <b>Descrição</b> do formulário é obrigatória.', 'warning');
+    if (novasEspecialidades.length === 0) return Swal.fire('Atenção', 'Selecione ao menos uma <b>Especialidade</b>.', 'warning');
+    if (novosDiagnosticos.length === 0) return Swal.fire('Atenção', 'Selecione ao menos um <b>Diagnóstico</b>.', 'warning');
     
     const errors = [];
     questions.forEach((q, idx) => {
@@ -319,11 +316,12 @@ function EditarFormulario() {
 
     const result = await Swal.fire({
         title: 'Criar Formulário?',
-        html: `Confirma a criação de "<b>${novoForm.titulo}</b>" (${novoForm.tipo.label})?`,
+        html: `Confirma a criação de "<b>${novoForm.titulo}</b>"?`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonText: 'Sim, criar',
-        confirmButtonColor: '#10b981'
+        confirmButtonColor: '#5A2779', // Apollo 200
+        cancelButtonColor: '#6B7280'
     });
 
     if (result.isConfirmed) {
@@ -337,7 +335,7 @@ function EditarFormulario() {
                 text: 'Formulário criado. O que deseja fazer?',
                 icon: 'success',
                 showCancelButton: true,
-                confirmButtonColor: '#3B82F6', 
+                confirmButtonColor: '#5A2779', 
                 cancelButtonColor: '#6B7280', 
                 confirmButtonText: '👁️ Visualizar Agora',
                 cancelButtonText: 'Voltar para Lista',
@@ -364,262 +362,306 @@ function EditarFormulario() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen gap-8">
-      {/* Container com Gradiente Apollo */}
+    <div className="flex flex-col items-center justify-center h-screen gap-8 bg-gray-100">
+      
+      {/* CONTAINER PRINCIPAL */}
       <div className="w-screen h-full flex flex-col gap-4 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-4 p-2 xl:shadow-lg items-center">
         
-        {/* Card Branco Principal */}
-        <div className="bg-white h-full rounded-xl flex flex-col gap-6 xl:shadow-md w-[98%] md:p-8 p-4 overflow-y-auto relative pb-16">
+        {/* CARD BASE BRANCO */}
+        <div className="bg-white h-full rounded-2xl w-full md:p-10 p-5 overflow-y-auto max-w-7xl xl:shadow-2xl relative shadow-lg flex flex-col">
           
-          {/* CABEÇALHO */}
-          <div className="flex flex-col md:flex-row justify-between items-center border-b pb-4 gap-4">
-              <div className="flex flex-col">
-                  <h1 className="font-extrabold text-2xl md:text-3xl text-gray-800 line-clamp-1">
-                    ✍️ Gestão de Formulários
+          {/* --- CABEÇALHO --- */}
+          <div className="flex flex-col md:flex-row justify-between items-center border-b border-gray-100 pb-6 gap-6 shrink-0">
+              <div className="flex flex-col items-center md:items-start">
+                  <h1 className="font-extrabold text-3xl md:text-4xl text-gray-800 line-clamp-1 flex items-center gap-3 animate-fade-in-down">
+                    <span>✍️</span> 
+                    <span className="bg-clip-text text-transparent bg-linear-to-r from-gray-800 to-gray-500">Gestão de Formulários</span>
                   </h1>
-                  <p className="text-gray-400 mt-1 text-sm md:text-base hidden md:block">
-                    {activeTab === 'lista' ? 'Gerencie os formulários existentes.' : 'Preencha os dados do novo instrumento.'}
+                  <p className="text-gray-400 mt-2 text-sm md:text-base hidden md:block">
+                    {activeTab === 'lista' ? 'Gerencie os formulários do sistema.' : 'Crie um novo formulário no sistema.'}
                   </p>
               </div>
 
-              <div className="flex gap-2 items-center w-full md:w-auto justify-end">
+              <div className="flex flex-wrap gap-3 items-center justify-center w-full md:w-auto">
                  
-                 {/* ABAS */}
-                 <div className="bg-gray-100 p-1 rounded-xl flex gap-1 shadow-inner mr-2">
-                    <button onClick={() => setActiveTab('lista')} className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'lista' ? 'bg-white text-apollo-500 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-                        <ListBulletIcon className="w-4 h-4" /> Lista
-                    </button>
-                    <button onClick={() => setActiveTab('criar')} className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'criar' ? 'bg-emerald-500 text-white shadow-md' : 'text-gray-500 hover:text-emerald-600'}`}>
-                        <PlusCircleIcon className="w-4 h-4" /> Novo
-                    </button>
-                 </div>
                  {/* BOTÃO VISUALIZAR */}
                  <button 
                     onClick={() => navigate('/forms-terapeuta/visualizar-formularios')} 
-                    className="flex-1 md:flex-none bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold py-2 px-4 rounded-lg transition-colors shadow-sm cursor-pointer flex items-center gap-2 border border-indigo-100 mr-2"
-                    title="Ir para Modo Visualização"
+                    className="hidden md:flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-600 font-bold py-2.5 px-5 rounded-xl transition-all shadow-sm hover:shadow-lg hover:bg-apollo-200 hover:text-white hover:border-apollo-200 hover:-translate-y-1 active:scale-95 text-sm cursor-pointer"
+                    title="Modo Visualização"
                  >
-                    <EyeIcon className="w-4 h-4" /> <span className="hidden sm:inline">Visualizar</span>
+                    <EyeIcon className="w-5 h-5" /> Visualizar
                  </button>
+
+                 {/* ABAS */}
+                 <div className="bg-gray-100 p-1.5 rounded-xl flex gap-1 shadow-inner">
+                    <button 
+                        onClick={() => setActiveTab('lista')} 
+                        className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all duration-300 cursor-pointer ${activeTab === 'lista' ? 'bg-white text-apollo-200 shadow-md transform' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-200'}`}
+                    >
+                        <ListBulletIcon className="w-5 h-5" /> Lista
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('criar')} 
+                        className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all duration-300 cursor-pointer ${activeTab === 'criar' ? 'bg-apollo-200 text-white shadow-md transform' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-200'}`}
+                    >
+                        <PlusCircleIcon className="w-5 h-5" /> Novo
+                    </button>
+                 </div>
                  
                  {/* BOTÃO VOLTAR */}
-                 <button onClick={() => navigate('/forms-terapeuta/tela-inicial')} className="flex-1 md:flex-none bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 shadow-sm cursor-pointer flex items-center gap-2">
-                    <ChevronLeftIcon className="w-4 h-4" /> Voltar
+                 <button 
+                    onClick={() => navigate('/forms-terapeuta/tela-inicial')} 
+                    className="bg-white border border-red-100 text-red-500 font-bold py-2.5 px-5 rounded-xl transition-all shadow-sm hover:bg-red-50 hover:border-red-200 active:scale-95 flex items-center gap-2 text-sm cursor-pointer"
+                 >
+                    <ChevronLeftIcon className="w-5 h-5" /> Voltar
                  </button>
               </div>
           </div>
 
-          {/* ======================= ABA 1: LISTA ======================= */}
+          {/* ======================= CONTEÚDO: LISTA ======================= */}
           {activeTab === 'lista' && (
-             <div className="animate-fade-in flex flex-col h-full">
-                <div className="flex flex-col md:flex-row items-end justify-between gap-6 pb-2">
+             <div className="animate-fade-in flex flex-col flex-1 overflow-hidden mt-6">
+                
+                {/* BARRA DE FILTROS */}
+                <div className="flex flex-col md:flex-row items-end justify-between gap-6 pb-2 bg-gray-50/30 p-6 rounded-2xl border border-gray-100 mb-6 shrink-0">
                     <div className="flex flex-col gap-2 w-full md:w-1/2">
-                        <label className="text-sm font-bold text-gray-600">FILTRAR POR TIPO</label>
+                        <label className="text-xs font-bold text-gray-400 tracking-widest uppercase ml-1">Filtrar por Tipo</label>
                         <MultiSelect
                             options={tipoOptionsFilter}
                             value={selectedTipos}
                             onChange={setSelectedTipos}
-                            placeholder="Selecione..."
+                            placeholder="Selecione os tipos..."
                             className="text-sm cursor-pointer shadow-sm hover:shadow transition-shadow"
                         />
                     </div>
                     <div className="flex flex-col gap-2 w-full md:w-1/2">
-                        <label className="text-sm font-bold text-gray-600">BUSCAR</label>
-                        <div className="relative">
-                            <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-                            <input type="text" placeholder="Nome..." className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg w-full outline-none focus:ring-2 focus:ring-apollo-200 bg-gray-50/50" value={busca} onChange={e => setBusca(e.target.value)} />
+                        <label className="text-xs font-bold text-gray-400 tracking-widest uppercase ml-1">Buscar Formulário</label>
+                        <div className="relative group">
+                            <MagnifyingGlassIcon className="w-5 h-5 absolute left-4 top-3 text-gray-400 group-hover:text-apollo-400 transition-colors" />
+                            <input 
+                                type="text" 
+                                placeholder="Digite o nome..." 
+                                className="pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl w-full outline-none focus:border-apollo-300 focus:bg-white bg-white text-sm transition-all font-medium text-gray-700 placeholder-gray-400 shadow-sm" 
+                                value={busca} 
+                                onChange={e => setBusca(e.target.value)} 
+                            />
                         </div>
                     </div>
                 </div>
 
-                {loading && <LoadingGen mensagem="Carregando..." />}
+                {loading && <LoadingGen mensagem="Carregando formulários..." />}
                 
                 {!!error && !loading && <ErroGen mensagem={error} />}
 
+                {/* AREA DE GRID COM SCROLL INTERNO */}
                 {!loading && !error && (
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 flex-1 content-start overflow-y-auto pr-2 custom-scrollbar mt-6">
-                        {pageItems.map((f) => (
-                            <div key={getId(f) || Math.random()} onClick={() => handleEdit(f)} className="group cursor-pointer bg-white border-2 border-gray-200 rounded-2xl p-6 flex flex-col justify-between shadow-md hover:shadow-2xl hover:border-apollo-200 transition-all transform hover:-translate-y-1">
-                                <div>
-                                    <span className="px-2 py-1 bg-gray-100 text-gray-500 text-xs rounded-md border border-gray-200 font-bold uppercase">{getTipo(f)}</span>
-                                    <h2 className="font-bold text-lg text-gray-800 mt-2 line-clamp-2">{getTitulo(f)}</h2>
+                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar p-1 pb-20"> 
+                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 content-start">
+                            {pageItems.map((f) => (
+                                // CARD DO FORMULÁRIO - DESIGN APOLLO (Roxo e Clean)
+                                <div 
+                                    key={getId(f) || Math.random()} 
+                                    onClick={() => handleEdit(f)} 
+                                    className="group relative bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-apollo-300 hover:ring-1 hover:ring-apollo-300 transition-all duration-300 cursor-pointer flex flex-col justify-between h-48 overflow-hidden transform hover:-translate-y-1"
+                                >
+                                    <div className="z-10 relative">
+                                        <span className="inline-block px-3 py-1 bg-gray-50 text-gray-500 text-[10px] font-bold rounded-lg border border-gray-100 uppercase tracking-wide group-hover:bg-apollo-50 group-hover:text-apollo-600 group-hover:border-apollo-100 transition-colors">
+                                            {getTipo(f)}
+                                        </span>
+                                        <h3 className="font-bold text-lg text-gray-800 leading-snug line-clamp-2 mt-4 group-hover:text-apollo-600 transition-colors">
+                                            {getTitulo(f)}
+                                        </h3>
+                                    </div>
+                                    
+                                    <div className="mt-auto w-full py-2.5 rounded-xl bg-gray-50 text-gray-600 font-bold text-center text-xs border border-gray-100 group-hover:bg-apollo-200 group-hover:text-white group-hover:border-transparent transition-all flex items-center justify-center gap-2 z-10">
+                                        <span>Editar Formulário</span> <PencilSquareIcon className="w-4 h-4" />
+                                    </div>
                                 </div>
-                                <div className="mt-4 w-full py-2 rounded-xl bg-apollo-200 text-white font-bold text-center text-sm shadow-sm group-hover:bg-apollo-300 transition-colors flex items-center justify-center gap-2">
-                                    <span>Editar</span> <PencilSquareIcon className="w-4 h-4" />
-                                </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 )}
                 
+                {/* PAGINAÇÃO FIXA EMBAIXO DENTRO DO CARD */}
                 {!loading && !error && (
-                    <div className="mt-auto pt-4 border-t border-gray-100">
+                    <div className="mt-auto border-t border-gray-100 shrink-0">
                         <PaginationButtons currentPage={currentPage} totalPages={totalPages} onPrev={() => setCurrentPage(p => Math.max(1, p-1))} onNext={() => setCurrentPage(p => Math.min(totalPages, p+1))} />
                     </div>
                 )}
              </div>
           )}
 
-          {/* ======================= ABA 2: CRIAR NOVO ======================= */}
+          {/* ======================= CONTEÚDO: CRIAR NOVO ======================= */}
           {activeTab === 'criar' && (
-            <div className="flex flex-col gap-6 animate-fade-in pb-10 w-full" ref={scrollRef}>
+            <div className="flex flex-col gap-8 max-w-5xl mx-auto w-full mt-6 animate-fade-in overflow-y-auto pb-20 custom-scrollbar" ref={scrollRef}>
                 
                 {/* DADOS GERAIS */}
-                <div className="grid md:grid-cols-2 gap-6">
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-4 border-b pb-2">
-                            <ClipboardDocumentListIcon className="w-5 h-5 text-apollo-300" /> Informações Básicas
+                <div className="grid md:grid-cols-2 gap-8">
+                    <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                        <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3 border-b border-gray-100 pb-4">
+                            <div className="p-2 bg-apollo-200/5 rounded-lg"><ClipboardDocumentListIcon className="w-6 h-6 text-apollo-200" /></div>
+                            Informações Básicas
                         </h2>
-                        <div className="space-y-4">
+                        <div className="space-y-5">
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Formulário</label>
-                                <AdaptiveInput className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-apollo-200 outline-none"
+                                <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1 tracking-wider">Nome do Formulário <span className="text-red-500">*</span></label>
+                                <AdaptiveInput className="w-full border-2 border-gray-100 rounded-xl p-3.5 text-sm focus:border-apollo-300 focus:ring-4 focus:ring-apollo-50 outline-none transition-all font-medium text-gray-700 placeholder-gray-300"
                                     value={novoForm.titulo} onChange={val => setNovoForm({...novoForm, titulo: val})} placeholder="Ex: Escala de Berg" />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo</label>
+                                <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1 tracking-wider">Tipo <span className="text-red-500">*</span></label>
                                 <SingleSelect 
                                     options={OPCOES_TIPO_FORMULARIO}
                                     value={novoForm.tipo}
                                     onChange={opt => setNovoForm({...novoForm, tipo: opt})}
-                                    placeholder="Selecione..."
+                                    placeholder="Selecione o tipo..."
+                                    className="text-sm cursor-pointer"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descrição</label>
-                                <AdaptiveInput className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-apollo-200 outline-none"
-                                    value={novoForm.descricao} onChange={val => setNovoForm({...novoForm, descricao: val})} placeholder="Descrição breve..." />
+                                <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1 tracking-wider">Descrição <span className="text-red-500">*</span></label>
+                                <textarea className="w-full border-2 border-gray-100 rounded-xl p-3.5 text-sm focus:border-apollo-300 focus:ring-4 focus:ring-apollo-50 outline-none h-[120px] resize-none bg-gray-50/30 transition-all placeholder-gray-300"
+                                    value={novoForm.descricao} onChange={e => setNovoForm({...novoForm, descricao: e.target.value})} placeholder="Para que serve este formulário..." />
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-4 border-b pb-2">
-                            <TagIcon className="w-5 h-5 text-apollo-300" /> Classificação
+                    <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                        <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3 border-b border-gray-100 pb-4">
+                            <div className="p-2 bg-emerald-50 rounded-lg"><TagIcon className="w-6 h-6 text-emerald-500" /></div>
+                            Classificação
                         </h2>
-                        <div className="space-y-4">
+                        <div className="grid grid-cols-1 gap-6 h-full content-start">
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-2"><BriefcaseIcon className="w-4 h-4" /> Especialidades</label>
-                                <MultiSelect options={OPCOES_ESPECIALIDADES} value={novasEspecialidades} onChange={setNovasEspecialidades} placeholder="Selecione..." className="text-sm" />
+                                <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1 tracking-wider flex items-center gap-2"><BriefcaseIcon className="w-4 h-4" /> Especialidades <span className="text-red-500">*</span></label>
+                                <MultiSelect options={OPCOES_ESPECIALIDADES} value={novasEspecialidades} onChange={setNovasEspecialidades} placeholder="Selecione as áreas..." className="text-sm cursor-pointer" />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-2"><span className="text-apollo-300 font-black">Dx</span> Diagnósticos</label>
-                                <MultiSelect options={OPCOES_DIAGNOSTICOS} value={novosDiagnosticos} onChange={setNovosDiagnosticos} placeholder="Selecione..." className="text-sm" />
+                                <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1 tracking-wider flex items-center gap-2"><span className="text-emerald-500 font-black text-xs bg-emerald-50 px-1.5 py-0.5 rounded">Dx</span> Diagnósticos <span className="text-red-500">*</span></label>
+                                <MultiSelect options={OPCOES_DIAGNOSTICOS} value={novosDiagnosticos} onChange={setNovosDiagnosticos} placeholder="Selecione os diagnósticos..." className="text-sm cursor-pointer" />
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* ENGINE DE PERGUNTAS */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <div className="flex justify-between items-center mb-4 border-b pb-2">
-                        <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                            <ListBulletIcon className="w-5 h-5 text-apollo-300" /> Perguntas ({questions.length})
+                <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm relative">
+                    <div className="flex justify-between items-center mb-8 border-b border-gray-100 pb-4">
+                        <h2 className="text-xl font-bold text-gray-800 flex items-center gap-3">
+                            <div className="p-2 bg-indigo-50 rounded-lg"><ListBulletIcon className="w-6 h-6 text-indigo-500" /></div>
+                            Perguntas ({questions.length})
                         </h2>
-                        <button onClick={addQuestion} className="text-apollo-500 border border-apollo-500 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-apollo-50 transition-colors flex items-center gap-1">
-                            <PlusCircleIcon className="w-4 h-4" /> Adicionar Pergunta
+                        <button onClick={addQuestion} className="bg-white text-apollo-200 border-2 border-apollo-200 px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-apollo-200 hover:text-white transition-all flex items-center gap-2 active:scale-95 shadow-sm cursor-pointer">
+                            <PlusCircleIcon className="w-5 h-5" /> Nova Pergunta
                         </button>
                     </div>
 
-                    <div className="space-y-4">
-                        <div className="relative h-4 group hover:bg-gray-50 rounded cursor-pointer transition-colors" onClick={() => insertQuestionAt(0)}>
-                            <div className="absolute inset-x-0 top-1/2 h-px bg-gray-200 group-hover:bg-apollo-300"></div>
-                            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-[10px] text-apollo-500 opacity-0 group-hover:opacity-100 transition-opacity border border-apollo-200 rounded-full">+ Inserir no início</span>
+                    <div className="space-y-8">
+                        {/* Dropzone Inicial */}
+                        <div className="relative h-2 group hover:h-10 transition-all duration-200 flex items-center justify-center cursor-pointer mb-4" onClick={() => insertQuestionAt(0)}>
+                            <div className="w-full h-0.5 bg-gray-100 group-hover:bg-apollo-300 transition-colors rounded-full"></div>
+                            <span className="absolute bg-white px-4 py-1.5 text-xs text-apollo-500 opacity-0 group-hover:opacity-100 transition-all border border-apollo-200 rounded-full shadow-md font-bold scale-90 group-hover:scale-100">+ Inserir no início</span>
                         </div>
 
                         {questions.map((q, i) => {
-                            // --- LÓGICA DE TÓPICO (Adicionada aqui) ---
                             const isTopic = q.tipo === "TEXTO_TOPICO" || q.tipo === "TEXTO_SUBTOPICO";
-                            // ------------------------------------------
 
                             return (
                                 <div 
                                     key={i}
-                                    className={`relative border rounded-xl p-4 transition-all duration-200 ${dragIndex === i ? "opacity-50 ring-2 ring-apollo-300 bg-gray-50" : "bg-white border-gray-200 hover:border-apollo-300 hover:shadow-md"}`}
+                                    className={`relative border-2 rounded-2xl p-6 transition-all duration-300 group/card 
+                                    ${dragIndex === i ? "opacity-40 border-dashed border-apollo-400 bg-gray-50 scale-95" : "bg-white border-gray-100 hover:border-apollo-300 hover:shadow-xl shadow-sm"}
+                                    ${isTopic ? "bg-slate-50 border-slate-200" : ""}
+                                    `}
                                     draggable
                                     onDragStart={(e) => onDragStart(i, e)}
                                     onDragOver={(e) => onDragOver(i, e)}
                                     onDrop={(e) => onDrop(i, e)}
                                 >
-                                    <div className="flex justify-between items-center mb-3">
-                                        <div className="flex items-center gap-2 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600">
-                                            <Bars3Icon className="w-5 h-5" />
-                                            <span className="text-xs font-bold text-gray-500 uppercase">Pergunta #{i + 1}</span>
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className="flex items-center gap-3 cursor-grab active:cursor-grabbing text-gray-300 hover:text-apollo-500 p-2 -ml-2 rounded-xl hover:bg-apollo-50 transition-colors">
+                                            <Bars3Icon className="w-6 h-6" />
+                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wide group-hover/card:text-apollo-500">Questão {i + 1}</span>
                                         </div>
-                                        <div className="flex gap-3">
-                                            {/* CHECKBOX COM LOGICA APLICADA */}
-                                            <label className={`flex items-center gap-1 text-xs font-semibold transition-colors cursor-pointer ${isTopic ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600'}`}>
+                                        <div className="flex gap-3 items-center">
+                                            <label className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg transition-all border-2 ${isTopic ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400 border-transparent' : q.obrigatoria ? 'bg-apollo-50 text-apollo-600 border-apollo-100 cursor-pointer' : 'bg-white text-gray-400 border-gray-100 hover:border-gray-200 cursor-pointer'}`}>
                                                 <input 
                                                     type="checkbox" 
                                                     checked={isTopic ? false : q.obrigatoria} 
                                                     disabled={isTopic}
                                                     onChange={(e) => updateField(i, 'obrigatoria', e.target.checked)} 
-                                                    className={`accent-apollo-500 ${isTopic ? 'cursor-not-allowed' : ''}`} 
+                                                    className={`accent-apollo-600 w-4 h-4 rounded-sm ${isTopic ? 'cursor-not-allowed' : 'cursor-pointer'}`} 
                                                 /> 
                                                 Obrigatória
                                             </label>
-                                            {/* --------------------------- */}
-                                            <button onClick={() => removeQuestion(i)} className="text-red-400 hover:text-red-600"><TrashIcon className="w-4 h-4" /></button>
+                                            <button onClick={() => removeQuestion(i)} className="text-gray-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all cursor-pointer" title="Excluir"><TrashIcon className="w-5 h-5" /></button>
                                         </div>
                                     </div>
 
-                                    <div className="grid md:grid-cols-3 gap-4">
+                                    <div className="grid md:grid-cols-3 gap-6">
                                         <div className="md:col-span-2">
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Enunciado</label>
+                                            <label className="block text-[10px] font-extrabold text-gray-400 uppercase mb-2 ml-1 tracking-widest">Enunciado / Título</label>
                                             <AdaptiveInput 
-                                                className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-apollo-200 outline-none"
+                                                className={`w-full border-2 rounded-xl p-3.5 text-sm outline-none transition-all placeholder-gray-300 ${isTopic ? 'border-slate-200 bg-slate-100 font-bold text-slate-700' : 'border-gray-100 focus:border-apollo-300 focus:ring-4 focus:ring-apollo-50 font-medium text-gray-700'}`}
                                                 value={q.texto} 
                                                 onChange={(val) => updateField(i, 'texto', val)} 
                                                 placeholder="Ex: Como o paciente está se sentindo?" 
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Tipo de Resposta</label>
+                                            <label className="block text-[10px] font-extrabold text-gray-400 uppercase mb-2 ml-1 tracking-widest">Tipo de Resposta</label>
                                             <SingleSelect 
                                                 options={TIPO_PERGUNTA_OPTIONS}
                                                 value={TIPO_PERGUNTA_OPTIONS.find(o => o.value === q.tipo)}
                                                 onChange={(opt) => updateField(i, 'tipo', opt.value)}
                                                 placeholder="Selecione..."
+                                                className="text-sm cursor-pointer"
                                             />
                                         </div>
                                     </div>
 
                                     {requiresOptions(q.tipo) && (
-                                        <div className="mt-3 pl-4 border-l-2 border-apollo-100">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <span className="text-xs font-bold text-gray-500">Opções</span>
-                                                <button onClick={() => addOption(i)} className="text-[10px] bg-gray-100 text-gray-700 px-2 py-1 rounded border border-gray-200 hover:bg-gray-200">+ Add</button>
+                                        <div className="mt-6 ml-2 pl-6 border-l-4 border-apollo-100 bg-gray-50/50 p-5 rounded-r-2xl">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Lista de Opções</span>
+                                                <button onClick={() => addOption(i)} className="text-[10px] bg-white border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg shadow-sm hover:bg-apollo-50 hover:text-apollo-600 hover:border-apollo-200 transition-all font-bold cursor-pointer">+ Opção</button>
                                             </div>
-                                            <div className="space-y-2">
+                                            <div className="space-y-3">
                                                 {q.opcoes?.map((opt, j) => (
-                                                    <div key={j} className="flex gap-2 items-center">
-                                                        <AdaptiveInput className="flex-1 border border-gray-200 rounded px-2 py-1 text-xs" 
-                                                            value={opt.label} onChange={(val) => updateOption(i, j, 'label', val)} placeholder="Texto da opção" />
-                                                        <button onClick={() => removeOption(i, j)} className="text-gray-400 hover:text-red-500">×</button>
+                                                    <div key={j} className="flex gap-3 items-center group/opt">
+                                                        <div className="w-2.5 h-2.5 rounded-full bg-gray-200 group-hover/opt:bg-apollo-300 transition-colors"></div>
+                                                        <AdaptiveInput className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-apollo-100 focus:border-apollo-300 outline-none transition-all font-medium text-gray-600" 
+                                                            value={opt.label} onChange={(val) => updateOption(i, j, 'label', val)} placeholder={`Opção ${j+1}`} />
+                                                        <button onClick={() => removeOption(i, j)} className="text-gray-300 hover:text-red-500 px-2 opacity-0 group-hover/opt:opacity-100 transition-all font-bold text-lg cursor-pointer">×</button>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
                                     )}
                                     
-                                    <div className="relative h-4 group hover:bg-gray-50 rounded cursor-pointer transition-colors mt-2" onClick={() => insertQuestionAt(i+1)}>
-                                        <div className="absolute inset-x-0 top-1/2 h-px bg-gray-100 group-hover:bg-apollo-300"></div>
-                                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-[10px] text-apollo-500 opacity-0 group-hover:opacity-100 transition-opacity border border-apollo-200 rounded-full">+ Inserir</span>
+                                    {/* Dropzone Inferior */}
+                                    <div className="absolute -bottom-5 left-0 w-full h-10 group/insert hover:z-20 flex items-center justify-center cursor-pointer opacity-0 hover:opacity-100 transition-opacity" onClick={() => insertQuestionAt(i+1)}>
+                                        <div className="w-full h-0.5 bg-apollo-300 shadow-[0_0_10px_rgba(99,102,241,0.5)]"></div>
+                                        <div className="absolute bg-apollo-500 text-white text-[10px] font-bold px-4 py-1 rounded-full shadow-lg border-2 border-white hover:scale-110 transition-transform">+ Inserir Abaixo</div>
                                     </div>
+                                    
+                                    {dragOverIndex === i && dragOverEdge === "bottom" && <div className="absolute -bottom-2 left-0 w-full h-1.5 bg-apollo-400 rounded-full animate-pulse z-30"></div>}
                                 </div>
                             );
                         })}
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-4 justify-between mt-8 pt-6 border-t border-gray-100">
+                {/* BOTÃO FLUTUANTE DE SALVAR */}
+                <div className="flex flex-col gap-4 justify-between mt-8 pt-6 sticky bottom-6 z-40 pointer-events-none">
                     <button 
                         onClick={handleSalvarNovo}
                         disabled={loadingSalvar}
-                        className="bg-green-600 text-white font-bold rounded-lg px-6 py-3 transition-colors hover:bg-green-700 shadow-sm cursor-pointer w-full md:w-auto md:self-end flex items-center justify-center gap-2 disabled:opacity-50"
+                        className="pointer-events-auto bg-apollo-200 text-white font-bold rounded-2xl px-8 py-4 transition-all hover:bg-apollo-800 shadow-xl hover:shadow-apollo-200/50 cursor-pointer w-full md:w-auto md:self-end flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-1 active:scale-95 text-base border-4 border-white/50 backdrop-blur-sm"
                     >
                         {loadingSalvar ? <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span> : <CheckCircleIcon className="w-6 h-6" />}
-                        <span>Salvar Formulário</span>
+                        <span>Salvar Formulário Completo</span>
                     </button>
                 </div>
             </div>

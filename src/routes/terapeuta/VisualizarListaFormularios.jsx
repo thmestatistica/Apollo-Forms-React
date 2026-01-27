@@ -1,5 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { 
+  EyeIcon, 
+  ChevronLeftIcon, 
+  MagnifyingGlassIcon, 
+  PencilSquareIcon,
+  ListBulletIcon 
+} from '@heroicons/react/24/outline';
+
 import MultiSelect from "../../components/input/MultiSelect.jsx";
 import { listar_formularios } from "../../api/forms/forms_utils";
 import ErroGen from "../../components/info/ErroGen.jsx";
@@ -20,8 +28,11 @@ function VisualizarListaFormularios() {
   const [error, setError] = useState("");
   const [forms, setForms] = useState([]);
   const [selectedTipos, setSelectedTipos] = useState([]); 
+  const [busca, setBusca] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(2); 
+  
+  // Inicia com 6 itens para alinhar com a edição
+  const [itemsPerPage, setItemsPerPage] = useState(6);
 
   // 1. Carregamento
   useEffect(() => {
@@ -53,18 +64,32 @@ function VisualizarListaFormularios() {
   }, [forms]);
 
   const filteredForms = useMemo(() => {
-    if (!selectedTipos?.length) return forms;
-    const allowed = new Set(selectedTipos.map((o) => o.value));
-    return forms.filter((f) => allowed.has(f?.tipo_formulario ?? f?.tipo));
-  }, [forms, selectedTipos]);
+    let resultado = forms;
+
+    // --- FILTRO AUTOMÁTICO REMOVIDO CONFORME SOLICITADO ---
+    // Agora mostra todos os formulários independente da especialidade do usuário.
+
+    if (selectedTipos?.length) {
+      const allowed = new Set(selectedTipos.map((o) => o.value));
+      resultado = resultado.filter((f) => allowed.has(f?.tipo_formulario ?? f?.tipo));
+    }
+
+    if (busca) {
+        resultado = resultado.filter(f => {
+            const titulo = f?.nome_formulario ?? f?.titulo ?? f?.nomeEscala ?? "";
+            return titulo.toLowerCase().includes(busca.toLowerCase());
+        });
+    }
+    return resultado;
+  }, [forms, selectedTipos, busca]);
 
   // Responsividade
   useEffect(() => {
     const computeItemsPerPage = () => {
       const w = window.innerWidth;
-      if (w >= 1024) return 9;
-      if (w >= 640) return 6;
-      return 3;
+      if (w >= 1024) return 6; 
+      if (w >= 640) return 6;  
+      return 4;                
     };
     const update = () => setItemsPerPage(computeItemsPerPage());
     update();
@@ -93,118 +118,132 @@ function VisualizarListaFormularios() {
   };
 
   const getTitulo = (f) => f?.nome_formulario ?? f?.titulo ?? f?.nomeEscala ?? `Formulário ${f?.id ?? ""}`;
-  const getTipo = (f) => f?.tipo_formulario ?? f?.tipo ?? "-";
+  const getTipo = (f) => f?.tipo_formulario ?? f?.tipo ?? "Geral";
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen gap-8">
-      {/* Container com Gradiente Apollo */}
+    <div className="flex flex-col items-center justify-center h-screen gap-8 bg-gray-100">
+      
+      {/* CONTAINER PRINCIPAL */}
       <div className="w-screen h-full flex flex-col gap-4 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-4 p-2 xl:shadow-lg items-center">
         
-        {/* Card Branco Principal */}
-        <div className="bg-white h-full rounded-2xl flex flex-col gap-8 xl:shadow-2xl w-full md:p-10 p-5 overflow-y-auto relative pb-16">
+        {/* CARD BRANCO */}
+        <div className="bg-white h-full rounded-2xl w-full md:p-10 p-5 overflow-hidden xl:shadow-2xl relative shadow-lg flex flex-col max-w-5xl">
           
-          <h1 className="font-extrabold text-3xl md:text-4xl text-center md:text-left flex items-center gap-3 text-gray-800 animate-fade-in-down">
-            👁️ <span className="bg-clip-text text-transparent bg-linear-to-r from-gray-800 to-gray-500">Visualizar Formulários</span>
-          </h1>
+          {/* CABEÇALHO */}
+          <div className="flex flex-col md:flex-row justify-between items-center border-b border-gray-100 pb-6 gap-6 shrink-0">
+             <div className="flex flex-col items-center md:items-start">
+                <h1 className="font-extrabold text-3xl md:text-4xl text-gray-800 line-clamp-1 flex items-center gap-3 animate-fade-in-down">
+                    <span>👁️</span> 
+                    <span className="bg-clip-text text-transparent bg-linear-to-r from-gray-800 to-gray-500">Visualizar Formulários</span>
+                </h1>
+                <p className="text-gray-400 mt-2 text-sm md:text-base hidden md:block">
+                    Acesse e teste os formulários em modo de leitura.
+                </p>
+             </div>
 
-          <div className="flex flex-col md:flex-row items-end justify-between gap-6 pb-6 border-b border-gray-100">
-            <div className="flex flex-col gap-2 w-full">
-              <label className="text-sm font-bold text-gray-600 tracking-wide">FILTRAR POR TIPO</label>
-              <MultiSelect
-                options={tipoOptions}
-                value={selectedTipos}
-                onChange={setSelectedTipos}
-                placeholder="Selecione um ou mais tipos..."
-                className="text-sm cursor-pointer shadow-sm hover:shadow transition-shadow"
-              />
-            </div>
-            
-            <div className="flex gap-3 w-full md:w-auto">
+             <div className="flex flex-wrap gap-3 items-center justify-center w-full md:w-auto">
+                
+                {/* BOTÃO CORRIGIDO: IR PARA EDIÇÃO */}
                 {podeEditar && (
                     <button 
                     onClick={() => navigate('/forms-terapeuta/editar-formulario')}
-                    className="bg-apollo-200 hover:bg-apollo-300 text-white font-bold py-2.5 px-5 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
+                    className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-600 font-bold py-2.5 px-5 rounded-xl transition-all shadow-sm hover:shadow-lg hover:bg-apollo-200 hover:text-white hover:border-apollo-200 hover:-translate-y-1 active:scale-95 text-sm cursor-pointer"
                     >
-                    📝 Ir para Edição
+                    <PencilSquareIcon className="w-5 h-5" /> Ir para Edição
                     </button>
                 )}
+                
                 <button 
                 onClick={() => navigate('/forms-terapeuta/tela-inicial')}
-                className="bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 px-6 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer flex items-center gap-2"
+                className="bg-white border border-red-100 text-red-500 font-bold py-2.5 px-5 rounded-xl transition-all shadow-sm hover:bg-red-50 hover:border-red-200 active:scale-95 flex items-center gap-2 text-sm cursor-pointer"
                 >
-                <span>↩ </span> Voltar
+                <ChevronLeftIcon className="w-5 h-5" /> Voltar
                 </button>
-            </div>
+             </div>
           </div>
 
-          {loading && <div className="text-center text-apollo-200 font-semibold animate-pulse">⏳ Carregando formulários...</div>}
-          
-          {!!error && !loading && <ErroGen mensagem={error} />}
-
-          {!loading && !error && (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredForms?.length ? (
-                pageItems.map((f) => (
-                  <div
-                    key={f?.id ?? Math.random()}
-                    onClick={() => handlePreview(f)}
-                    className="
-                        group 
-                        relative 
-                        cursor-pointer 
-                        bg-white 
-                        border-2 border-gray-200 /* <-- Borda mais grossa (border-2) */
-                        rounded-2xl 
-                        p-6 
-                        flex flex-col justify-between 
-                        shadow-md 
-                        hover:shadow-2xl hover:shadow-apollo-200/20 
-                        hover:border-apollo-200 /* <-- Borda colorida no hover */
-                        transform hover:-translate-y-1 
-                        transition-all duration-300 ease-out
-                    "
-                  >
-                    <div className="flex flex-col gap-3">
-                        <div className="flex justify-between items-start">
-                             <span className="bg-gray-100 text-gray-600 group-hover:bg-apollo-50 group-hover:text-apollo-200 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider transition-colors duration-300 border border-gray-200">
-                                {getTipo(f)}
-                             </span>
-                        </div>
-                        <h2 className="font-bold text-lg text-gray-200line-clamp-2 leading-tight group-hover:text-apollo-300 transition-colors duration-300">
-                            {getTitulo(f)}
-                        </h2>
+          <div className="animate-fade-in flex flex-col flex-1 overflow-hidden mt-6">
+            
+            {/* BARRA DE FILTROS */}
+            <div className="flex flex-col md:flex-row items-end justify-between gap-6 pb-2 bg-gray-50/30 p-6 rounded-2xl border border-gray-100 mb-6 shrink-0">
+                <div className="flex flex-col gap-2 w-full md:w-1/2">
+                    <label className="text-xs font-bold text-gray-400 tracking-widest uppercase ml-1">Filtrar por Tipo</label>
+                    <MultiSelect
+                        options={tipoOptions}
+                        value={selectedTipos}
+                        onChange={setSelectedTipos}
+                        placeholder="Selecione os tipos..."
+                        className="text-sm cursor-pointer shadow-sm hover:shadow transition-shadow"
+                    />
+                </div>
+                <div className="flex flex-col gap-2 w-full md:w-1/2">
+                    <label className="text-xs font-bold text-gray-400 tracking-widest uppercase ml-1">Buscar Formulário</label>
+                    <div className="relative group">
+                        <MagnifyingGlassIcon className="w-5 h-5 absolute left-4 top-3 text-gray-400 group-hover:text-apollo-400 transition-colors" />
+                        <input 
+                            type="text" 
+                            placeholder="Digite o nome..." 
+                            className="pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl w-full outline-none focus:border-apollo-300 focus:bg-white bg-white text-sm transition-all font-medium text-gray-700 placeholder-gray-400 shadow-sm" 
+                            value={busca} 
+                            onChange={e => setBusca(e.target.value)} 
+                        />
                     </div>
-                    
-                    {/* Botão Visualizar - Agora com cor Apollo suave por padrão */}
-                    <div className="
-                        mt-6 w-full py-2.5 rounded-xl 
-                        bg-apollo-700 text-apollo-600 border border-apollo-600 /* <-- Cor visível padrão */
-                        font-bold 
-                        group-hover:bg-apollo-200 group-hover:text-white group-hover:border-apollo-200 /* <-- Cor forte no hover */
-                        transition-all duration-300 
-                        flex items-center justify-center gap-2 text-sm shadow-sm group-hover:shadow-lg
-                    ">
-                      <span>Abrir Visualização</span>
-                      <span className="opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-300">↗</span>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <InfoGen mensagem="Nenhum formulário encontrado com os filtros selecionados." />
-              )}
+                </div>
             </div>
-          )}
 
-          {!loading && !error && filteredForms?.length > 0 && (
-            <div className="pt-4 mt-auto">
-                <PaginationButtons
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPrev={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                onNext={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                />
-            </div>
-          )}
+            {loading && <LoadingGen mensagem="Carregando formulários..." />}
+            
+            {!!error && !loading && <ErroGen mensagem={error} />}
+
+            {/* GRID DE CARDS */}
+            {!loading && !error && (
+                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar p-1 pb-10">
+                   {pageItems.length === 0 ? (
+                       <InfoGen mensagem="Nenhum formulário encontrado." />
+                   ) : (
+                       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 content-start">
+                           {pageItems.map((f) => (
+                               <div
+                                   key={f?.id ?? Math.random()}
+                                   onClick={() => handlePreview(f)}
+                                   className="group relative bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-apollo-300 hover:ring-1 hover:ring-apollo-300 transition-all duration-300 cursor-pointer flex flex-col justify-between h-48 overflow-hidden transform hover:-translate-y-1"
+                               >
+                                   {/* Decorator Fundo */}
+                                   <div className="absolute top-0 right-0 w-24 h-24 bg-linear-to-bl from-apollo-50 to-transparent -mr-8 -mt-8 rounded-full group-hover:from-apollo-100 transition-all duration-500"></div>
+
+                                   <div className="z-10 relative">
+                                       <span className="inline-block px-3 py-1 bg-gray-50 text-gray-500 text-[10px] font-bold rounded-lg border border-gray-100 uppercase tracking-wide group-hover:bg-apollo-50 group-hover:text-apollo-600 group-hover:border-apollo-100 transition-colors">
+                                           {getTipo(f)}
+                                       </span>
+                                       <h3 className="font-bold text-lg text-gray-800 leading-snug line-clamp-2 mt-4 group-hover:text-apollo-600 transition-colors">
+                                           {getTitulo(f)}
+                                       </h3>
+                                   </div>
+                                   
+                                   {/* Botão Card */}
+                                   <div className="mt-auto w-full py-2.5 rounded-xl bg-gray-50 text-gray-600 font-bold text-center text-xs border border-gray-100 group-hover:bg-apollo-200 group-hover:text-white group-hover:border-transparent transition-all duration-300 flex items-center justify-center gap-2 z-10 shadow-sm">
+                                       <span>Abrir Visualização</span> <EyeIcon className="w-4 h-4" />
+                                   </div>
+                               </div>
+                           ))}
+                       </div>
+                   )}
+                </div>
+            )}
+
+            {!loading && !error && filteredForms.length > 0 && (
+                <div className="mt-auto pt-6 border-t border-gray-100 shrink-0">
+                    <PaginationButtons 
+                        currentPage={currentPage} 
+                        totalPages={totalPages} 
+                        onPrev={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        onNext={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} 
+                    />
+                </div>
+            )}
+
+          </div>
+
         </div>
       </div>
     </div>
