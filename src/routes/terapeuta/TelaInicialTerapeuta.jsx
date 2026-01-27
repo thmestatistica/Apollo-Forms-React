@@ -13,14 +13,14 @@ const TelaInicialTerapeuta = () => {
 
   const { logout, user } = useAuth();
   
-  // Lógica de Permissão Existente
+  // Lógica de Permissão Existente (Editores)
   const EDITORES_PERMITIDOS = [8, 43, 17, 13, 15, 40];
   const podeEditar = EDITORES_PERMITIDOS.includes(Number(user?.profissionalId));
 
-  // --- NOVA LÓGICA PARA GESTÃO (TIAGO) ---
-  const ID_TIAGO = 17; 
-
-  const podeAcessarGestao = Number(user?.profissionalId) === ID_TIAGO;
+  // --- NOVA LÓGICA PARA GESTÃO (LISTA DE IDs) ---
+  // Adicione os IDs aqui dentro do array, separados por vírgula
+  const GESTAO_PERMITIDOS = [8, 43, 17, 13, 15, 40]; 
+  const podeAcessarGestao = GESTAO_PERMITIDOS.includes(Number(user?.profissionalId));
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -205,7 +205,7 @@ const TelaInicialTerapeuta = () => {
                 </button>
               )}
 
-              {/* --- NOVO BOTÃO DE GESTÃO (Exclusivo Tiago) --- */}
+              {/* --- BOTÃO DE GESTÃO (Visível para a lista GESTAO_PERMITIDOS) --- */}
               {podeAcessarGestao && (
                 <button
                   onClick={() => navigate("/forms-terapeuta/gestao")}

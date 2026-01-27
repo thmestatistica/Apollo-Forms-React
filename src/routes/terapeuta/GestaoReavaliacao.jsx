@@ -24,7 +24,10 @@ const DIAGNOSTICO_OPCOES = [
 ];
 
 const ITENS_POR_PAGINA = 50; 
-const ID_TIAGO_PERMITIDO = 17;
+
+// --- LISTA DE IDs PERMITIDOS ---
+// Adicione os IDs dos profissionais separados por vírgula dentro dos colchetes
+const IDS_PERMITIDOS = [8, 43, 17, 13, 15, 40]; 
 
 // === SUB-COMPONENTE DE LINHA ===
 const AdminRow = React.memo(({ row, estaEditado, onSave, onDelete, onChange }) => {
@@ -43,12 +46,12 @@ const AdminRow = React.memo(({ row, estaEditado, onSave, onDelete, onChange }) =
         <tr className={`hover:bg-amber-50 transition-colors border-b border-slate-50 last:border-0 ${estaEditado ? 'bg-yellow-50' : ''}`}>
             <td className="p-2 border-r border-slate-100 text-center text-slate-400 text-xs font-mono align-middle">{row.id}</td>
             <td className="p-2 border-r border-slate-100 align-middle">
-                <div className="text-sm font-medium text-slate-700 whitespace-normal break-words leading-tight max-w-[200px]">
+                <div className="text-sm font-medium text-slate-700 whitespace-normal wrap-break-word leading-tight max-w-[200px]">
                     {row.paciente?.nome || <span className="text-red-300 italic">Sem Paciente</span>}
                 </div>
             </td>
             <td className="p-2 border-r border-slate-100 align-middle">
-                 <div className="text-sm text-slate-600 whitespace-normal break-words leading-tight max-w-[200px]">
+                 <div className="text-sm text-slate-600 whitespace-normal wrap-break-word leading-tight max-w-[200px]">
                     {row.formulario?.nomeEscala}
                  </div>
             </td>
@@ -99,9 +102,10 @@ const GestaoReavaliacao = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('gerar'); 
 
-  // 🔒 SEGURANÇA: REDIRECIONAR SE NÃO FOR O TIAGO (ID 17)
+  // 🔒 SEGURANÇA: VERIFICAÇÃO DE LISTA DE IDs
   useEffect(() => {
-    if (user && Number(user.profissionalId) !== ID_TIAGO_PERMITIDO) {
+    // Verifica se o usuário existe E se o ID dele está na lista de permitidos
+    if (user && !IDS_PERMITIDOS.includes(Number(user.profissionalId))) {
         Swal.fire({
             icon: 'error',
             title: 'Acesso Negado',
@@ -113,7 +117,8 @@ const GestaoReavaliacao = () => {
     }
   }, [user, navigate]);
 
-  if (!user || Number(user.profissionalId) !== ID_TIAGO_PERMITIDO) return null;
+  // Se não houver usuário ou o ID não for permitido, não renderiza nada
+  if (!user || !IDS_PERMITIDOS.includes(Number(user.profissionalId))) return null;
 
   // ================= LÓGICA GERAL =================
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -183,6 +188,7 @@ const GestaoReavaliacao = () => {
       adminDataCache.current = resposta || [];
       dataLoaded.current = true;
       setEditados(new Set());
+    // eslint-disable-next-line no-unused-vars
     } catch (error) {
       Swal.fire('Erro', 'Falha ao carregar tabela.', 'error');
     } finally {
@@ -212,11 +218,11 @@ const GestaoReavaliacao = () => {
         html: `
             <div class="text-left bg-slate-50 p-4 rounded-lg border border-slate-200">
                 <p class="text-sm text-slate-600 mb-2">Você está atualizando:</p>
-                <div class="font-bold text-slate-800 text-lg mb-1 whitespace-normal break-words">${item.paciente?.nome}</div>
+                <div class="font-bold text-slate-800 text-lg mb-1 whitespace-normal wrap-break-word">${item.paciente?.nome}</div>
                 <div class="text-xs text-slate-500 mb-2 font-mono">ID: ${item.id}</div>
                 <ul class="text-xs bg-white p-2 rounded border border-slate-100 space-y-1">
-                    <li class="flex gap-2"><span class="font-bold w-20 shrink-0">Escala:</span><span class="whitespace-normal break-words">${item.formulario?.nomeEscala || 'N/A'}</span></li>
-                    <li class="flex gap-2"><span class="font-bold w-20 shrink-0">Especialidade:</span><span class="whitespace-normal break-words">${item.especialidade || 'N/A'}</span></li>
+                    <li class="flex gap-2"><span class="font-bold w-20 shrink-0">Escala:</span><span class="whitespace-normal wrap-break-word">${item.formulario?.nomeEscala || 'N/A'}</span></li>
+                    <li class="flex gap-2"><span class="font-bold w-20 shrink-0">Especialidade:</span><span class="whitespace-normal wrap-break-word">${item.especialidade || 'N/A'}</span></li>
                     <li class="flex gap-2"><span class="font-bold w-20 shrink-0">Status:</span><span class="uppercase font-bold text-indigo-600">${item.status}</span></li>
                 </ul>
             </div>
@@ -242,6 +248,7 @@ const GestaoReavaliacao = () => {
       setEditados(prev => { const novo = new Set(prev); novo.delete(item.id); return novo; });
       const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
       Toast.fire({ icon: 'success', title: 'Salvo!' });
+    // eslint-disable-next-line no-unused-vars
     } catch (error) {
       Swal.fire('Erro', 'Não foi possível salvar.', 'error');
     } finally {
@@ -262,11 +269,11 @@ const GestaoReavaliacao = () => {
         <div class="flex justify-between items-start p-3 border-b border-slate-100 last:border-0 hover:bg-white transition-colors gap-2">
             <div class="flex flex-col text-left w-full">
                 <div class="flex justify-between items-start mb-1">
-                    <span class="font-bold text-slate-700 text-sm whitespace-normal break-words pr-2">ID ${item.id} - ${item.paciente?.nome}</span>
+                    <span class="font-bold text-slate-700 text-sm whitespace-normal wrap-break-word pr-2">ID ${item.id} - ${item.paciente?.nome}</span>
                     <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mt-0.5">${item.especialidade || '-'}</span>
                 </div>
                 <div class="flex justify-between items-end">
-                    <span class="text-[11px] text-slate-500 italic whitespace-normal break-words w-4/5 leading-tight">${item.formulario?.nomeEscala}</span>
+                    <span class="text-[11px] text-slate-500 italic whitespace-normal wrap-break-word w-4/5 leading-tight">${item.formulario?.nomeEscala}</span>
                     <span class="px-1.5 py-0.5 rounded text-[8px] font-bold border uppercase shrink-0 ${corStatus}">${item.status}</span>
                 </div>
             </div>
@@ -329,9 +336,9 @@ const GestaoReavaliacao = () => {
                     <p class="text-red-700 text-xs mb-3">Você está prestes a apagar este registro permanentemente.</p>
                     <div class="bg-white p-3 rounded border border-red-100 shadow-sm text-sm space-y-2">
                         <div class="flex justify-between border-b border-gray-100 pb-1"><span class="text-gray-500">ID:</span> <span class="font-bold text-black">${row.id}</span></div>
-                        <div class="flex flex-col border-b border-gray-100 pb-1"><span class="text-gray-500 text-xs">Paciente:</span> <span class="font-bold text-black whitespace-normal break-words">${row.paciente?.nome}</span></div>
-                        <div class="flex flex-col border-b border-gray-100 pb-1"><span class="text-gray-500 text-xs">Escala:</span> <span class="font-bold text-black whitespace-normal break-words">${row.formulario?.nomeEscala}</span></div>
-                        <div class="flex justify-between pt-1"><span class="text-gray-500">Especialidade:</span> <span class="font-bold text-indigo-600 whitespace-normal break-words text-right">${row.especialidade || '-'}</span></div>
+                        <div class="flex flex-col border-b border-gray-100 pb-1"><span class="text-gray-500 text-xs">Paciente:</span> <span class="font-bold text-black whitespace-normal wrap-break-word">${row.paciente?.nome}</span></div>
+                        <div class="flex flex-col border-b border-gray-100 pb-1"><span class="text-gray-500 text-xs">Escala:</span> <span class="font-bold text-black whitespace-normal wrap-break-word">${row.formulario?.nomeEscala}</span></div>
+                        <div class="flex justify-between pt-1"><span class="text-gray-500">Especialidade:</span> <span class="font-bold text-indigo-600 whitespace-normal wrap-break-word text-right">${row.especialidade || '-'}</span></div>
                     </div>
                 </div>
                 <p class="text-center text-xs text-slate-500">Tem certeza absoluta?</p>
@@ -354,6 +361,7 @@ const GestaoReavaliacao = () => {
             return novos; 
         });
         Swal.fire('Deletado!', 'O registro foi removido.', 'success');
+      // eslint-disable-next-line no-unused-vars
       } catch (error) {
         Swal.fire('Erro', 'Falha ao deletar.', 'error');
       }
@@ -397,7 +405,7 @@ const GestaoReavaliacao = () => {
       <div className="max-w-7xl mx-auto mb-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
             <div>
-                <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 cursor-default">
+                <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-indigo-600 to-purple-600 cursor-default">
                 Gerenciador de Reavaliações
                 </h1>
                 <p className="text-slate-500 mt-1 text-sm md:text-base cursor-default">
@@ -445,11 +453,11 @@ const GestaoReavaliacao = () => {
                                 </label>
                                 <div className="relative">
                                     <select 
-                                        className="w-full border border-slate-300 rounded-xl p-3 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all appearance-none text-slate-700 font-medium cursor-pointer hover:border-indigo-400"
-                                        value={selectedPac} onChange={handleTrocaPaciente}
+                                            className="w-full border border-slate-300 rounded-xl p-3 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all appearance-none text-slate-700 font-medium cursor-pointer hover:border-indigo-400"
+                                            value={selectedPac} onChange={handleTrocaPaciente}
                                     >
-                                        <option value="">Selecione...</option>
-                                        {pacientes.map(p => (<option key={p.id} value={p.id}>{p.nome}</option>))}
+                                            <option value="">Selecione...</option>
+                                            {pacientes.map(p => (<option key={p.id} value={p.id}>{p.nome}</option>))}
                                     </select>
                                 </div>
                             </div>
@@ -463,7 +471,7 @@ const GestaoReavaliacao = () => {
                             <div className="w-full md:w-auto">
                                 <button onClick={handleAnalyze} disabled={botaoBloqueado}
                                     className={`w-full md:w-auto px-8 py-3.5 rounded-xl font-bold text-white shadow-lg transition-all flex justify-center items-center gap-3
-                                    ${botaoBloqueado ? 'bg-slate-300 cursor-not-allowed shadow-none' : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:-translate-y-0.5 active:scale-95'}`}
+                                    ${botaoBloqueado ? 'bg-slate-300 cursor-not-allowed shadow-none' : 'bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:-translate-y-0.5 active:scale-95'}`}
                                 >
                                     {loadingGen ? '...' : (selectedPac && selectedPac === ultimoPacienteAnalisado ? 'Feito' : 'Buscar')}
                                 </button>
