@@ -1,5 +1,5 @@
 import axiosInstanceForms from "./axiosInstanceForms";
-
+import axiosInstance from "../axiosInstance"
 /**
  * Busca as perguntas de um formulário por ID.
  * Endpoint esperado: GET /forms/:id/questions
@@ -258,3 +258,109 @@ export const upsert_perguntas_form = async (formId, perguntas = []) => {
     return { ok: false, error: err };
   }
 }
+
+export const criar_formulario_completo = async (payload) => {
+  let idCriadoParaRollback = null;
+
+  try {
+    // ---------------------------------------------------------
+    // 1. PYTHON: Criar a "Casca" do Formulário
+    // ---------------------------------------------------------
+    const formPayload = {
+        nome_formulario: payload.nome_formulario,
+        descricao_formulario: payload.descricao_formulario,
+        tipo_formulario: payload.tipo_formulario
+    };
+    
+    // POST /forms/ (FastAPI)
+    const { data: formCriado } = await axiosInstanceForms.post('/forms/', formPayload);
+    
+    // Garante que pegamos o ID corretamente (alguns backends retornam _id, id ou formulario_id)
+    const novoId = formCriado.formulario_id || formCriado.id;
+    
+    if (!novoId) throw new Error("ID do formulário não retornado pelo Python.");
+    
+    // Salva o ID para caso precisemos desfazer tudo no catch
+    idCriadoParaRollback = novoId;
+
+    // ---------------------------------------------------------
+    // 2. PYTHON: Salvar as Perguntas (Vinculadas ao ID)
+    // ---------------------------------------------------------
+    if (payload.perguntas && payload.perguntas.length > 0) {
+        const perguntasPayload = {
+            updates: [],
+            new_questions: payload.perguntas.map((p, index) => ({
+                formulario_id: novoId,
+                chave_pergunta: `p_${novoId}_${index + 1}`, // Chave única
+                texto_pergunta: p.texto_pergunta,
+                tipo_resposta_esperada: p.tipo_resposta_esperada,
+                opcoes_resposta: p.opcoes_resposta, // Array JSON
+                obrigatoria: p.obrigatoria,
+                ordem_pergunta: index + 1,
+                inativa: false
+            }))
+        };
+        // PUT /forms/{id}/questions (FastAPI - Upsert)
+        await axiosInstanceForms.put(`/forms/${novoId}/questions`, perguntasPayload);
+    }
+
+    // ---------------------------------------------------------
+    // 3. NODE: Salvar Metadados da Escala (Classificação)
+    // ---------------------------------------------------------
+    const escalaPayload = {
+        formularioId: Number(novoId), // Vincula ao pai criado no Python
+        nomeEscala: payload.nome_formulario,
+        tipoFormulario: payload.tipo_formulario,
+        especialidade: payload.especialidades, // Array
+        listaDiagnosticos: payload.diagnosticos, // Array
+        significado: payload.descricao_formulario
+    };
+
+    // POST /escalas (Express/Node)
+    // ATENÇÃO: Aqui usamos a instância do Node, pois 'axiosInstanceForms' aponta para o Python
+    await axiosInstance.post('/escalas', escalaPayload);
+
+    return { id: novoId };
+
+  } catch (error) {
+    console.error("Erro na criação do formulário completo:", error);
+
+    // --- ROLLBACK (LIMPEZA DE SEGURANÇA) ---
+    // Se criou o ID no Python mas falhou depois (ex: erro no Node), apaga o form do Python.
+    if (idCriadoParaRollback) {
+        try {
+            console.warn(`Rollback: Apagando formulário órfão ID ${idCriadoParaRollback}...`);
+            await axiosInstance.delete(`/forms/${idCriadoParaRollback}`);
+        } catch (deleteError) {
+            console.error("Falha crítica no rollback:", deleteError);
+        }
+    }
+    
+    throw error; // Joga o erro para a tela (Swal)
+  }
+};
+
+// 3. DELETAR (ORQUESTRADO: Tenta apagar nos dois sistemas)
+export const deletar_formulario = async (id) => {
+  try {
+    // --- PASSO 1: Tentar apagar a Escala no Node (Metadados) ---
+    // Fazemos isso primeiro como "best effort". Se falhar (ex: ID diferente ou não existe),
+    // apenas logamos o aviso e continuamos para apagar o principal.
+    try {
+        await axiosInstance.delete(`/escalas/${id}`);
+    } catch (nodeError) {
+        // Ignora erro 404 (já não existe) ou outros erros para não impedir a deleção do form principal
+        console.warn(`Aviso: Falha ao deletar escala no Node (ID: ${id}). Pode não existir ou ID diferente.`, nodeError.message);
+    }
+
+    // --- PASSO 2: Apagar o Formulário no Python (Principal) ---
+    // Essa é a parte crítica. Se der erro aqui, lançamos o erro para o usuário saber.
+    await axiosInstanceForms.delete(`/forms/${id}`);
+    
+    return true;
+
+  } catch (error) {
+    console.error("Erro fatal ao deletar formulário:", error);
+    throw error;
+  }
+};
