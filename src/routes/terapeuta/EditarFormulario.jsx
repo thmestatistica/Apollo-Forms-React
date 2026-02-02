@@ -37,7 +37,8 @@ const OPCOES_ESPECIALIDADES = [
     { value: 'Medicina', label: 'Medicina' },
     { value: 'Enfermagem', label: 'Enfermagem' },
     { value: 'Nutrição', label: 'Nutrição' },
-    { value: 'Multidisciplinar', label: 'Multidisciplinar' }
+    { value: 'Multidisciplinar', label: 'Multidisciplinar' },
+    { value: 'Condicionamento Físico', label: 'Condicionamento Físico' }
 ];
 
 const OPCOES_DIAGNOSTICOS = [
