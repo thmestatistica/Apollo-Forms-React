@@ -96,44 +96,65 @@ const AdminRow = React.memo(({ row, estaEditado, onSave, onDelete, onChange }) =
     );
 }, (prev, next) => prev.row === next.row && prev.estaEditado === next.estaEditado);
 
-const GestaoReavaliacao = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('gerar'); 
+const GestaoReavaliacaoContent = () => {
+    const navigate = useNavigate();
+    const [activeTab, setActiveTab] = useState('gerar'); 
 
-  // 🔒 SEGURANÇA: VERIFICAÇÃO DE LISTA DE IDs
-  useEffect(() => {
-    // Verifica se o usuário existe E se o ID dele está na lista de permitidos
-    if (user && !IDS_PERMITIDOS.includes(Number(user.profissionalId))) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Acesso Negado',
-            text: 'Você não tem permissão para acessar esta área.',
-            timer: 2000,
-            showConfirmButton: false
-        });
-        navigate('/forms-terapeuta/tela-inicial');
-    }
-  }, [user, navigate]);
-
-  // Se não houver usuário ou o ID não for permitido, não renderiza nada
-  if (!user || !IDS_PERMITIDOS.includes(Number(user.profissionalId))) return null;
-
-  // ================= LÓGICA GERAL =================
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const { pacientes, rascunhos, setRascunhos, loading: loadingGen, gerarSugestoes, atualizarRascunho, removerRascunho, salvarNoBanco } = useReavaliacao();
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [selectedPac, setSelectedPac] = useState('');
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [dataManual, setDataManual] = useState('');
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [ultimoPacienteAnalisado, setUltimoPacienteAnalisado] = useState(null);
+    // ================= LÓGICA GERAL =================
+    const { pacientes, rascunhos, setRascunhos, loading: loadingGen, gerarSugestoes, atualizarRascunho, removerRascunho, salvarNoBanco } = useReavaliacao();
+    const [selectedPac, setSelectedPac] = useState('');
+    const [dataManual, setDataManual] = useState('');
+    const [ultimoPacienteAnalisado, setUltimoPacienteAnalisado] = useState(null);
+    const [somenteSemPendencias, setSomenteSemPendencias] = useState(false);
+    const [pacientesComPendencias, setPacientesComPendencias] = useState(new Set());
+    const [loadingPendenciasPac, setLoadingPendenciasPac] = useState(false);
 
   const handleTrocaPaciente = (e) => {
     setSelectedPac(e.target.value);
     setRascunhos([]); 
     setUltimoPacienteAnalisado(null);
   };
+
+    const carregarPacientesComPendencias = useCallback(async () => {
+        try {
+            setLoadingPendenciasPac(true);
+            const resposta = await buscar_todas_pendencias({});
+            const ids = new Set();
+            (resposta || []).forEach(item => {
+                const pid = item?.paciente?.id ?? item?.pacienteId;
+                if (pid != null) ids.add(Number(pid));
+            });
+            setPacientesComPendencias(ids);
+        } catch (err) {
+            console.error('Falha ao carregar pendências para filtro de pacientes:', err);
+        } finally {
+            setLoadingPendenciasPac(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (activeTab === 'gerar' && somenteSemPendencias && pacientesComPendencias.size === 0) {
+            carregarPacientesComPendencias();
+        }
+    }, [activeTab, somenteSemPendencias, pacientesComPendencias.size, carregarPacientesComPendencias]);
+
+    const pacientesFiltrados = useMemo(() => {
+        if (!somenteSemPendencias) return pacientes;
+        if (pacientesComPendencias.size === 0) return pacientes;
+        return pacientes.filter(p => !pacientesComPendencias.has(Number(p.id)));
+    }, [pacientes, somenteSemPendencias, pacientesComPendencias]);
+
+    useEffect(() => {
+        // Se o selecionado sair do filtro, limpa seleção (efeito, não durante render)
+        if (!somenteSemPendencias) return;
+        if (!selectedPac) return;
+        const aindaNoFiltro = pacientesFiltrados.some(p => String(p.id) === String(selectedPac));
+        if (!aindaNoFiltro) {
+            setSelectedPac('');
+            setRascunhos([]);
+            setUltimoPacienteAnalisado(null);
+        }
+    }, [somenteSemPendencias, selectedPac, pacientesFiltrados, setRascunhos]);
 
   const handleAnalyze = () => {
     if (!selectedPac) return Swal.fire({ icon: 'warning', title: 'Atenção', text: 'Selecione um paciente.' });
@@ -159,23 +180,15 @@ const GestaoReavaliacao = () => {
   
   const botaoBloqueado = loadingGen || !selectedPac || (selectedPac === ultimoPacienteAnalisado);
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [dadosAdmin, setDadosAdmin] = useState([]);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [loadingAdmin, setLoadingAdmin] = useState(false);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [editados, setEditados] = useState(new Set());
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [paginaAtual, setPaginaAtual] = useState(1);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const adminDataCache = useRef(null); 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const dataLoaded = useRef(false);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [filtros, setFiltros] = useState({ busca: '', status: 'TODOS' });
+    const [dadosAdmin, setDadosAdmin] = useState([]);
+    const [loadingAdmin, setLoadingAdmin] = useState(false);
+    const [editados, setEditados] = useState(new Set());
+    const [paginaAtual, setPaginaAtual] = useState(1);
+    const adminDataCache = useRef(null); 
+    const dataLoaded = useRef(false);
+    const [filtros, setFiltros] = useState({ busca: '', status: 'TODOS' });
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const carregarDadosAdmin = useCallback(async (forceRefresh = false) => {
+    const carregarDadosAdmin = useCallback(async (forceRefresh = false) => {
     if (!forceRefresh && adminDataCache.current && dataLoaded.current) {
         setDadosAdmin(adminDataCache.current);
         return;
@@ -195,13 +208,11 @@ const GestaoReavaliacao = () => {
     }
   }, []);
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useEffect(() => {
+    useEffect(() => {
     if (activeTab === 'admin') carregarDadosAdmin();
   }, [activeTab, carregarDadosAdmin]);
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const handleCellChangeAdmin = useCallback((id, campo, valor) => {
+    const handleCellChangeAdmin = useCallback((id, campo, valor) => {
     setDadosAdmin(prev => {
         const novosDados = prev.map(item => item.id === id ? { ...item, [campo]: valor } : item);
         adminDataCache.current = novosDados;
@@ -210,8 +221,7 @@ const GestaoReavaliacao = () => {
     setEditados(prev => new Set(prev).add(id));
   }, []);
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const handleSalvarLinhaAdmin = useCallback(async (item) => {
+    const handleSalvarLinhaAdmin = useCallback(async (item) => {
     const result = await Swal.fire({
         title: 'Salvar alterações?',
         html: `
@@ -324,8 +334,7 @@ const GestaoReavaliacao = () => {
     }
   };
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const handleExcluirAdmin = useCallback(async (row) => {
+    const handleExcluirAdmin = useCallback(async (row) => {
     const result = await Swal.fire({ 
         title: 'Exclusão Permanente', 
         html: `
@@ -367,8 +376,7 @@ const GestaoReavaliacao = () => {
     }
   }, []);
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const dadosFiltrados = useMemo(() => {
+    const dadosFiltrados = useMemo(() => {
     const termo = filtros.busca.toLowerCase();
     const statusFiltro = filtros.status;
     return dadosAdmin.filter(item => {
@@ -383,14 +391,12 @@ const GestaoReavaliacao = () => {
   }, [dadosAdmin, filtros]);
 
   const totalPaginas = Math.ceil(dadosFiltrados.length / ITENS_POR_PAGINA);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const dadosPaginados = useMemo(() => {
+    const dadosPaginados = useMemo(() => {
       const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA;
       return dadosFiltrados.slice(inicio, inicio + ITENS_POR_PAGINA);
   }, [dadosFiltrados, paginaAtual]);
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useEffect(() => { setPaginaAtual(1); }, [filtros]);
+    useEffect(() => { setPaginaAtual(1); }, [filtros]);
 
   const handlePageInput = (e) => {
       let val = Number(e.target.value);
@@ -399,7 +405,7 @@ const GestaoReavaliacao = () => {
       setPaginaAtual(val);
   };
 
-  return (
+    return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-8 bg-gray-100">
       {/* Container Principal com Gradiente Apollo - Consistente com JornadaPage */}
       <div className="w-screen min-h-screen flex flex-col gap-12 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-4 p-2 xl:shadow-lg items-center">
@@ -443,6 +449,21 @@ const GestaoReavaliacao = () => {
                         <h2 className="text-indigo-900 font-bold flex items-center gap-2 cursor-default text-xl">
                         <MagnifyingGlassIcon className="w-6 h-6" /> Configurar Análise
                         </h2>
+                        <div className="mt-3 flex items-center gap-3">
+                            <label className="text-xs font-bold text-indigo-900 tracking-wide uppercase flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    className="accent-indigo-600 h-4 w-4"
+                                    checked={somenteSemPendencias}
+                                    onChange={(e) => setSomenteSemPendencias(e.target.checked)}
+                                />
+                                {loadingPendenciasPac && somenteSemPendencias ? (
+                                    <span className="text-indigo-600">Carregando filtro...</span>
+                                ) : (
+                                    <span>Somente sem pendências</span>
+                                )}
+                            </label>
+                        </div>
                     </div>
                     <div className="p-8">
                         <div className="grid md:grid-cols-3 gap-6 items-end">
@@ -456,7 +477,7 @@ const GestaoReavaliacao = () => {
                                             value={selectedPac} onChange={handleTrocaPaciente}
                                     >
                                             <option value="">Selecione...</option>
-                                            {pacientes.map(p => (<option key={p.id} value={p.id}>{p.nome}</option>))}
+                                                                                        {pacientesFiltrados.map(p => (<option key={p.id} value={p.id}>{p.nome}</option>))}
                                     </select>
                                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">▼</div>
                                 </div>
@@ -643,6 +664,30 @@ const GestaoReavaliacao = () => {
       </div>
     </div>
   );
+};
+
+const GestaoReavaliacao = () => {
+    const { user } = useAuth();
+    const navigate = useNavigate();
+
+    // 🔒 SEGURANÇA: VERIFICAÇÃO DE LISTA DE IDs
+    useEffect(() => {
+        if (user && !IDS_PERMITIDOS.includes(Number(user.profissionalId))) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Acesso Negado',
+                text: 'Você não tem permissão para acessar esta área.',
+                timer: 2000,
+                showConfirmButton: false
+            });
+            navigate('/forms-terapeuta/tela-inicial');
+        }
+    }, [user, navigate]);
+
+    const isAuthorized = user && IDS_PERMITIDOS.includes(Number(user.profissionalId));
+    if (!isAuthorized) return null;
+
+    return <GestaoReavaliacaoContent />;
 };
 
 export default GestaoReavaliacao;

@@ -131,7 +131,7 @@ export const useReavaliacao = () => {
       });
 
       if (novasSugestoes.length === 0) {
-        alert(`Não encontramos escalas.`);
+        alert(`Não encontramos escalas. Verifique o diagnóstico ou histórico do paciente.`);
       } else {
         setRascunhos(prev => [...prev, ...novasSugestoes]);
       }
