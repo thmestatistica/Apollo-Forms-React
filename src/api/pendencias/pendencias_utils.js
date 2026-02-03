@@ -96,9 +96,8 @@ export const concluir_pendencia_escala = async (pendencia) => {
 
 /**
  * Marca uma pendência como NÃO APLICÁVEL.
- * * ATENÇÃO: Esta função agora é híbrida.
+ * ATENÇÃO: Nunca criar! Somente atualizar (PUT) quando houver ID.
  * - Se vier com ID: Atualiza (PUT) -> Caso dos cards da Direita.
- * - Se não vier com ID: Cria (POST) -> Caso dos cards da Esquerda (Agendamentos).
  */
 export const nao_aplicar_pendencia_escala = async (pendencia) => {
   try {
@@ -124,17 +123,14 @@ export const nao_aplicar_pendencia_escala = async (pendencia) => {
       Object.entries(rawPayload).filter(([, v]) => v !== undefined && v !== null)
     );
 
-    let resposta;
-
-    if (id) {
-      // CENÁRIO A: Pendência já existe (PUT)
-      resposta = await axiosInstance.put(`/pendencias/${Number(id)}`, payload);
-    } else {
-      // CENÁRIO B: Pendência nova/sugerida (POST)
-      // O backend deve aceitar criação já com status NAO_APLICA
-      resposta = await axiosInstance.post(`/pendencias`, payload);
+    if (!id) {
+      const error = new Error("Operação não permitida: criação de pendência NAO_APLICA sem ID é proibida.");
+      console.error("Tentativa de criação indevida em nao_aplicar_pendencia_escala:", { pendencia, payload });
+      throw error;
     }
 
+    // Somente atualização com ID
+    const resposta = await axiosInstance.put(`/pendencias/${Number(id)}`, payload);
     return { ok: true, data: resposta.data };
 
   } catch (err) {

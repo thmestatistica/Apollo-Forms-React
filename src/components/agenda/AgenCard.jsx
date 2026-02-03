@@ -80,6 +80,9 @@ function AgenCard({ agendamentosPaginados = [] }) {
 
     const formularioId = escala?.formularioId ?? escala?.formularioID ?? escala?.formulario_id;
     const nomeReal = escala?.formulario?.nomeEscala ?? escala?.nome ?? escala?.titulo ?? "Escala";
+    const pendenciaId = escala?.id;
+
+    console.log("Escala clicada:", { escala, formularioId });
 
     if (!formularioId) {
       Swal.fire({ icon: 'warning', title: 'Indisponível', text: 'ID do formulário não encontrado.' });
@@ -138,11 +141,11 @@ function AgenCard({ agendamentosPaginados = [] }) {
                 const espFinal = espRaw || "Geral";
 
                 const payload = {
+                    id: pendenciaId,
                     formularioId: formularioId,
                     agendamentoId: agendamento.id,
                     pacienteId: agendamento?.paciente?.id ?? agendamento?.PacienteID,
                     status: 'NAO_APLICA', 
-                    // Aqui garantimos que nunca vai null
                     especialidade: espFinal,
                     diagnosticoMacro: diagFinal,
                     data_referencia: escala.data_referencia ?? null
