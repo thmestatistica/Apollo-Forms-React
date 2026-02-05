@@ -52,5 +52,10 @@ export const tipoPorEspecialidade = {
     "Nutrição": {
         "Evoluções": 40,
         "Avaliações": 39,
-    }
+    },
+
+    "CondicionamentoFísico": {
+        "Evoluções": 70,
+        "Avaliações": 47,
+    },
 }
