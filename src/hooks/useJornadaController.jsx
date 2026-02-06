@@ -27,15 +27,6 @@ export const useJornadaController = () => {
     const [loadingDados, setLoadingDados] = useState(false);
     const [loadingProntuario, setLoadingProntuario] = useState(false);
 
-    // --- Estados de Filtros (Histórico) ---
-    const [histLimit, setHistLimit] = useState(2);
-    const [especialidadeFiltro, setEspecialidadeFiltro] = useState("Todas");
-    const [histPage, setHistPage] = useState(1);
-
-    // --- Estados de Filtros (Prontuário) ---
-    const [prontLimit, setProntLimit] = useState(3);
-    const [prontEspecialidade, setProntEspecialidade] = useState("Todas");
-    const [prontPage, setProntPage] = useState(1);
 
     // 1. Carregar Pacientes (Executa apenas 1 vez por sessão do app)
     useEffect(() => {
@@ -132,11 +123,6 @@ export const useJornadaController = () => {
 
         loadDetalhes();
         
-        // Reseta paginação e filtros visuais ao trocar de paciente
-        setHistPage(1);
-        setProntPage(1);
-        setProntEspecialidade("Todas");
-
     }, [pacienteSelecionadoId, pacientes]);
 
     // 3. Ação: Recarregar Prontuário Manualmente
@@ -176,12 +162,6 @@ export const useJornadaController = () => {
         
         recarregarProntuario,
         
-        histLimit, setHistLimit,
-        especialidadeFiltro, setEspecialidadeFiltro,
-        histPage, setHistPage,
         
-        prontLimit, setProntLimit,
-        prontEspecialidade, setProntEspecialidade,
-        prontPage, setProntPage
     };
 };
