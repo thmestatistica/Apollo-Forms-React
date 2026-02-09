@@ -66,7 +66,9 @@ export const processarProntuario = (dadosBrutos, agendamentos = []) => {
 
     dadosBrutos.forEach(item => {
         const sessao = item.sessao_resposta || {};
+        console.log("Processando item de prontuário: ", item);
         const id = sessao.sessao_resposta_id;
+        const tipo_pergunta = item.pergunta?.tipo_resposta_esperada || "—";
         if (!id) return;
 
         if (!mapaSessoes[id]) {
@@ -86,6 +88,40 @@ export const processarProntuario = (dadosBrutos, agendamentos = []) => {
         if (valor && typeof valor === 'string' && valor.trim().startsWith('[') && valor.trim().endsWith(']')) {
             valor = valor.replace(/["[\]]/g, '');
         }
+        if (tipo_pergunta === "SELECAO_UNICA" || tipo_pergunta === "SELECAO_MULTIPLA") {
+            const opcaos = item.pergunta?.opcoes_resposta || [];
+            const toArray = (val) => {
+                if (Array.isArray(val)) return val;
+                if (typeof val === 'string') {
+                    const trimmed = val.trim();
+                    if (!trimmed) return [];
+                    if (trimmed.includes(',')) {
+                        return trimmed.split(',')
+                            .map(v => v.trim().replace(/^'+|'+$/g, ''))
+                            .filter(Boolean);
+                    }
+                    return [trimmed.replace(/^'+|'+$/g, '')];
+                }
+                return val != null ? [val] : [];
+            };
+
+            const opcaosMap = new Map();
+            opcaos.forEach((o) => {
+                const chave = o?.valor ?? o?.value ?? o?.id ?? o?.opcao_id;
+                const label = o?.label ?? o?.texto_opcao ?? o?.nome ?? (chave != null ? String(chave) : undefined);
+                if (chave != null) opcaosMap.set(String(chave), label);
+                if (o?.id != null) opcaosMap.set(`opcao_${o.id}`, label);
+            });
+
+            const valorIds = toArray(valor);
+            valor = valorIds.map((vid) => {
+                const key = String(vid);
+                if (opcaosMap.has(key)) return opcaosMap.get(key);
+                if (opcaosMap.has(`opcao_${key}`)) return opcaosMap.get(`opcao_${key}`);
+                return key;
+            }).join(', ');
+        }
+        console.log("Resposta Bruta: ", item.valor_resposta, " => Processada: ", valor);
 
         mapaSessoes[id].respostas.push({
             pergunta: item.pergunta?.texto_pergunta || "Questão",
