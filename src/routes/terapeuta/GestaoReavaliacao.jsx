@@ -21,14 +21,14 @@ const ITENS_POR_PAGINA = 50;
 // --- LISTA DE IDs PERMITIDOS ---
 // Base global para permissões: quem está aqui vê todas as abas.
 // ProfissionalId's que não estão nessa lista não verão nada, a menos que sejam incluídos nas listas específicas de cada aba.
-const IDS_PERMITIDOS = [8, 43, 17];
+const IDS_PERMITIDOS = [8, 17, 43, 41];
 
 // --- CONTROLE GLOBAL DE VISIBILIDADE POR ABA ---
 // Ajuste estas listas para permitir/ocultar abas específicas.
-const PERMITIDOS_GERADOR = IDS_PERMITIDOS.concat([13, 15, 40, 41]); // Exemplo: só quem tem ID 13 além dos IDs globais pode acessar a aba de geração.
-const PERMITIDOS_ADMIN = IDS_PERMITIDOS.concat([13, 15, 40, 41]); 
+const PERMITIDOS_GERADOR = IDS_PERMITIDOS.concat([13, 15, 40]); // Exemplo: só quem tem ID 13 além dos IDs globais pode acessar a aba de geração.
+const PERMITIDOS_ADMIN = IDS_PERMITIDOS.concat([13, 15, 40]); 
 const PERMITIDOS_METODO = IDS_PERMITIDOS;
-const PERMITIDOS_NAVEGADOR = IDS_PERMITIDOS.concat([41]);
+const PERMITIDOS_NAVEGADOR = IDS_PERMITIDOS;
 
 // === SUB-COMPONENTE DE LINHA ===
 // Linha editável da tabela Admin.
@@ -105,9 +105,14 @@ const GestaoReavaliacao = () => {
     const location = useLocation();
     const { user } = useAuth();
 
+    const gestaoFromState = Boolean(location.state?.gestaoOnly);
+    const allowedIdsFromState = Array.isArray(location.state?.allowedPatientIds)
+        ? location.state.allowedPatientIds.map((id) => Number(id)).filter((id) => !Number.isNaN(id))
+        : [];
+
     const [activeTab, setActiveTab] = useState('gerar');
-    const [accessMode, setAccessMode] = useState('full');
-    const [allowedPatientIds, setAllowedPatientIds] = useState(new Set());
+    const [accessMode, setAccessMode] = useState(gestaoFromState ? 'gestao' : 'full');
+    const [allowedPatientIds, setAllowedPatientIds] = useState(() => new Set(gestaoFromState ? allowedIdsFromState : []));
     const [dataManual, setDataManual] = useState('');
 
     useEffect(() => {
@@ -115,7 +120,7 @@ const GestaoReavaliacao = () => {
         const ids = Array.isArray(location.state?.allowedPatientIds) ? location.state.allowedPatientIds : [];
         if (gestaoOnly) {
             setAccessMode('gestao');
-            setAllowedPatientIds(new Set(ids.map((id) => Number(id))));
+            setAllowedPatientIds(new Set(ids.map((id) => Number(id)).filter((idNum) => !Number.isNaN(idNum))));
             setActiveTab('gerar');
         } else {
             setAccessMode('full');
@@ -124,7 +129,7 @@ const GestaoReavaliacao = () => {
     }, [location.state]);
 
     const canSeeTab = useCallback((tabKey) => {
-        if (accessMode === 'gestao') return tabKey === 'gerar';
+        if (accessMode === 'gestao') return tabKey === 'gerar' || tabKey === 'admin';
         const profissionalId = Number(user?.profissionalId);
         if (!profissionalId) return false;
         if (IDS_PERMITIDOS.includes(profissionalId)) return true;
