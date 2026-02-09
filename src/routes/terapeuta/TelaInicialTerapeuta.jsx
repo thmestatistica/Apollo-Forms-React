@@ -7,6 +7,7 @@ import InfoGen from "../../components/info/InfoGen";
 import EvoPag from "../../components/pendencias/EvoPag.jsx";
 import LoadingGen from "../../components/info/LoadingGen.jsx";
 import { listar_agendamentos_filtrados, agendamentos_pendentes } from "../../api/agenda/agenda_utils.js";
+import { buscar_pacientes_profissional } from "../../api/pendencias/pendencias_utils";
 import Swal from "sweetalert2";
 import { ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline"; // Adicionei ícone de sair
 
@@ -19,8 +20,9 @@ const TelaInicialTerapeuta = () => {
   const podeEditar = EDITORES_PERMITIDOS.includes(Number(user?.profissionalId));
 
   // --- NOVA LÓGICA PARA GESTÃO (LISTA DE IDs) ---
-  const GESTAO_PERMITIDOS = [8, 43, 17, 13, 15, 40]; 
+  const GESTAO_PERMITIDOS = [8, 17, 13, 15, 40, 43, 41]; 
   const podeAcessarGestao = GESTAO_PERMITIDOS.includes(Number(user?.profissionalId));
+  const [gestaoIdsPermitidos, setGestaoIdsPermitidos] = useState([]);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -37,6 +39,43 @@ const TelaInicialTerapeuta = () => {
   
   const [agendamentosCarregados, setAgendamentosCarregados] = useState(false);
   const [pendenciasCarregadas, setPendenciasCarregadas] = useState(false);
+
+  useEffect(() => {
+    const fetchGestaoPermitidos = async () => {
+      try {
+        if (!user) {
+          setGestaoIdsPermitidos([]);
+          return;
+        }
+
+        if (podeAcessarGestao) {
+          setGestaoIdsPermitidos([]);
+          return;
+        }
+
+        const profissionalId = user?.profissionalId ?? user?.id ?? user?.usuarioId;
+        if (!profissionalId) {
+          setGestaoIdsPermitidos([]);
+          return;
+        }
+
+        const resposta = await buscar_pacientes_profissional(profissionalId);
+        const lista = Array.isArray(resposta?.pacientes) ? resposta.pacientes : Array.isArray(resposta) ? resposta : [];
+        const ids = lista
+          .map((p) => p?.pacienteId ?? p?.paciente_id ?? p?.id)
+          .filter((id) => id != null)
+          .map((id) => Number(id));
+        setGestaoIdsPermitidos(ids);
+      } catch (err) {
+        console.error("Erro ao buscar pacientes do profissional:", err);
+        setGestaoIdsPermitidos([]);
+      } finally {
+        // sem estado de loading necessário aqui
+      }
+    };
+
+    fetchGestaoPermitidos();
+  }, [user, podeAcessarGestao]);
 
   // 1. Fetch Agendamentos
   useEffect(() => {
@@ -234,9 +273,18 @@ const TelaInicialTerapeuta = () => {
               </button>
               
               {/* --- BOTÃO DE GESTÃO (Visível para a lista GESTAO_PERMITIDOS) --- */}
-              {podeAcessarGestao && (
+              {(podeAcessarGestao || gestaoIdsPermitidos.length > 0) && (
                 <button
-                  onClick={() => navigate("/forms-terapeuta/gestao")}
+                  onClick={() =>
+                    navigate("/forms-terapeuta/gestao", {
+                      state: podeAcessarGestao
+                        ? undefined
+                        : {
+                            gestaoOnly: true,
+                            allowedPatientIds: gestaoIdsPermitidos,
+                          },
+                    })
+                  }
                   className="
                     w-full bg-teal-500 hover:bg-teal-600 text-white 
                     font-bold py-3 px-4 rounded-xl 

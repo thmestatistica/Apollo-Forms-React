@@ -73,6 +73,8 @@ export const useReavaliacao = () => {
         if (presente) {
           if (ag.slot) addSpec(ag.slot.especialidade, ag.id);
           if (ag.profissional) addSpec(ag.profissional.especialidade, ag.id);
+        } else {
+          console.log(`Agendamento ID ${ag.id} não foi marcado como presente (status: ${status}). Ignorando para sugestões.`);
         }
       });
 
@@ -130,8 +132,10 @@ export const useReavaliacao = () => {
         }
       });
 
-      if (novasSugestoes.length === 0) {
-        alert(`Não encontramos escalas. Verifique o diagnóstico ou histórico do paciente.`);
+      if (specsEncontradas.length === 0) {
+        alert(`Nenhuma especialidade encontrada no histórico do paciente. Verifique se há agendamentos com presença marcada de alguma especi.`);
+      } else if (novasSugestoes.length === 0) {
+        alert(`Não foram encontradas escalas compatíveis. Verifique o diagnóstico ou histórico do paciente.`);
       } else {
         setRascunhos(prev => [...prev, ...novasSugestoes]);
       }
@@ -141,6 +145,107 @@ export const useReavaliacao = () => {
       alert("Erro ao buscar histórico.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const avaliarPossiveisSugestoesPaciente = async (pacienteId, dataManual) => {
+    try {
+      const [resPac, resHist] = await Promise.all([
+        api.get(`/pacientes/${pacienteId}`),
+        api.get(`/pacientes/pacientes/${pacienteId}/historico`)
+      ]);
+
+      const paciente = resPac.data;
+      const historico = (resHist.data.agendamentos || []).sort((a, b) => b.id - a.id);
+      const dataAlvo = dataManual || paciente.data_referencia || new Date().toISOString().split('T')[0];
+
+      const mapSpecToId = {};
+
+      const addSpec = (valor, idAgendamento) => {
+        if (!valor) return;
+        const processar = (v) => {
+          const specNome = String(v).trim();
+          if (!mapSpecToId[specNome]) {
+            mapSpecToId[specNome] = idAgendamento;
+          }
+        };
+
+        if (Array.isArray(valor)) valor.forEach(processar);
+        else processar(valor);
+      };
+
+      historico.forEach(ag => {
+        const status = ag.presenca ? String(ag.presenca).toLowerCase() : '';
+        const presente = ['presente', 'realizada', 'confirmado', 'ok', 'compareceu'].includes(status);
+
+        if (presente) {
+          if (ag.slot) addSpec(ag.slot.especialidade, ag.id);
+          if (ag.profissional) addSpec(ag.profissional.especialidade, ag.id);
+        }
+      });
+
+      let diagOriginal = paciente.diagnosticoMacro;
+      if (Array.isArray(diagOriginal) && diagOriginal.length > 0) diagOriginal = diagOriginal[0];
+
+      if (!diagOriginal) {
+        return { status: 'sem_diagnostico', motivo: 'Sem diagnóstico', sugestoes: 0, diagnosticoMacro: null };
+      }
+
+      const DIAG_MAP = { "Doenças Degenerativas": "AVC" };
+      const diagsParaTestar = [diagOriginal];
+      if (DIAG_MAP[diagOriginal]) diagsParaTestar.push(DIAG_MAP[diagOriginal]);
+
+      const novasSugestoes = [];
+      const specsEncontradas = Object.keys(mapSpecToId);
+
+      escalas.forEach(esc => {
+        let listaDiagsEscala = esc.listaDiagnosticos;
+        if (typeof listaDiagsEscala === 'string') listaDiagsEscala = listaDiagsEscala.split(',').map(s => s.trim());
+
+        const bateDiag = listaDiagsEscala.some(dEscala => diagsParaTestar.includes(dEscala));
+
+        if (bateDiag) {
+          let listaSpecsEscala = esc.especialidade;
+          if (typeof listaSpecsEscala === 'string') listaSpecsEscala = listaSpecsEscala.split(',').map(s => s.trim());
+
+          listaSpecsEscala.forEach(espEscala => {
+            if (specsEncontradas.some(s => s === espEscala)) {
+              const idDoAgendamento = mapSpecToId[espEscala];
+
+              novasSugestoes.push({
+                tempId: uuidv4(),
+                pacienteId: paciente.id,
+                nomePaciente: paciente.nome,
+                formularioId: esc.formularioId,
+                nomeEscala: esc.nomeEscala,
+                diagnosticoMacro: diagOriginal,
+                especialidade: espEscala,
+                agendamentoId: idDoAgendamento,
+                dataReferencia: dataAlvo,
+                status: 'ABERTA'
+              });
+            }
+          });
+        }
+      });
+
+      if (novasSugestoes.length === 0) {
+        const diagOutros = String(diagOriginal).toLowerCase() === 'outros';
+        if (diagOutros) {
+          return { status: 'sem_sugestoes_outros', motivo: 'Diagnóstico Outros', sugestoes: 0, diagnosticoMacro: diagOriginal };
+        } else if (diagOriginal === null || diagOriginal === undefined || diagOriginal === ''  ) {
+          return { status: 'sem_diagnostico', motivo: 'Sem diagnóstico', sugestoes: 0, diagnosticoMacro: diagOriginal };
+
+        } else if (specsEncontradas.length === 0) {
+          return { status: 'sem_presenca', motivo: 'Agendamento Sem Presença', sugestoes: 0, diagnosticoMacro: diagOriginal };
+        }
+        return { status: 'sem_sugestoes', motivo: 'Sem sugestões', sugestoes: 0, diagnosticoMacro: diagOriginal };
+      }
+
+      return { status: 'com_sugestoes', motivo: '', sugestoes: novasSugestoes.length, diagnosticoMacro: diagOriginal };
+    } catch (error) {
+      console.error("Erro na análise:", error);
+      return { status: 'sem_dados', motivo: 'Falha na análise', sugestoes: 0, diagnosticoMacro: null };
     }
   };
 
@@ -238,6 +343,7 @@ export const useReavaliacao = () => {
     rascunhos,
     loading,
     gerarSugestoes,
+    avaliarPossiveisSugestoesPaciente,
     atualizarRascunho,
     removerRascunho,
     salvarNoBanco,

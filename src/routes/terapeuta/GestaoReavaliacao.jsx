@@ -1,21 +1,14 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import Swal from 'sweetalert2';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { useReavaliacao } from '../../hooks/useReavaliacao';
+import AdminTab from '../../components/gestaoReavaliacao/AdminTab';
+import GerarTab from '../../components/gestaoReavaliacao/GerarTab';
+import GestaoReavaliacaoHeader from '../../components/gestaoReavaliacao/GestaoReavaliacaoHeader';
+import MetodoTab from '../../components/gestaoReavaliacao/MetodoTab';
+import NavegadorTab from '../../components/gestaoReavaliacao/NavegadorTab';
 import { 
-  TrashIcon, PencilSquareIcon, CheckBadgeIcon, MagnifyingGlassIcon, 
-  UserIcon, CalendarDaysIcon, TableCellsIcon, PlusCircleIcon, 
-  ArrowPathIcon, CheckCircleIcon, ExclamationTriangleIcon, 
-  ChevronLeftIcon, ChevronRightIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon,
-  ArchiveBoxArrowDownIcon
+  TrashIcon, CheckCircleIcon,
 } from '@heroicons/react/24/outline';
-
-import { 
-    buscar_todas_pendencias, 
-    atualizar_pendencia_admin, 
-    deletar_pendencia_admin 
-} from '../../api/pendencias/pendencias_utils';
 
 const DIAGNOSTICO_OPCOES = [
   "AVC", "Doença de Parkinson", "TCE", "Dor Crônica", 
@@ -26,9 +19,19 @@ const DIAGNOSTICO_OPCOES = [
 const ITENS_POR_PAGINA = 50; 
 
 // --- LISTA DE IDs PERMITIDOS ---
-const IDS_PERMITIDOS = [8, 43, 17, 13, 15, 40]; 
+// Base global para permissões: quem está aqui vê todas as abas.
+// ProfissionalId's que não estão nessa lista não verão nada, a menos que sejam incluídos nas listas específicas de cada aba.
+const IDS_PERMITIDOS = [8, 43, 17];
+
+// --- CONTROLE GLOBAL DE VISIBILIDADE POR ABA ---
+// Ajuste estas listas para permitir/ocultar abas específicas.
+const PERMITIDOS_GERADOR = IDS_PERMITIDOS.concat([13, 15, 40, 41]); // Exemplo: só quem tem ID 13 além dos IDs globais pode acessar a aba de geração.
+const PERMITIDOS_ADMIN = IDS_PERMITIDOS.concat([13, 15, 40, 41]); 
+const PERMITIDOS_METODO = IDS_PERMITIDOS;
+const PERMITIDOS_NAVEGADOR = IDS_PERMITIDOS.concat([41]);
 
 // === SUB-COMPONENTE DE LINHA ===
+// Linha editável da tabela Admin.
 const AdminRow = React.memo(({ row, estaEditado, onSave, onDelete, onChange }) => {
     const dataInputValue = row.data_referencia ? String(row.data_referencia).slice(0, 10) : '';
 
@@ -96,598 +99,82 @@ const AdminRow = React.memo(({ row, estaEditado, onSave, onDelete, onChange }) =
     );
 }, (prev, next) => prev.row === next.row && prev.estaEditado === next.estaEditado);
 
-const GestaoReavaliacaoContent = () => {
-    const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('gerar'); 
-
-    // ================= LÓGICA GERAL =================
-    const { pacientes, rascunhos, setRascunhos, loading: loadingGen, gerarSugestoes, atualizarRascunho, removerRascunho, salvarNoBanco } = useReavaliacao();
-    const [selectedPac, setSelectedPac] = useState('');
-    const [dataManual, setDataManual] = useState('');
-    const [ultimoPacienteAnalisado, setUltimoPacienteAnalisado] = useState(null);
-    const [somenteSemPendencias, setSomenteSemPendencias] = useState(false);
-    const [pacientesComPendencias, setPacientesComPendencias] = useState(new Set());
-    const [loadingPendenciasPac, setLoadingPendenciasPac] = useState(false);
-
-  const handleTrocaPaciente = (e) => {
-    setSelectedPac(e.target.value);
-    setRascunhos([]); 
-    setUltimoPacienteAnalisado(null);
-  };
-
-    const carregarPacientesComPendencias = useCallback(async () => {
-        try {
-            setLoadingPendenciasPac(true);
-            const resposta = await buscar_todas_pendencias({});
-            const ids = new Set();
-            (resposta || []).forEach(item => {
-                const pid = item?.paciente?.id ?? item?.pacienteId;
-                if (pid != null) ids.add(Number(pid));
-            });
-            setPacientesComPendencias(ids);
-        } catch (err) {
-            console.error('Falha ao carregar pendências para filtro de pacientes:', err);
-        } finally {
-            setLoadingPendenciasPac(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        if (activeTab === 'gerar' && somenteSemPendencias && pacientesComPendencias.size === 0) {
-            carregarPacientesComPendencias();
-        }
-    }, [activeTab, somenteSemPendencias, pacientesComPendencias.size, carregarPacientesComPendencias]);
-
-    const pacientesFiltrados = useMemo(() => {
-        if (!somenteSemPendencias) return pacientes;
-        if (pacientesComPendencias.size === 0) return pacientes;
-        return pacientes.filter(p => !pacientesComPendencias.has(Number(p.id)));
-    }, [pacientes, somenteSemPendencias, pacientesComPendencias]);
-
-    useEffect(() => {
-        // Se o selecionado sair do filtro, limpa seleção (efeito, não durante render)
-        if (!somenteSemPendencias) return;
-        if (!selectedPac) return;
-        const aindaNoFiltro = pacientesFiltrados.some(p => String(p.id) === String(selectedPac));
-        if (!aindaNoFiltro) {
-            setSelectedPac('');
-            setRascunhos([]);
-            setUltimoPacienteAnalisado(null);
-        }
-    }, [somenteSemPendencias, selectedPac, pacientesFiltrados, setRascunhos]);
-
-  const handleAnalyze = () => {
-    if (!selectedPac) return Swal.fire({ icon: 'warning', title: 'Atenção', text: 'Selecione um paciente.' });
-    gerarSugestoes(Number(selectedPac), dataManual);
-    setUltimoPacienteAnalisado(selectedPac); 
-  };
-
-  const handleSalvarTudo = async () => {
-    const result = await Swal.fire({
-      title: 'Confirmar envio?',
-      text: `Deseja criar ${rascunhos.length} novas pendências?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#0f766e',
-      confirmButtonText: 'Sim, criar'
-    });
-    if (result.isConfirmed) {
-      if (await salvarNoBanco()) {
-          setSelectedPac(''); setDataManual(''); setUltimoPacienteAnalisado(null); 
-      }
-    }
-  };
-  
-  const botaoBloqueado = loadingGen || !selectedPac || (selectedPac === ultimoPacienteAnalisado);
-
-    const [dadosAdmin, setDadosAdmin] = useState([]);
-    const [loadingAdmin, setLoadingAdmin] = useState(false);
-    const [editados, setEditados] = useState(new Set());
-    const [paginaAtual, setPaginaAtual] = useState(1);
-    const adminDataCache = useRef(null); 
-    const dataLoaded = useRef(false);
-    const [filtros, setFiltros] = useState({ busca: '', status: 'TODOS' });
-
-    const carregarDadosAdmin = useCallback(async (forceRefresh = false) => {
-    if (!forceRefresh && adminDataCache.current && dataLoaded.current) {
-        setDadosAdmin(adminDataCache.current);
-        return;
-    }
-    setLoadingAdmin(true);
-    try {
-      const resposta = await buscar_todas_pendencias({}); 
-      setDadosAdmin(resposta || []);
-      adminDataCache.current = resposta || [];
-      dataLoaded.current = true;
-      setEditados(new Set());
-    // eslint-disable-next-line no-unused-vars
-    } catch (error) {
-      Swal.fire('Erro', 'Falha ao carregar tabela.', 'error');
-    } finally {
-      setLoadingAdmin(false);
-    }
-  }, []);
-
-    useEffect(() => {
-    if (activeTab === 'admin') carregarDadosAdmin();
-  }, [activeTab, carregarDadosAdmin]);
-
-    const handleCellChangeAdmin = useCallback((id, campo, valor) => {
-    setDadosAdmin(prev => {
-        const novosDados = prev.map(item => item.id === id ? { ...item, [campo]: valor } : item);
-        adminDataCache.current = novosDados;
-        return novosDados;
-    });
-    setEditados(prev => new Set(prev).add(id));
-  }, []);
-
-    const handleSalvarLinhaAdmin = useCallback(async (item) => {
-    const result = await Swal.fire({
-        title: 'Salvar alterações?',
-        html: `
-            <div class="text-left bg-slate-50 p-4 rounded-lg border border-slate-200">
-                <p class="text-sm text-slate-600 mb-2">Você está atualizando:</p>
-                <div class="font-bold text-slate-800 text-lg mb-1 whitespace-normal wrap-break-word">${item.paciente?.nome}</div>
-                <div class="text-xs text-slate-500 mb-2 font-mono">ID: ${item.id}</div>
-                <ul class="text-xs bg-white p-2 rounded border border-slate-100 space-y-1">
-                    <li class="flex gap-2"><span class="font-bold w-20 shrink-0">Escala:</span><span class="whitespace-normal wrap-break-word">${item.formulario?.nomeEscala || 'N/A'}</span></li>
-                    <li class="flex gap-2"><span class="font-bold w-20 shrink-0">Especialidade:</span><span class="whitespace-normal wrap-break-word">${item.especialidade || 'N/A'}</span></li>
-                    <li class="flex gap-2"><span class="font-bold w-20 shrink-0">Status:</span><span class="uppercase font-bold text-indigo-600">${item.status}</span></li>
-                </ul>
-            </div>
-        `,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#16a34a',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: 'Sim, salvar',
-        cancelButtonText: 'Cancelar'
-    });
-
-    if (!result.isConfirmed) return;
-
-    try {
-      setLoadingAdmin(true);
-      await atualizar_pendencia_admin(item.id, {
-        status: item.status,
-        data_referencia: item.data_referencia,
-        especialidade: item.especialidade,
-        diagnosticoMacro: item.diagnosticoMacro
-      });
-      setEditados(prev => { const novo = new Set(prev); novo.delete(item.id); return novo; });
-      const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
-      Toast.fire({ icon: 'success', title: 'Salvo!' });
-    // eslint-disable-next-line no-unused-vars
-    } catch (error) {
-      Swal.fire('Erro', 'Não foi possível salvar.', 'error');
-    } finally {
-      setLoadingAdmin(false);
-    }
-  }, []);
-
-  const handleSalvarTudoAdmin = async () => {
-    if (editados.size === 0) return Swal.fire({ icon: 'info', title: 'Sem alterações', timer: 2000, showConfirmButton: false });
-    const itensAlterados = dadosAdmin.filter(item => editados.has(item.id));
-    const listaHtml = itensAlterados.map(item => {
-        let corStatus = "bg-slate-100 text-slate-600 border-slate-200";
-        if(item.status === 'NAO_APLICA') corStatus = "bg-red-50 text-red-600 border-red-200";
-        else if(item.status === 'CONCLUIDA') corStatus = "bg-blue-50 text-blue-600 border-blue-200";
-        else if(item.status === 'ABERTA') corStatus = "bg-green-50 text-green-600 border-green-200";
-
-        return `
-        <div class="flex justify-between items-start p-3 border-b border-slate-100 last:border-0 hover:bg-white transition-colors gap-2">
-            <div class="flex flex-col text-left w-full">
-                <div class="flex justify-between items-start mb-1">
-                    <span class="font-bold text-slate-700 text-sm whitespace-normal wrap-break-word pr-2">ID ${item.id} - ${item.paciente?.nome}</span>
-                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mt-0.5">${item.especialidade || '-'}</span>
-                </div>
-                <div class="flex justify-between items-end">
-                    <span class="text-[11px] text-slate-500 italic whitespace-normal wrap-break-word w-4/5 leading-tight">${item.formulario?.nomeEscala}</span>
-                    <span class="px-1.5 py-0.5 rounded text-[8px] font-bold border uppercase shrink-0 ${corStatus}">${item.status}</span>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
-
-    const result = await Swal.fire({
-        title: 'Salvar em Massa',
-        html: `
-            <div class="text-left w-full">
-                <p class="mb-3 text-sm text-slate-600">Você vai aplicar alterações em <b>${editados.size}</b> registros:</p>
-                <div class="bg-slate-50 rounded-lg border border-slate-200 shadow-inner max-h-64 overflow-y-auto custom-scrollbar">
-                    ${listaHtml}
-                </div>
-            </div>
-        `,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d97706',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: 'Sim, salvar tudo!',
-        cancelButtonText: 'Cancelar',
-        width: '550px'
-    });
-
-    if (!result.isConfirmed) return;
-    setLoadingAdmin(true);
-    let erros = 0;
-    await Promise.all(itensAlterados.map(async (item) => {
-        try {
-            await atualizar_pendencia_admin(item.id, {
-                status: item.status,
-                data_referencia: item.data_referencia,
-                especialidade: item.especialidade,
-                diagnosticoMacro: item.diagnosticoMacro
-            });
-        } catch (err) {
-            console.error(err);
-            erros++;
-        }
-    }));
-    setLoadingAdmin(false);
-    if (erros === 0) {
-        setEditados(new Set());
-        Swal.fire('Sucesso!', 'Todas as alterações foram salvas.', 'success');
-    } else {
-        Swal.fire('Atenção', `Salvo com ${erros} erros. Verifique a conexão.`, 'warning');
-        carregarDadosAdmin(true);
-    }
-  };
-
-    const handleExcluirAdmin = useCallback(async (row) => {
-    const result = await Swal.fire({ 
-        title: 'Exclusão Permanente', 
-        html: `
-            <div class="text-left mt-2">
-                <div class="bg-red-50 border border-red-100 rounded-lg p-4 mb-3">
-                    <h3 class="text-red-800 font-bold text-sm flex items-center gap-2 mb-2">⚠️ Atenção: Ação Irreversível</h3>
-                    <p class="text-red-700 text-xs mb-3">Você está prestes a apagar este registro permanentemente.</p>
-                    <div class="bg-white p-3 rounded border border-red-100 shadow-sm text-sm space-y-2">
-                        <div class="flex justify-between border-b border-gray-100 pb-1"><span class="text-gray-500">ID:</span> <span class="font-bold text-black">${row.id}</span></div>
-                        <div class="flex flex-col border-b border-gray-100 pb-1"><span class="text-gray-500 text-xs">Paciente:</span> <span class="font-bold text-black whitespace-normal wrap-break-word">${row.paciente?.nome}</span></div>
-                        <div class="flex flex-col border-b border-gray-100 pb-1"><span class="text-gray-500 text-xs">Escala:</span> <span class="font-bold text-black whitespace-normal wrap-break-word">${row.formulario?.nomeEscala}</span></div>
-                        <div class="flex justify-between pt-1"><span class="text-gray-500">Especialidade:</span> <span class="font-bold text-indigo-600 whitespace-normal wrap-break-word text-right">${row.especialidade || '-'}</span></div>
-                    </div>
-                </div>
-                <p class="text-center text-xs text-slate-500">Tem certeza absoluta?</p>
-            </div>
-        `, 
-        icon: 'warning', 
-        showCancelButton: true, 
-        confirmButtonColor: '#dc2626',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: 'Sim, apagar agora',
-        cancelButtonText: 'Cancelar'
-    });
-
-    if (result.isConfirmed) {
-      try {
-        await deletar_pendencia_admin(row.id);
-        setDadosAdmin(prev => { 
-            const novos = prev.filter(item => item.id !== row.id); 
-            adminDataCache.current = novos; 
-            return novos; 
-        });
-        Swal.fire('Deletado!', 'O registro foi removido.', 'success');
-      // eslint-disable-next-line no-unused-vars
-      } catch (error) {
-        Swal.fire('Erro', 'Falha ao deletar.', 'error');
-      }
-    }
-  }, []);
-
-    const dadosFiltrados = useMemo(() => {
-    const termo = filtros.busca.toLowerCase();
-    const statusFiltro = filtros.status;
-    return dadosAdmin.filter(item => {
-        const matchStatus = statusFiltro === 'TODOS' || item.status === statusFiltro;
-        if (!matchStatus) return false;
-        const nomePac = item.paciente?.nome?.toLowerCase() || '';
-        const nomeEsc = item.formulario?.nomeEscala?.toLowerCase() || '';
-        const idStr = String(item.id);
-        const diag = item.diagnosticoMacro?.toLowerCase() || '';
-        return nomePac.includes(termo) || nomeEsc.includes(termo) || idStr.includes(termo) || diag.includes(termo);
-    });
-  }, [dadosAdmin, filtros]);
-
-  const totalPaginas = Math.ceil(dadosFiltrados.length / ITENS_POR_PAGINA);
-    const dadosPaginados = useMemo(() => {
-      const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA;
-      return dadosFiltrados.slice(inicio, inicio + ITENS_POR_PAGINA);
-  }, [dadosFiltrados, paginaAtual]);
-
-    useEffect(() => { setPaginaAtual(1); }, [filtros]);
-
-  const handlePageInput = (e) => {
-      let val = Number(e.target.value);
-      if (val < 1) val = 1;
-      if (val > totalPaginas) val = totalPaginas;
-      setPaginaAtual(val);
-  };
-
-    return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-8 bg-gray-100">
-      {/* Container Principal com Gradiente Apollo - Consistente com JornadaPage */}
-      <div className="w-screen min-h-screen flex flex-col gap-12 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-4 p-2 xl:shadow-lg items-center">
-        
-        {/* Card Branco Base */}
-        <div className="bg-white h-full rounded-2xl w-full md:p-10 p-5 overflow-y-auto max-w-7xl xl:shadow-2xl pb-20">
-          
-          {/* --- CABEÇALHO --- */}
-          <div className="flex flex-col md:flex-row justify-between items-center w-full border-b border-gray-100 pb-6 mb-8 gap-4">
-              <div className="flex flex-col items-center md:items-start gap-1">
-                  <h1 className="font-extrabold text-4xl text-gray-800 flex items-center gap-3 animate-fade-in-down">
-                    <span className="bg-clip-text text-transparent bg-linear-to-r from-gray-800 to-gray-500">Gestão de Reavaliações</span>
-                  </h1>
-                  <p className="text-gray-400 text-sm hidden md:block">Gestão automatizada e administrativa.</p>
-              </div>
-              
-              <div className="flex gap-2">
-                  <button 
-                    onClick={() => navigate('/forms-terapeuta/tela-inicial')} 
-                    className="bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 px-6 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer flex items-center gap-2 text-sm"
-                  >
-                    <ChevronLeftIcon className="w-5 h-5" /> Voltar
-                  </button>
-                  
-                  <div className="bg-gray-100 p-1 rounded-xl flex gap-1 shadow-inner">
-                    <button onClick={() => setActiveTab('gerar')} className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${activeTab === 'gerar' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>
-                        <PlusCircleIcon className="w-5 h-5" /> Gerador
-                    </button>
-                    <button onClick={() => setActiveTab('admin')} className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${activeTab === 'admin' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>
-                        <TableCellsIcon className="w-5 h-5" /> Admin
-                    </button>
-                  </div>
-              </div>
-          </div>
-
-          {activeTab === 'gerar' && (
-            <div className="flex flex-col gap-8 animate-fade-in w-full">
-                {/* 1. CONTROLES */}
-                <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden w-full">
-                    <div className="bg-indigo-50/50 p-6 border-b border-indigo-100">
-                        <h2 className="text-indigo-900 font-bold flex items-center gap-2 cursor-default text-xl">
-                        <MagnifyingGlassIcon className="w-6 h-6" /> Configurar Análise
-                        </h2>
-                        <div className="mt-3 flex items-center gap-3">
-                            <label className="text-xs font-bold text-indigo-900 tracking-wide uppercase flex items-center gap-2">
-                                <input
-                                    type="checkbox"
-                                    className="accent-indigo-600 h-4 w-4"
-                                    checked={somenteSemPendencias}
-                                    onChange={(e) => setSomenteSemPendencias(e.target.checked)}
-                                />
-                                {loadingPendenciasPac && somenteSemPendencias ? (
-                                    <span className="text-indigo-600">Carregando filtro...</span>
-                                ) : (
-                                    <span>Somente sem pendências</span>
-                                )}
-                            </label>
-                        </div>
-                    </div>
-                    <div className="p-8">
-                        <div className="grid md:grid-cols-3 gap-6 items-end">
-                            <div className="w-full">
-                                <label className="text-sm font-bold text-gray-500 tracking-wide uppercase mb-2 flex items-center gap-2 ml-1">
-                                <UserIcon className="w-4 h-4 text-slate-400" /> Paciente
-                                </label>
-                                <div className="relative">
-                                    <select 
-                                            className="w-full appearance-none bg-white border-2 border-gray-200 text-gray-700 text-sm font-bold rounded-xl py-3 pl-4 pr-10 cursor-pointer outline-none focus:border-indigo-400 hover:border-indigo-200 transition-all shadow-sm"
-                                            value={selectedPac} onChange={handleTrocaPaciente}
-                                    >
-                                            <option value="">Selecione...</option>
-                                                                                        {pacientesFiltrados.map(p => (<option key={p.id} value={p.id}>{p.nome}</option>))}
-                                    </select>
-                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">▼</div>
-                                </div>
-                            </div>
-                            <div className="w-full">
-                                <label className="text-sm font-bold text-gray-500 tracking-wide uppercase mb-2 flex items-center gap-2 ml-1">
-                                <CalendarDaysIcon className="w-4 h-4 text-slate-400" /> Data Ref.
-                                </label>
-                                <input type="date" className="w-full bg-white border-2 border-gray-200 text-gray-700 text-sm font-bold rounded-xl py-2.5 pl-4 pr-4 cursor-pointer outline-none focus:border-indigo-400 hover:border-indigo-200 transition-all shadow-sm"
-                                    value={dataManual} onChange={(e) => { setDataManual(e.target.value); setUltimoPacienteAnalisado(null); setRascunhos([]); }} />
-                            </div>
-                            <div className="w-full">
-                                <button onClick={handleAnalyze} disabled={botaoBloqueado}
-                                    className={`w-full py-3.5 rounded-xl font-bold text-white shadow-lg transition-all flex justify-center items-center gap-3 text-sm uppercase tracking-wider
-                                    ${botaoBloqueado ? 'bg-slate-300 cursor-not-allowed shadow-none' : 'bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:-translate-y-0.5 active:scale-95'}`}
-                                >
-                                    {loadingGen ? 'Processando...' : (selectedPac && selectedPac === ultimoPacienteAnalisado ? 'Análise Concluída' : 'Buscar Pendências')}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 2. TABELA RASCUNHO */}
-                <div className="bg-white rounded-2xl shadow-md border border-gray-100 flex flex-col min-h-[400px] overflow-hidden w-full">
-                    <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50">
-                        <div>
-                            <h2 className="text-xl font-bold text-gray-800 cursor-default">Área de Preparação</h2>
-                            <div className="flex items-center gap-2 mt-1">
-                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${rascunhos.length > 0 ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-500'}`}>
-                                {rascunhos.length}
-                                </span><span className="text-sm text-gray-500">itens encontrados</span>
-                            </div>
-                        </div>
-                        {rascunhos.length > 0 && (
-                            <button onClick={handleSalvarTudo} className="cursor-pointer flex items-center gap-2 bg-teal-500 hover:bg-teal-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-md transition-all active:scale-95 hover:-translate-y-0.5">
-                                <CheckBadgeIcon className="w-5 h-5" /> Confirmar Tudo
-                            </button>
-                        )}
-                    </div>
-                    <div className="flex-1 overflow-x-auto custom-scrollbar p-1">
-                        {rascunhos.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-gray-300 p-10 min-h-[300px]">
-                                <MagnifyingGlassIcon className="w-16 h-16 mb-4 opacity-50" />
-                                <p className="text-lg font-medium text-gray-400">Nenhuma sugestão no momento</p>
-                            </div>
-                        ) : (
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-bold tracking-wider sticky top-0 z-10 shadow-sm">
-                                    <tr>
-                                        <th className="px-6 py-4 rounded-tl-lg">Detalhes</th>
-                                        <th className="px-6 py-4">Especialidade</th>
-                                        <th className="px-6 py-4">Data Ref.</th>
-                                        <th className="px-6 py-4 text-center rounded-tr-lg">Ação</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100 text-sm">
-                                    {rascunhos.map((item) => (
-                                        <tr key={item.tempId} className="hover:bg-indigo-50/30 transition-colors group">
-                                            <td className="px-6 py-4">
-                                                <div className="font-bold text-gray-800">{item.nomePaciente}</div>
-                                                <div className="text-xs text-indigo-500 font-semibold mt-0.5">{item.nomeEscala}</div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 focus-within:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-100 transition-all shadow-sm">
-                                                    <PencilSquareIcon className="w-4 h-4 text-gray-400" />
-                                                    <input type="text" value={item.especialidade} onChange={(e)=>atualizarRascunho(item.tempId, 'especialidade', e.target.value)} className="outline-none w-full text-gray-700 bg-transparent font-medium"/>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <input type="date" value={item.dataReferencia} onChange={(e)=>atualizarRascunho(item.tempId, 'dataReferencia', e.target.value)} className="border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 w-full focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none transition-all shadow-sm bg-white"/>
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <button onClick={()=>removerRascunho(item.tempId)} className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-all"><TrashIcon className="w-5 h-5"/></button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        )}
-                    </div>
-                </div>
-            </div>
-          )}
-
-          {/* ================= ABA 2: ADMIN (MELHORADO) ================= */}
-          {activeTab === 'admin' && (
-            <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden w-full animate-fade-in flex flex-col">
-                <div className="bg-amber-50/50 p-6 border-b border-amber-100 flex flex-col md:flex-row justify-between items-center gap-6">
-                    <h2 className="text-amber-800 font-bold flex items-center gap-2 text-xl">
-                        <ExclamationTriangleIcon className="w-6 h-6" /> Administração Global
-                    </h2>
-                    <div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
-                        <div className="relative group flex-1 md:flex-none">
-                            <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-3.5 text-amber-400" />
-                            <input type="text" placeholder="Buscar ID, Paciente..." className="pl-9 pr-3 py-2.5 border-2 border-amber-100 rounded-xl focus:border-amber-400 outline-none w-full md:w-64 text-sm text-amber-900 placeholder-amber-300 font-medium bg-white transition-all"
-                                value={filtros.busca} onChange={e => setFiltros({...filtros, busca: e.target.value})} />
-                        </div>
-                        <div className="relative group flex-1 md:flex-none">
-                            <select className="appearance-none p-2.5 pl-4 pr-10 border-2 border-amber-100 rounded-xl text-sm outline-none bg-white text-amber-900 cursor-pointer hover:border-amber-300 focus:border-amber-400 font-bold transition-all w-full"
-                                value={filtros.status} onChange={e => setFiltros({...filtros, status: e.target.value})}>
-                                <option value="TODOS">Todos Status</option>
-                                <option value="ABERTA">ABERTA</option>
-                                <option value="CONCLUIDA">CONCLUIDA</option>
-                                <option value="NAO_APLICA">NAO_APLICA</option>
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-amber-500">▼</div>
-                        </div>
-                        <button onClick={() => carregarDadosAdmin(true)} className="p-2.5 bg-amber-500 text-white rounded-xl hover:bg-amber-600 active:scale-95 transition-all shadow-md hover:shadow-lg">
-                            <ArrowPathIcon className={`w-5 h-5 ${loadingAdmin ? 'animate-spin' : ''}`} />
-                        </button>
-                    </div>
-                </div>
-
-                <div className="flex-1 overflow-auto h-[600px] custom-scrollbar relative bg-white">
-                    {loadingAdmin && (
-                        <div className="absolute inset-0 bg-white/80 z-20 flex items-center justify-center backdrop-blur-sm">
-                            <div className="flex flex-col items-center gap-3">
-                                <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-amber-500"></div>
-                                <span className="text-amber-600 font-bold text-sm uppercase tracking-wide">Carregando dados...</span>
-                            </div>
-                        </div>
-                    )}
-                    <table className="w-full text-left border-collapse">
-                        <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm text-xs uppercase text-gray-500 font-bold tracking-wider border-b border-gray-100">
-                            <tr>
-                                <th className="p-4 w-20 text-center">ID</th>
-                                <th className="p-4">Paciente</th>
-                                <th className="p-4">Escala</th>
-                                <th className="p-4 w-36">Data Ref.</th>
-                                <th className="p-4 w-44">Especialidade</th>
-                                <th className="p-4 w-44">Diagnóstico</th>
-                                <th className="p-4 w-36">Status</th>
-                                <th className="p-4 w-28 text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 text-sm font-sans bg-white">
-                            {dadosPaginados.length === 0 ? (
-                                <tr><td colSpan="8" className="p-16 text-center text-gray-400 italic">Nenhum registro encontrado.</td></tr>
-                            ) : (
-                                dadosPaginados.map(row => (
-                                    <AdminRow 
-                                        key={row.id} row={row} 
-                                        estaEditado={editados.has(row.id)}
-                                        onSave={handleSalvarLinhaAdmin}
-                                        onDelete={handleExcluirAdmin}
-                                        onChange={handleCellChangeAdmin}
-                                    />
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div className="bg-white p-4 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div>
-                        {editados.size > 0 ? (
-                            <button 
-                                onClick={handleSalvarTudoAdmin}
-                                className="flex items-center gap-2 bg-amber-500 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-amber-600 active:scale-95 transition-all shadow-md hover:shadow-lg animate-bounce-subtle"
-                            >
-                                <ArchiveBoxArrowDownIcon className="w-5 h-5" />
-                                Salvar {editados.size} Alterações
-                            </button>
-                        ) : (
-                            <span className="text-xs text-gray-400 font-medium italic pl-2">Nenhuma alteração pendente</span>
-                        )}
-                    </div>
-
-                    <div className="flex items-center gap-3 text-xs font-bold text-gray-600 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100">
-                        <span className="hidden sm:inline">Pág. {paginaAtual} de {totalPaginas}</span>
-                        <div className="flex gap-1">
-                            <button disabled={paginaAtual === 1} onClick={() => setPaginaAtual(1)} className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-600 disabled:opacity-30 transition-colors"><ChevronDoubleLeftIcon className="w-4 h-4" /></button>
-                            <button disabled={paginaAtual === 1} onClick={() => setPaginaAtual(p => Math.max(1, p - 1))} className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-600 disabled:opacity-30 transition-colors"><ChevronLeftIcon className="w-4 h-4" /></button>
-                            <input type="number" min="1" max={totalPaginas} value={paginaAtual} onChange={handlePageInput} className="w-12 text-center border border-gray-300 rounded-md focus:border-amber-400 outline-none bg-white py-0.5" />
-                            <button disabled={paginaAtual === totalPaginas} onClick={() => setPaginaAtual(p => Math.min(totalPaginas, p + 1))} className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-600 disabled:opacity-30 transition-colors"><ChevronRightIcon className="w-4 h-4" /></button>
-                            <button disabled={paginaAtual === totalPaginas} onClick={() => setPaginaAtual(totalPaginas)} className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-600 disabled:opacity-30 transition-colors"><ChevronDoubleRightIcon className="w-4 h-4" /></button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const GestaoReavaliacao = () => {
-    const { user } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+    const { user } = useAuth();
 
-    // 🔒 SEGURANÇA: VERIFICAÇÃO DE LISTA DE IDs
+    const [activeTab, setActiveTab] = useState('gerar');
+    const [accessMode, setAccessMode] = useState('full');
+    const [allowedPatientIds, setAllowedPatientIds] = useState(new Set());
+    const [dataManual, setDataManual] = useState('');
+
     useEffect(() => {
-        if (user && !IDS_PERMITIDOS.includes(Number(user.profissionalId))) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Acesso Negado',
-                text: 'Você não tem permissão para acessar esta área.',
-                timer: 2000,
-                showConfirmButton: false
-            });
-            navigate('/forms-terapeuta/tela-inicial');
+        const gestaoOnly = Boolean(location.state?.gestaoOnly);
+        const ids = Array.isArray(location.state?.allowedPatientIds) ? location.state.allowedPatientIds : [];
+        if (gestaoOnly) {
+            setAccessMode('gestao');
+            setAllowedPatientIds(new Set(ids.map((id) => Number(id))));
+            setActiveTab('gerar');
+        } else {
+            setAccessMode('full');
+            setAllowedPatientIds(new Set());
         }
-    }, [user, navigate]);
+    }, [location.state]);
 
-    const isAuthorized = user && IDS_PERMITIDOS.includes(Number(user.profissionalId));
-    if (!isAuthorized) return null;
+    const canSeeTab = useCallback((tabKey) => {
+        if (accessMode === 'gestao') return tabKey === 'gerar';
+        const profissionalId = Number(user?.profissionalId);
+        if (!profissionalId) return false;
+        if (IDS_PERMITIDOS.includes(profissionalId)) return true;
+        if (tabKey === 'gerar') return PERMITIDOS_GERADOR.includes(profissionalId);
+        if (tabKey === 'admin') return PERMITIDOS_ADMIN.includes(profissionalId);
+        if (tabKey === 'metodo') return PERMITIDOS_METODO.includes(profissionalId);
+        if (tabKey === 'navegador') return PERMITIDOS_NAVEGADOR.includes(profissionalId);
+        return false;
+    }, [accessMode, user]);
 
-    return <GestaoReavaliacaoContent />;
+    useEffect(() => {
+        const ordemTabs = ['gerar', 'admin', 'metodo', 'navegador'];
+        if (!canSeeTab(activeTab)) {
+            const primeiraPermitida = ordemTabs.find((tab) => canSeeTab(tab));
+            if (primeiraPermitida) setActiveTab(primeiraPermitida);
+        }
+    }, [activeTab, canSeeTab]);
+
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen gap-8 bg-gray-100">
+            <div className="w-screen min-h-screen flex flex-col gap-12 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-4 p-2 xl:shadow-lg items-center">
+                <div className="bg-white h-full rounded-2xl w-full md:p-10 p-5 overflow-y-auto max-w-7xl xl:shadow-2xl pb-20">
+                    <GestaoReavaliacaoHeader
+                        activeTab={activeTab}
+                        onTabChange={setActiveTab}
+                        canSeeTab={canSeeTab}
+                        accessMode={accessMode}
+                        onBack={() => navigate('/forms-terapeuta/tela-inicial')}
+                    />
+
+                    {activeTab === 'gerar' && (
+                        <GerarTab
+                            accessMode={accessMode}
+                            allowedPatientIds={allowedPatientIds}
+                            dataManual={dataManual}
+                            setDataManual={setDataManual}
+                        />
+                    )}
+
+                    {activeTab === 'admin' && (
+                        <AdminTab accessMode={accessMode} allowedPatientIds={allowedPatientIds} />
+                    )}
+
+                    {activeTab === 'metodo' && <MetodoTab dataManual={dataManual} />}
+
+                    {activeTab === 'navegador' && <NavegadorTab />}
+                </div>
+            </div>
+        </div>
+    );
 };
 
 export default GestaoReavaliacao;

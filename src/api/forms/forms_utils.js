@@ -140,6 +140,47 @@ export const listar_formularios =async () => {
 }
 
 /**
+ * Lista todas as escalas (associações) no Journey API.
+ */
+export const listar_escalas = async () => {
+  try {
+    const { data } = await axiosInstance.get('/escalas');
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.escalas)) return data.escalas;
+    return [];
+  } catch (err) {
+    console.error("Erro ao listar escalas:", {
+      message: err?.message,
+      status: err?.response?.status,
+      data: err?.response?.data,
+    });
+    return [];
+  }
+}
+
+/**
+ * Cria ou atualiza associação de escala no Journey API.
+ * Se escalaId for informado, tenta PUT /escalas/:id, senão POST /escalas.
+ */
+export const salvar_associacao_escala = async (payload, escalaId) => {
+  try {
+    if (escalaId) {
+      const { data } = await axiosInstance.put(`/escalas/${escalaId}`, payload);
+      return { ok: true, data };
+    }
+    const { data } = await axiosInstance.post('/escalas', payload);
+    return { ok: true, data };
+  } catch (err) {
+    console.error("Erro ao salvar associação:", {
+      message: err?.message,
+      status: err?.response?.status,
+      data: err?.response?.data,
+    });
+    return { ok: false, error: err };
+  }
+}
+
+/**
  * Atualiza metadados do formulário por ID.
  * Tenta PUT /forms/:id e faz fallback para PATCH.
  * Remove `pagina_streamlit` do payload para evitar sobrescrita acidental.

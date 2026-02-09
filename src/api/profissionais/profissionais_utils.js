@@ -22,3 +22,14 @@ export const remover_presenca_profissional = async (profissionalId, agendamentoI
     return { ok: false, error: err };
   }
 };
+
+export const listar_profissionais = async () => {
+  try {
+    const { data } = await axiosInstance.get("/pacientes/profissionais");
+    return data;
+  } catch (error) {
+    console.error("Erro ao buscar profissionais: ", error);
+    throw error;
+  }
+};
+

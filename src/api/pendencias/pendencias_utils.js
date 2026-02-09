@@ -51,6 +51,29 @@ export const deletar_pendencia_admin = async (id) => {
   }
 };
 
+// 4. PENDÊNCIAS SEM AVALIAÇÃO (JOURNEY API)
+export const buscar_pendencias_sem_avaliacao = async () => {
+  try {
+    const { data } = await axiosInstance.get('/pendencias/verificar/sem-avaliacao');
+    return data;
+  } catch (error) {
+    console.error('Erro ao buscar pendências sem avaliação:', error);
+    throw error;
+  }
+};
+
+// 5. PACIENTES POR PROFISSIONAL (JOURNEY API)
+export const buscar_pacientes_profissional = async (profissionalId) => {
+  try {
+    if (!profissionalId) return [];
+    const { data } = await axiosInstance.get(`/pendencias/verificar/pacientes-profissional/${Number(profissionalId)}`);
+    return data;
+  } catch (error) {
+    console.error('Erro ao buscar pacientes do profissional:', error);
+    throw error;
+  }
+};
+
 /**
  * ============================================================
  * 🩺 FUNÇÕES DO TERAPEUTA (Uso Diário)
