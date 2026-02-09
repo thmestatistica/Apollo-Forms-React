@@ -16,7 +16,7 @@ const TelaInicialTerapeuta = () => {
   const { logout, user } = useAuth();
   
   // Lógica de Permissão Existente (Editores)
-  const EDITORES_PERMITIDOS = [8, 43, 17, 13, 15, 40, 38, 5];
+  const EDITORES_PERMITIDOS = [8, 43, 17, 13, 15, 40, 38, 5, 12];
   const podeEditar = EDITORES_PERMITIDOS.includes(Number(user?.profissionalId));
 
   // --- NOVA LÓGICA PARA GESTÃO (LISTA DE IDs) ---
@@ -306,5 +306,6 @@ const TelaInicialTerapeuta = () => {
     </div>
   );
 };
+
 
 export default TelaInicialTerapeuta;
