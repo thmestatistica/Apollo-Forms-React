@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { formatarNome, formatarDataHoraBR } from "../../utils/jornada/format.js";
+import { formatarData, formatarHora } from "../../utils/format/formatar_utils.js";
 
 const ProntuarioItem = React.memo(({ item, agendamentos }) => {
     const [expanded, setExpanded] = useState(false);
@@ -15,8 +16,11 @@ const ProntuarioItem = React.memo(({ item, agendamentos }) => {
     const profNome = formatarNome(profNomeCru);
     const slotStr = agDetalhe?.slot?.nome || "—";
     const siglaStr = agDetalhe?.slot?.sigla || "";
-
-    console.log("Item: ", item)
+    const inicio = formatarHora(agDetalhe?.inicio);
+    const fim = formatarHora(agDetalhe?.fim);
+    const dataAg = formatarData(agDetalhe?.inicio);
+    const horarioStr = inicio !== "—" && fim !== "—" ? `${inicio} - ${fim}` : "—";
+    console.log("Agendamento para item de prontuário: ", agDetalhe);
 
     return (
         <div className="border border-gray-200 rounded-lg bg-white hover:shadow-md transition-shadow cursor-pointer overflow-hidden">
@@ -26,6 +30,9 @@ const ProntuarioItem = React.memo(({ item, agendamentos }) => {
                         Registrado em {dataStr} às {horaStr}
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
+                        {dataAg !== "—" && horarioStr !== "—" && (
+                            <span className="text-sm text-gray-700">🗓️ {dataAg} : {horarioStr} |</span>
+                        )}
                         <h4 className="font-bold text-base text-gray-800">{item.nome_formulario}</h4>
                         <span className="text-gray-400">•</span>
                         <span className="text-sm text-gray-700">🧑‍⚕️ {profNome}</span>
