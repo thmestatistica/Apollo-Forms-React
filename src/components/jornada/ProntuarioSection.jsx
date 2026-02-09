@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import EditableSelect from "../input/EditableSelect.jsx";
-import { Pagination, ProntuarioItem } from "./JornadaUI.jsx";
+import Pagination from "./Pagination.jsx";
+import ProntuarioItem from "./ProntuarioItem.jsx";
 
 const ProntuarioSection = ({ prontuario, agendamentos, loadingProntuario, onReload, resetKey }) => {
   const [prontNomeFiltro, setProntNomeFiltro] = useState("");

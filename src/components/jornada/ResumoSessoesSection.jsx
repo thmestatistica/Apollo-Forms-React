@@ -1,5 +1,5 @@
 import React from 'react';
-import { DashboardCard } from "./JornadaUI.jsx";
+import DashboardCard from "./DashboardCard.jsx";
 
 const ResumoSessoesSection = ({ stats }) => {
   if (!stats) return null;

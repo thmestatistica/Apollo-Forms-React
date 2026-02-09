@@ -1,5 +1,5 @@
 import React from 'react';
-import { SearchableSelect } from "./JornadaUI.jsx";
+import SearchableSelect from "./SearchableSelect.jsx";
 
 const PacienteSearch = ({ pacientes, onSelect }) => (
   <div className="w-full mb-10">

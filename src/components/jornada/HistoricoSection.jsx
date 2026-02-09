@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { DayCard, Pagination } from "./JornadaUI.jsx";
+import DayCard from "./DayCard.jsx";
+import Pagination from "./Pagination.jsx";
 import { formatarDataHora } from "../../utils/jornada/format.js";
 
 const HistoricoSection = ({ agendamentos, resetKey }) => {
