@@ -14,7 +14,7 @@ const TERMOS_IGNORADOS_BASE = [
 
 const TERMOS_IGNORADOS_TESTE = ['teste', 'testa'];
 
-export const INCLUIR_TESTES_GESTAO = false;
+export const INCLUIR_TESTES_GESTAO = true;
 
 export const normalizarNome = (value) => String(value ?? '').trim().toLocaleLowerCase('pt-BR');
 

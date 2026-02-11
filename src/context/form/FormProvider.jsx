@@ -18,14 +18,36 @@ export const FormProvider = ({ children }) => {
   /**
    * Estrutura:
    * {
-   *   [agendamentoId]: ["TUG", "Berg"]
+   *   [agendamentoId]: {
+   *     [formularioId]: { status: "PENDENTE", updatedAt: "2026-02-10T12:00:00.000Z" }
+   *   }
    * }
    */
   const [escalasPorAgendamento, setEscalasPorAgendamento] = useState(() => {
     // Hidrata o estado imediatamente do localStorage (evita sobrescrever com {} em StrictMode)
     try {
       const stored = localStorage.getItem("escalasPorAgendamento");
-      return stored ? JSON.parse(stored) : {};
+      const parsed = stored ? JSON.parse(stored) : {};
+      if (!parsed || typeof parsed !== "object") return {};
+
+      const normalizado = {};
+      Object.entries(parsed).forEach(([agendamentoId, value]) => {
+        if (Array.isArray(value)) {
+          const mapa = {};
+          value.forEach((formId) => {
+            const key = String(formId);
+            mapa[key] = { status: "PENDENTE", updatedAt: new Date().toISOString() };
+          });
+          normalizado[agendamentoId] = mapa;
+          return;
+        }
+
+        if (value && typeof value === "object") {
+          normalizado[agendamentoId] = value;
+        }
+      });
+
+      return normalizado;
     } catch {
       return {};
     }
@@ -43,12 +65,64 @@ export const FormProvider = ({ children }) => {
     }
   }, [escalasPorAgendamento]);
 
-  /** Define as escalas de um agendamento específico */
+  /** Define as escalas de um agendamento específico (array ou mapa) */
   const atualizarEscalas = (agendamentoId, novasEscalas) => {
-    setEscalasPorAgendamento((prev) => ({
-      ...prev,
-      [agendamentoId]: novasEscalas,
-    }));
+    setEscalasPorAgendamento((prev) => {
+      if (Array.isArray(novasEscalas)) {
+        const mapa = {};
+        novasEscalas.forEach((formId) => {
+          const key = String(formId);
+          mapa[key] = { status: "PENDENTE", updatedAt: new Date().toISOString() };
+        });
+        return { ...prev, [agendamentoId]: mapa };
+      }
+
+      if (novasEscalas && typeof novasEscalas === "object") {
+        return { ...prev, [agendamentoId]: novasEscalas };
+      }
+
+      return prev;
+    });
+  };
+
+  /** Atualiza status de uma escala específica */
+  const setEscalaStatus = (agendamentoId, formularioId, status, meta = {}) => {
+    const agId = String(agendamentoId);
+    const formId = String(formularioId);
+    if (!agId || !formId) return;
+
+    setEscalasPorAgendamento((prev) => {
+      const atual = prev?.[agId] && typeof prev[agId] === "object" ? prev[agId] : {};
+      return {
+        ...prev,
+        [agId]: {
+          ...atual,
+          [formId]: {
+            status,
+            updatedAt: new Date().toISOString(),
+            ...meta,
+          },
+        },
+      };
+    });
+  };
+
+  /** Remove o registro de uma escala específica */
+  const removerEscalaStatus = (agendamentoId, formularioId) => {
+    const agId = String(agendamentoId);
+    const formId = String(formularioId);
+    if (!agId || !formId) return;
+
+    setEscalasPorAgendamento((prev) => {
+      const atual = prev?.[agId] && typeof prev[agId] === "object" ? { ...prev[agId] } : {};
+      delete atual[formId];
+      if (Object.keys(atual).length === 0) {
+        const next = { ...prev };
+        delete next[agId];
+        return next;
+      }
+      return { ...prev, [agId]: atual };
+    });
   };
 
   /** Remove completamente registro de um agendamento (quando não há mais escalas) */
@@ -76,6 +150,8 @@ export const FormProvider = ({ children }) => {
         pendenciaSelecionada,
         escalasPorAgendamento,
         atualizarEscalas,
+        setEscalaStatus,
+        removerEscalaStatus,
         removerAgendamentoEscalas,
         openModal,
         closeModal,

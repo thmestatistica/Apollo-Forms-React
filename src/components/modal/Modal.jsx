@@ -22,6 +22,13 @@ export const Modal = ({ isOpen, onClose, children }) => {
           bg-white rounded-2xl shadow-xl
           w-full max-w-2xl max-h-[90vh]
           overflow-y-auto relative p-6 animate-fadeIn
+          [scrollbar-width:thin] [scrollbar-color:rgba(90,39,121,0.55)_transparent]
+          [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2
+          [&::-webkit-scrollbar-track]:rounded-2xl [&::-webkit-scrollbar-track]:bg-transparent
+          [&::-webkit-scrollbar-thumb]:rounded-2xl [&::-webkit-scrollbar-thumb]:bg-[rgba(90,39,121,0.45)]
+          [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent
+          [&::-webkit-scrollbar-thumb]:bg-clip-content
+          [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(90,39,121,0.65)]
         "
       >
         <button

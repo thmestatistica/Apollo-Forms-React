@@ -171,7 +171,7 @@ const PainelGerenciamentoPendencias = () => {
 
       {/* TABELA */}
       <div className="bg-white border border-gray-300 shadow-sm rounded-md overflow-hidden flex flex-col h-[75vh]">
-        <div className="flex-1 overflow-auto custom-scrollbar">
+        <div className="flex-1 overflow-auto [scrollbar-width:thin] [scrollbar-color:rgba(90,39,121,0.55)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:rounded-2xl [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-2xl [&::-webkit-scrollbar-thumb]:bg-[rgba(90,39,121,0.45)] [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-clip-content [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(90,39,121,0.65)]">
             <table className="w-full text-left border-collapse whitespace-nowrap">
                 <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm text-xs uppercase text-gray-600 font-bold">
                     <tr>

@@ -197,7 +197,7 @@ function VisualizarListaFormularios() {
 
             {/* GRID DE CARDS */}
             {!loading && !error && (
-                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar p-1 pb-10">
+                <div className="flex-1 overflow-y-auto pr-2 p-1 pb-10 [scrollbar-width:thin] [scrollbar-color:rgba(90,39,121,0.55)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:rounded-2xl [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-2xl [&::-webkit-scrollbar-thumb]:bg-[rgba(90,39,121,0.45)] [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-clip-content [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(90,39,121,0.65)]">
                    {pageItems.length === 0 ? (
                        <InfoGen mensagem="Nenhum formulário encontrado." />
                    ) : (

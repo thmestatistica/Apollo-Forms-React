@@ -11,6 +11,11 @@ function AgenCard({ agendamentosPaginados = [] }) {
   const [, setCarregandoEscalas] = useState(false);
   const navigate = useNavigate();
 
+  const getEscalaTagClass = (status) =>
+    status === "APLICADO_NAO_LANCADO"
+      ? "bg-amber-100/20 text-amber-800 border-amber-200"
+      : null;
+
   const getDataVisual = (dataIso) => {
     if (!dataIso) return null;
     const d = new Date(dataIso);
@@ -56,7 +61,7 @@ function AgenCard({ agendamentosPaginados = [] }) {
     };
   };
 
-  const getEscalaLabel = (escala) => {
+  const getEscalaLabel = (escala, status) => {
     const nome = escala?.formulario?.nomeEscala ?? escala?.nome ?? escala?.titulo ?? `Escala ${escala.id}`;
     const dataRaw = escala.data_referencia;
     
@@ -64,12 +69,18 @@ function AgenCard({ agendamentosPaginados = [] }) {
         const dataVisualFull = getDataVisual(dataRaw);
         const dataCurta = dataVisualFull ? dataVisualFull.slice(0, 5) : ""; 
         return (
-            <span className="flex items-center gap-1">
-                <span className="truncate max-w-[150px]">{nome}</span>
-                <span className="opacity-70 font-normal text-[10px] bg-black/5 px-1 rounded-sm whitespace-nowrap">
-                   ({dataCurta})
-                </span>
+          <span className="flex items-center gap-1">
+            <span className="truncate max-w-[150px]">{nome}</span>
+            <span
+              className={`opacity-70 font-normal text-[10px] px-1 rounded-sm whitespace-nowrap ${
+              status === "APLICADO_NAO_LANCADO"
+                ? "bg-amber-100/30 text-amber-800"
+                : "bg-black/5"
+              }`}
+            >
+               ({dataCurta})
             </span>
+          </span>
         );
     }
     return <span className="truncate max-w-[150px]">{nome}</span>;
@@ -77,6 +88,8 @@ function AgenCard({ agendamentosPaginados = [] }) {
 
   const handleEscalaClick = async (e, agendamento, escala) => {
     e.stopPropagation(); 
+
+    if (escala?.status === "APLICADO_NAO_LANCADO") return;
 
     const formularioId = escala?.formularioId ?? escala?.formularioID ?? escala?.formulario_id;
     const nomeReal = escala?.formulario?.nomeEscala ?? escala?.nome ?? escala?.titulo ?? "Escala";
@@ -220,22 +233,32 @@ function AgenCard({ agendamentosPaginados = [] }) {
               {escalas.length > 0 && (
                 <div className="border-t border-gray-100 px-4 py-3 bg-gray-50/50 rounded-b-md">
                    <div className="flex flex-wrap gap-2"> 
-                    {escalas.map((escala) => (
+                    {escalas.map((escala) => {
+                      const tagClass = getEscalaTagClass(escala?.status);
+                      const isAplicadoNaoLancado = escala?.status === "APLICADO_NAO_LANCADO";
+
+                      return (
                       <button
                         key={escala.id}
                         type="button"
                         onClick={(e) => handleEscalaClick(e, agendamento, escala)}
-                        className="
-                          flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full transition-all 
-                          bg-purple-100 text-purple-700 border border-purple-200
-                          hover:bg-purple-200 hover:border-purple-300 hover:scale-[1.02] cursor-pointer
+                        disabled={isAplicadoNaoLancado}
+                        className={`
+                          flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full transition-all
+                          ${tagClass || "bg-purple-200 text-purple-600 border border-purple-400"}
+                          ${
+                            isAplicadoNaoLancado
+                              ? "cursor-not-allowed opacity-80"
+                              : "hover:bg-purple-200 hover:border-purple-400 hover:scale-[1.02] cursor-pointer"
+                          }
                           max-w-full text-left
-                        "
+                        `}
                         title={escala.data_referencia ? `Aplicar a partir de: ${getDataVisual(escala.data_referencia)}` : ""}
                       >
-                        {getEscalaLabel(escala)}
+                        {getEscalaLabel(escala, escala?.status)}
                       </button>
-                    ))}
+                    );
+                  })}
                   </div>
                 </div>
               )}

@@ -105,7 +105,7 @@ function EditarFormulario() {
   }, [activeTab]);
 
   const getId = (f) => f?.formulario_id ?? f?.id ?? f?.formId;
-  // eslint-disable-next-line react-hooks/exhaustive-deps, no-undef
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const getTitulo = useCallback((f) => f?.nome_formulario ?? f?.titulo ?? f?.nomeEscala ?? `Formulário ${getId(f)}`);
   const getTipo = (f) => f?.tipo_formulario ?? f?.tipo ?? "Geral";
 
@@ -457,7 +457,7 @@ function EditarFormulario() {
 
                 {/* AREA DE GRID COM SCROLL INTERNO */}
                 {!loading && !error && (
-                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar p-1 pb-20"> 
+                    <div className="flex-1 overflow-y-auto pr-2 p-1 pb-20 [scrollbar-width:thin] [scrollbar-color:rgba(90,39,121,0.55)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:rounded-2xl [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-2xl [&::-webkit-scrollbar-thumb]:bg-[rgba(90,39,121,0.45)] [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-clip-content [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(90,39,121,0.65)]"> 
                         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 content-start">
                             {pageItems.map((f) => (
                                 // CARD DO FORMULÁRIO - DESIGN APOLLO (Roxo e Clean)
@@ -495,7 +495,7 @@ function EditarFormulario() {
 
           {/* ======================= CONTEÚDO: CRIAR NOVO ======================= */}
           {activeTab === 'criar' && (
-            <div className="flex flex-col gap-8 max-w-5xl mx-auto w-full mt-6 animate-fade-in overflow-y-auto pb-20 custom-scrollbar" ref={scrollRef}>
+            <div className="flex flex-col gap-8 max-w-5xl mx-auto w-full mt-6 animate-fade-in overflow-y-auto pb-20 [scrollbar-width:thin] [scrollbar-color:rgba(90,39,121,0.55)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:rounded-2xl [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-2xl [&::-webkit-scrollbar-thumb]:bg-[rgba(90,39,121,0.45)] [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-clip-content [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(90,39,121,0.65)]" ref={scrollRef}>
                 
                 {/* DADOS GERAIS */}
                 <div className="grid md:grid-cols-2 gap-8">

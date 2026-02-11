@@ -157,17 +157,24 @@ export const carregar_escalas_pendentes = async (pacienteId, especialidade) => {
     return null;
   }
 
-  const status = "ABERTA";
+  const statusList = ["ABERTA", "APLICADO_NAO_LANCADO"];
 
   try {
     // 2. Busca as escalas pendentes do paciente. Usa params corretamente.
-    const response = await axiosInstance.get(`/pendencias`, {
-      params: { pacienteId, especialidade, status },
-    });
+    const params = new URLSearchParams();
+    params.append("pacienteId", String(pacienteId));
+    params.append("especialidade", especialidade);
+    statusList.forEach((status) => params.append("status", status));
+
+    const response = await axiosInstance.get(`/pendencias`, { params });
 
     const data = response?.data;
     console.log("Escalas pendentes carregadas:", data);
-    console.log(`PacienteID: ${pacienteId}, Especialidade: ${especialidade}, Status: ${status}`);
+    console.log(
+      `PacienteID: ${pacienteId}, Especialidade: ${especialidade}, Status: ${statusList.join(
+        ","
+      )}`
+    );
 
     // Garante retorno previsível (array) para o chamador
     if (Array.isArray(data)) return data;

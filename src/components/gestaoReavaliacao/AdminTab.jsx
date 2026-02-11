@@ -335,7 +335,7 @@ const AdminTab = ({ accessMode, allowedPatientIds }) => {
       html: `
             <div class="text-left w-full">
                 <p class="mb-3 text-sm text-slate-600">Você vai aplicar alterações em <b>${editados.size}</b> registros:</p>
-                <div class="bg-slate-50 rounded-lg border border-slate-200 shadow-inner max-h-64 overflow-y-auto custom-scrollbar">
+                <div class="bg-slate-50 rounded-lg border border-slate-200 shadow-inner max-h-64 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(90,39,121,0.55)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:rounded-2xl [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-2xl [&::-webkit-scrollbar-thumb]:bg-[rgba(90,39,121,0.45)] [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-clip-content [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(90,39,121,0.65)]">
                     ${listaHtml}
                 </div>
             </div>
@@ -416,7 +416,7 @@ const AdminTab = ({ accessMode, allowedPatientIds }) => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto h-[600px] custom-scrollbar relative bg-white">
+      <div className="flex-1 overflow-auto h-[600px] relative bg-white [scrollbar-width:thin] [scrollbar-color:rgba(90,39,121,0.55)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:rounded-2xl [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-2xl [&::-webkit-scrollbar-thumb]:bg-[rgba(90,39,121,0.45)] [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-clip-content [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(90,39,121,0.65)]">
         {loadingAdmin && (
           <div className="absolute inset-0 bg-white/80 z-20 flex items-center justify-center backdrop-blur-sm">
             <div className="flex flex-col items-center gap-3">

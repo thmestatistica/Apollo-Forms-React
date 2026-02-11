@@ -34,6 +34,11 @@ const getCorBotao = (nivel) => {
   return cores[nivel] || "bg-gray-600";
 };
 
+const getEscalaTagClass = (status) =>
+  status === "APLICADO_NAO_LANCADO"
+    ? "text-amber-800 border border-amber-300 bg-amber-100/20 hover:bg-amber-100/35"
+    : null;
+
 /**
  * @component EvoCard
  * Exibe os cards de evoluções pendentes e abre um modal para preenchimento.
@@ -70,13 +75,14 @@ const EvoCard = ({ paginaAtual = [] }) => {
         const lista = await carregar_escalas_pendentes(pacienteId, profissionalEspecialidade);
         if (!ativo) return;
         
-        const normalizadas = Array.isArray(lista)
-          ? lista.map((item) => ({
-              id: item?.formularioId ?? null,
-              nome: item?.formulario?.nomeEscala || item?.label || "Escala",
-              data_referencia: item?.data_referencia || null 
-            }))
-          : [];
+            const normalizadas = Array.isArray(lista)
+              ? lista.map((item) => ({
+                  id: item?.formularioId ?? null,
+                  nome: item?.formulario?.nomeEscala || item?.label || "Escala",
+                  data_referencia: item?.data_referencia || null,
+                  status: item?.status || null,
+                }))
+              : [];
         setEscalasPorAgendamento((prev) => ({ ...prev, [agendamentoId]: normalizadas }));
       } catch {
         if (!ativo) return;
@@ -154,12 +160,14 @@ const EvoCard = ({ paginaAtual = [] }) => {
                         dataFormatada = dataFull ? dataFull.slice(0, 5) : null;
                     }
 
+                    const tagClass = getEscalaTagClass(esc.status);
+
                     return (
                       <span
                         key={`${pen["AgendamentoID"]}-${esc.id}-${esc.nome}`}
-                        className="flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full transition-all 
-                          text-purple-700 border border-purple-400
-                          hover:bg-purple-100 hover:border-purple-500 hover:scale-105 cursor-pointer"
+                        className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full transition-all
+                          ${tagClass || "text-purple-700 border border-purple-400 hover:bg-purple-100 hover:border-purple-500"}
+                          hover:scale-105`}
                         // Tooltip com a data completa antecipada
                         title={esc.data_referencia ? `Aplicar a partir de: ${getDataVisual(esc.data_referencia)}` : "Pendente"}
                       >
@@ -167,10 +175,17 @@ const EvoCard = ({ paginaAtual = [] }) => {
                         
                         {/* Se tiver data, mostra entre parênteses */}
                         {dataFormatada && (
-                            <strong className="opacity-70 font-normal text-[10px] bg-black/5 px-1 rounded-sm text-purple-700">
-                                ({dataFormatada})
-                            </strong>
+                          <strong
+                            className={`opacity-70 font-normal text-[10px] px-1 rounded-sm ${
+                            esc.status === "APLICADO_NAO_LANCADO"
+                              ? "bg-amber-100/30 text-amber-800"
+                              : "bg-black/5 text-purple-700"
+                            }`}
+                          >
+                            ({dataFormatada})
+                          </strong>
                         )}
+
                       </span>
                     );
                   })}

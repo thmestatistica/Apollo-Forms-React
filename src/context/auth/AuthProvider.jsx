@@ -63,8 +63,7 @@ export const AuthProvider = ({ children }) => {
     /** Logout com limpeza geral */
     const logout = () => {
         setUser(null);
-        localStorage.removeItem(LS_AUTH_KEY);
-        localStorage.removeItem("escalasPorAgendamento");
+        localStorage.clear();
         navigate("/", { replace: true });
     };
 

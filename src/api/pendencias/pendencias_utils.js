@@ -165,3 +165,42 @@ export const nao_aplicar_pendencia_escala = async (pendencia) => {
     return { ok: false, error: err };
   }
 };
+
+/**
+ * Atualiza o status de uma pendência de escala.
+ * ATENÇÃO: Nunca criar! Somente atualizar (PUT) quando houver ID.
+ */
+export const atualizar_status_pendencia_escala = async (pendencia, status) => {
+  try {
+    const id = pendencia?.id ?? pendencia?.pendenciaId;
+    if (!id) throw new Error("ID da pendência não informado");
+
+    const criadaEmFormatada = formatDateBackend(pendencia?.criadaEm) || formatDateBackend(new Date());
+
+    const rawPayload = {
+      pacienteId: pendencia?.pacienteId != null ? Number(pendencia.pacienteId) : undefined,
+      agendamentoId: pendencia?.agendamentoId != null ? Number(pendencia.agendamentoId) : undefined,
+      formularioId: pendencia?.formularioId != null ? Number(pendencia.formularioId) : undefined,
+      status,
+      criadaEm: criadaEmFormatada,
+      resolvidaEm: null,
+      diagnosticoMacro: pendencia?.diagnosticoMacro ?? undefined,
+      especialidade: pendencia?.especialidade ?? undefined,
+      data_referencia: pendencia?.data_referencia ?? undefined,
+    };
+
+    const payload = Object.fromEntries(
+      Object.entries(rawPayload).filter(([, v]) => v !== undefined && v !== null)
+    );
+
+    const resposta = await axiosInstance.put(`/pendencias/${Number(id)}`, payload);
+    return { ok: true, data: resposta.data };
+  } catch (err) {
+    console.error("Erro ao atualizar status da pendência:", {
+      message: err?.message,
+      status: err?.response?.status,
+      data: err?.response?.data,
+    });
+    return { ok: false, error: err };
+  }
+};

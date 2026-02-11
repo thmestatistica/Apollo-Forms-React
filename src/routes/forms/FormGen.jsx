@@ -24,7 +24,7 @@ const FormularioGenerico = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
-    const { escalasPorAgendamento, atualizarEscalas, removerAgendamentoEscalas, closeModal } = useFormContext();
+    const { setEscalaStatus, removerAgendamentoEscalas, closeModal } = useFormContext();
     const pendencia = location.state?.pendencia;
 
     const [formulario, setFormulario] = useState(null);
@@ -263,13 +263,10 @@ const FormularioGenerico = () => {
         // 6. Atualiza Contexto (Escalas restantes) somente após sucesso geral
         // =====================
         if (agendamento_id) {
-            const idStr = String(id_form);
-            const atuais = escalasPorAgendamento?.[agendamento_id] || [];
-            const atualizadas = atuais.filter((v) => String(v) !== idStr);
-            if (atualizadas.length === 0) {
+            if (isEvolucao || isAvaliacao) {
                 removerAgendamentoEscalas(agendamento_id);
-            } else {
-                atualizarEscalas(agendamento_id, atualizadas);
+            } else if (id_form) {
+                setEscalaStatus(agendamento_id, id_form, "PREENCHIDA");
             }
         }
 

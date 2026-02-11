@@ -259,7 +259,7 @@ const GerarTab = ({ accessMode, allowedPatientIds, dataManual, setDataManual }) 
             </button>
           )}
         </div>
-        <div className="flex-1 overflow-x-auto custom-scrollbar p-1">
+        <div className="flex-1 overflow-x-auto p-1 [scrollbar-width:thin] [scrollbar-color:rgba(90,39,121,0.55)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:rounded-2xl [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-2xl [&::-webkit-scrollbar-thumb]:bg-[rgba(90,39,121,0.45)] [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-clip-content [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(90,39,121,0.65)]">
           {rascunhos.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-gray-300 p-10 min-h-[300px]">
               <MagnifyingGlassIcon className="w-16 h-16 mb-4 opacity-50" />
