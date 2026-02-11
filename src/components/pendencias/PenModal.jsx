@@ -18,6 +18,7 @@ import {
   nao_aplicar_pendencia_escala,
   atualizar_status_pendencia_escala,
 } from "../../api/pendencias/pendencias_utils.js";
+import { formatarData } from "../../utils/format/formatar_utils.js";
 
 /**
  * Componente responsável por exibir as pendências de um agendamento específico,
@@ -382,6 +383,13 @@ const PenModal = ({ penData }) => {
                       {statusLabel}
                     </span>
                   )}
+                  {escala.data_referencia && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-apollo-200/15 text-apollo-200 border-apollo-200">
+                      {formatarData(escala.data_referencia)}
+                    </span>
+                  )
+
+                  }
                 </div>
 
                 <div className="relative z-10 flex flex-wrap gap-2">
@@ -391,8 +399,8 @@ const PenModal = ({ penData }) => {
                     className={getActionButtonClass(
                       status,
                       "NAO_FEITO",
-                      "bg-gray-500 hover:bg-gray-600 text-white py-1.5 px-3 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed",
-                      "ring-2 ring-gray-400"
+                      "bg-gray-500 hover:bg-gray-600 text-white py-1.5 px-3 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer",
+                      "ring-2 ring-gray-400 "
                     )}
                     disabled={isLocked}
                   >
@@ -403,7 +411,7 @@ const PenModal = ({ penData }) => {
                     className={getActionButtonClass(
                       status,
                       "NAO_APLICA",
-                      "bg-red-800 hover:bg-red-600 text-white py-1.5 px-3 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed",
+                      "bg-red-800 hover:bg-red-600 text-white py-1.5 px-3 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer",
                       "ring-2 ring-red-300"
                     )}
                     onClick={() => handleNaoAplicar(escala)}
@@ -417,7 +425,7 @@ const PenModal = ({ penData }) => {
                     className={getActionButtonClass(
                       status,
                       "APLICADO_NAO_LANCADO",
-                      "bg-yellow-500 hover:bg-yellow-600 text-white py-1.5 px-3 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed",
+                      "bg-yellow-500 hover:bg-yellow-600 text-white py-1.5 px-3 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer",
                       "ring-2 ring-yellow-300 !opacity-100"
                     )}
                     disabled={isLocked}
@@ -437,7 +445,7 @@ const PenModal = ({ penData }) => {
                     className={getActionButtonClass(
                       status,
                       "PREENCHIDA",
-                      "bg-apollo-200 hover:bg-apollo-300 text-white py-1.5 px-3 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed",
+                      "bg-apollo-200 hover:bg-apollo-300 text-white py-1.5 px-3 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer",
                       "ring-2 ring-apollo-300"
                     )}
                     disabled={isLocked}
@@ -453,14 +461,21 @@ const PenModal = ({ penData }) => {
       </div>
 
       {/* Botão inteligente para preencher o formulário do agendamento */}
-      {!hasPendenciasEmAberto && options.length > 0 && (
-        <button
-          onClick={handlePreencherAuto}
-          className="mt-6 font-semibold py-2 px-4 rounded-xl transition bg-apollo-500 hover:bg-apollo-600 text-white"
-        >
-          Preencher {penData["TipoAtendimento"] === 'AVALIACAO_INICIAL' || penData["TipoAtendimento"] === 'REAVALIACAO' ? 'Avaliação' : 'Evolução'}
-        </button>
-      )}
+      <button
+        onClick={handlePreencherAuto}
+        disabled={hasPendenciasEmAberto}
+        className={`mt-6 font-semibold py-2 px-4 rounded-xl transition  ${
+          hasPendenciasEmAberto
+            ? "bg-gray-600 cursor-not-allowed"
+            : "bg-apollo-500 hover:bg-apollo-600 cursor-pointer"
+        } text-white`}
+      >
+        Preencher{" "}
+        {penData["TipoAtendimento"] === "AVALIACAO INICIAL" ||
+        penData["TipoAtendimento"] === "REAVALIACAO"
+          ? "Avaliação"
+          : "Evolução"}
+      </button>
     </div>
   );
 };
