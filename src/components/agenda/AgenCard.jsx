@@ -5,6 +5,11 @@ import { abreviarNome, formatarData, formatarHora } from "../../utils/format/for
 import InfoGen from "../info/InfoGen";
 import { carregar_escalas_pendentes } from "../../api/agenda/agenda_utils";
 import { nao_aplicar_pendencia_escala } from "../../api/pendencias/pendencias_utils";
+import {
+  formatDataVisual,
+  getEscalaNome,
+  uniqueEscalasByNomeClosestDate,
+} from "../../utils/pendencias/escala_utils";
 
 function AgenCard({ agendamentosPaginados = [] }) {
   const [escalasMap, setEscalasMap] = useState({});
@@ -15,13 +20,6 @@ function AgenCard({ agendamentosPaginados = [] }) {
     status === "APLICADO_NAO_LANCADO"
       ? "bg-amber-100/20 text-amber-800 border-amber-200"
       : null;
-
-  const getDataVisual = (dataIso) => {
-    if (!dataIso) return null;
-    const d = new Date(dataIso);
-    d.setDate(d.getDate() - 4); 
-    return d.toLocaleDateString('pt-BR'); 
-  };
 
   useEffect(() => {
     const carregarEscalasParaAgendamentos = async () => {
@@ -34,7 +32,8 @@ function AgenCard({ agendamentosPaginados = [] }) {
 
           if (typeof pacienteId === "number" && typeof especialideProf === "string" && especialideProf) {
             const escalas = await carregar_escalas_pendentes(pacienteId, especialideProf);
-            return { id: agendamento.id, escalas: escalas || [] };
+            const normalizadas = uniqueEscalasByNomeClosestDate(escalas || []);
+            return { id: agendamento.id, escalas: normalizadas };
           }
           return { id: agendamento.id, escalas: [] };
         });
@@ -62,11 +61,11 @@ function AgenCard({ agendamentosPaginados = [] }) {
   };
 
   const getEscalaLabel = (escala, status) => {
-    const nome = escala?.formulario?.nomeEscala ?? escala?.nome ?? escala?.titulo ?? `Escala ${escala.id}`;
+    const nome = getEscalaNome(escala) ?? `Escala ${escala.id}`;
     const dataRaw = escala.data_referencia;
     
     if (dataRaw) {
-        const dataVisualFull = getDataVisual(dataRaw);
+        const dataVisualFull = formatDataVisual(dataRaw);
         const dataCurta = dataVisualFull ? dataVisualFull.slice(0, 5) : ""; 
         return (
           <span className="flex items-center gap-1">
@@ -253,7 +252,7 @@ function AgenCard({ agendamentosPaginados = [] }) {
                           }
                           max-w-full text-left
                         `}
-                        title={escala.data_referencia ? `Aplicar a partir de: ${getDataVisual(escala.data_referencia)}` : ""}
+                        title={escala.data_referencia ? `Aplicar a partir de: ${formatDataVisual(escala.data_referencia)}` : ""}
                       >
                         {getEscalaLabel(escala, escala?.status)}
                       </button>

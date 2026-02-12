@@ -19,6 +19,7 @@ import {
   atualizar_status_pendencia_escala,
 } from "../../api/pendencias/pendencias_utils.js";
 import { formatarData } from "../../utils/format/formatar_utils.js";
+import { formatDataVisual } from "../../utils/pendencias/escala_utils";
 
 /**
  * Componente responsável por exibir as pendências de um agendamento específico,
@@ -39,7 +40,7 @@ const PenModal = ({ penData }) => {
   const navigate = useNavigate();
 
   // Contexto global com informações sobre formulários e escalas
-  const { closeModal, setEscalaStatus, escalasPorAgendamento } = useFormContext();
+  const { closeModal, setPendenciaStatus, pendenciasEscalaStatus } = useFormContext();
 
   /** ID do agendamento atual (chave de referência no contexto) */
   const agendamentoId = penData["AgendamentoID"];
@@ -82,18 +83,22 @@ const PenModal = ({ penData }) => {
    * Normaliza as opções para o formato esperado pelo react-select
    * mantendo os campos originais para uso posterior na UI.
    */
-  const rawOptions = Array.isArray(escalasDisponiveis) ? escalasDisponiveis : [];
-  const options = rawOptions.map((item) => {
-    const value = String(
-      item?.formularioId ?? ""
-    );
-    const label =
-      item?.label ??
-      item?.formulario?.nomeEscala ??
-      item?.especialidade ??
-      `Escala ${value}`;
-    return { ...item, value, label };
-  });
+  const rawOptions = Array.isArray(escalasDisponiveis) ? [...escalasDisponiveis] : [];
+  const options = rawOptions
+    .map((item) => {
+      const value = String(item?.formularioId ?? "");
+      const label =
+        item?.label ??
+        item?.formulario?.nomeEscala ??
+        item?.especialidade ??
+        `Escala ${value}`;
+      return { ...item, value, label };
+    })
+    .sort((a, b) => {
+      const da = a?.data_referencia ? new Date(a.data_referencia).getTime() : Number.POSITIVE_INFINITY;
+      const db = b?.data_referencia ? new Date(b.data_referencia).getTime() : Number.POSITIVE_INFINITY;
+      return da - db;
+    });
 
   console.log("Escalas disponíveis no PenModal (normalizadas):", options);
 
@@ -102,15 +107,12 @@ const PenModal = ({ penData }) => {
       escala?.id ??
         escala?.pendenciaId ??
         escala?.pendenciaEscalaId ??
-        escala?.formularioId ??
-        escala?.formulario?.id ??
         ""
     );
 
-  const statusPorEscala =
-    escalasPorAgendamento?.[String(agendamentoId)] &&
-    typeof escalasPorAgendamento[String(agendamentoId)] === "object"
-      ? escalasPorAgendamento[String(agendamentoId)]
+  const statusPorPendencia =
+    pendenciasEscalaStatus && typeof pendenciasEscalaStatus === "object"
+      ? pendenciasEscalaStatus
       : {};
 
   const getStatusLabel = (status) => {
@@ -147,8 +149,10 @@ const PenModal = ({ penData }) => {
     }
   };
 
+
   const getEffectiveStatus = (escala) => {
-    const fromContext = statusPorEscala?.[String(escala.formularioId)]?.status;
+    const key = getPendenciaKey(escala);
+    const fromContext = key ? statusPorPendencia?.[key]?.status : null;
     return fromContext || escala?.status || null;
   };
 
@@ -217,8 +221,9 @@ const PenModal = ({ penData }) => {
           showConfirmButton: false,
         });
 
-        if (escala?.formularioId) {
-          setEscalaStatus(agendamentoId, escala.formularioId, "NAO_APLICA");
+        const key = getPendenciaKey(escala);
+        if (key) {
+          setPendenciaStatus(key, "NAO_APLICA");
         }
 
         // Recarregar dados mantendo o modal aberto (soft refresh)
@@ -240,9 +245,7 @@ const PenModal = ({ penData }) => {
   const handleNaoFeito = (escala) => {
     const key = getPendenciaKey(escala);
     if (!key) return;
-    if (escala?.formularioId) {
-      setEscalaStatus(agendamentoId, escala.formularioId, "NAO_FEITO");
-    }
+    setPendenciaStatus(key, "NAO_FEITO");
   };
 
   const handleAplicadoNaoLancado = async (escala) => {
@@ -283,8 +286,9 @@ const PenModal = ({ penData }) => {
       showConfirmButton: false,
     });
 
-    if (escala?.formularioId) {
-      setEscalaStatus(agendamentoId, escala.formularioId, "APLICADO_NAO_LANCADO");
+    const key = getPendenciaKey(escala);
+    if (key) {
+      setPendenciaStatus(key, "APLICADO_NAO_LANCADO");
     }
 
   };
@@ -384,8 +388,10 @@ const PenModal = ({ penData }) => {
                     </span>
                   )}
                   {escala.data_referencia && (
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-apollo-200/15 text-apollo-200 border-apollo-200">
-                      {formatarData(escala.data_referencia)}
+                    <span
+                      className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-apollo-200/15 text-apollo-200 border-apollo-200"
+                    >
+                      Ref.: {formatDataVisual(escala.data_referencia) || formatarData(escala.data_referencia)}
                     </span>
                   )
 
@@ -426,7 +432,7 @@ const PenModal = ({ penData }) => {
                       status,
                       "APLICADO_NAO_LANCADO",
                       "bg-yellow-500 hover:bg-yellow-600 text-white py-1.5 px-3 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer",
-                      "ring-2 ring-yellow-300 !opacity-100"
+                      "ring-2 ring-yellow-300 opacity-100!"
                     )}
                     disabled={isLocked}
                   >

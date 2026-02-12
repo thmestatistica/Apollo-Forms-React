@@ -204,3 +204,27 @@ export const atualizar_status_pendencia_escala = async (pendencia, status) => {
     return { ok: false, error: err };
   }
 };
+
+/**
+ * Busca pendencias de escala por profissional e status.
+ * GET /pendencias
+ */
+export const buscar_pendencias_profissional_status = async (profissionalId, statusList = []) => {
+  try {
+    if (!profissionalId) return [];
+
+    const params = new URLSearchParams();
+    params.append("profissionalId", String(profissionalId));
+    (Array.isArray(statusList) ? statusList : [statusList]).forEach((status) => {
+      if (status) params.append("status", status);
+    });
+
+    const { data } = await axiosInstance.get("/pendencias", { params });
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.pendencias)) return data.pendencias;
+    return [];
+  } catch (error) {
+    console.error("Erro ao buscar pendencias do profissional:", error);
+    return [];
+  }
+};

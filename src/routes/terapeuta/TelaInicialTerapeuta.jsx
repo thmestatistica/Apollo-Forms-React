@@ -296,7 +296,14 @@ const TelaInicialTerapeuta = () => {
                   <span>📋</span> Gestão
                 </button>
               )}
-
+              <button onClick={() => navigate("/forms-terapeuta/lancamentos-pendencias")} 
+                      className="w-full bg-apollo-400 hover:bg-red-500 text-white 
+                            font-bold py-3 px-4 rounded-xl 
+                            shadow-md hover:shadow-lg hover:shadow-apollo-200/40 
+                            hover:-translate-y-0.5 active:scale-95 
+                            transition-all duration-200 cursor-pointer flex items-center justify-center gap-2">
+                <span>📌</span> Lançamentos de Pendências
+              </button>
               
             </div>
           </div>

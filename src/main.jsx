@@ -32,6 +32,7 @@ import JornadaPage from './routes/terapeuta/Jornada.jsx'
 import VisualizarFormulario from './routes/terapeuta/VisualizarFormulario.jsx'
 import VisualizarListaFormulario from './routes/terapeuta/VisualizarListaFormularios.jsx'
 import  GestaoReavaliacao from './routes/terapeuta/GestaoReavaliacao.jsx'
+import LacamentosPendencias from './routes/terapeuta/LacamentosPendencias.jsx'
 
 // --- Configuração simples das Rotas com createBrowserRouter ---
 const router = createBrowserRouter([
@@ -88,6 +89,10 @@ const router = createBrowserRouter([
                         {
                             element: <EditTela />,
                             path: "editar-formulario/:id_form"
+                        },
+                        {
+                            element: <LacamentosPendencias />,
+                            path: 'lancamentos-pendencias'
                         }
                     ]
                 }

@@ -24,8 +24,9 @@ const FormularioGenerico = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
-    const { setEscalaStatus, removerAgendamentoEscalas, closeModal } = useFormContext();
+    const { removerPendenciaStatus, closeModal } = useFormContext();
     const pendencia = location.state?.pendencia;
+    const returnTo = location.state?.returnTo;
 
     const [formulario, setFormulario] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -88,7 +89,7 @@ const FormularioGenerico = () => {
             </h2>
             <p className="text-gray-600">{erro}</p>
             <Link
-                to="/forms-terapeuta/tela-inicial"
+                to={returnTo || "/forms-terapeuta/tela-inicial"}
                 state={{ reopenModal: true }}
                 className="mt-4 bg-apollo-200 hover:bg-apollo-300 text-white rounded-lg px-4 py-2"
             >
@@ -262,12 +263,8 @@ const FormularioGenerico = () => {
         // =====================
         // 6. Atualiza Contexto (Escalas restantes) somente após sucesso geral
         // =====================
-        if (agendamento_id) {
-            if (isEvolucao || isAvaliacao) {
-                removerAgendamentoEscalas(agendamento_id);
-            } else if (id_form) {
-                setEscalaStatus(agendamento_id, id_form, "PREENCHIDA");
-            }
+        if (pendEscala?.id) {
+            removerPendenciaStatus(pendEscala.id);
         }
 
         // =====================
@@ -279,14 +276,15 @@ const FormularioGenerico = () => {
             closeModal();
         }
         
-        navigate("/forms-terapeuta/tela-inicial", {
-                replace: true,
-                state: {
-                    formSuccess: true,
-                    formTitulo: formulario?.titulo,
-                    // Só reabrir modal se NÃO veio de tag de escala e não for evolução/avaliação
-                    reopenModal: !cameFromEscalaTag && !(isEvolucao || isAvaliacao)
-                }
+        navigate(returnTo || "/forms-terapeuta/tela-inicial", {
+            replace: true,
+            state: {
+                formSuccess: true,
+                formTitulo: formulario?.titulo,
+                refreshPendencias: true,
+                // Só reabrir modal se NÃO veio de tag de escala e não for evolução/avaliação
+                reopenModal: !cameFromEscalaTag && !(isEvolucao || isAvaliacao)
+            }
         });
     };
 
@@ -350,11 +348,11 @@ const FormularioGenerico = () => {
                         )}
 
                         <Link
-                            to="/forms-terapeuta/tela-inicial"
+                            to={returnTo || "/forms-terapeuta/tela-inicial"}
                             state={{ reopenModal: true }}
                             className="text-apollo-200 hover:text-apollo-300 text-center font-medium"
                         >
-                            Voltar para a tela inicial
+                            Voltar
                         </Link>
                     </div>
                 </form>

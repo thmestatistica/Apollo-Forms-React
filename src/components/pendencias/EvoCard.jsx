@@ -5,6 +5,11 @@ import PenModal from "./PenModal";
 import { useFormContext } from "../../hooks/useFormContext";
 import { abreviarNome } from "../../utils/format/formatar_utils";
 import { carregar_escalas_pendentes } from "../../api/agenda/agenda_utils";
+import {
+  formatDataVisual,
+  getEscalaNome,
+  uniqueEscalasByNomeClosestDate,
+} from "../../utils/pendencias/escala_utils";
 
 /**
  * Retorna classes de cor de fundo e borda para o nível da pendência.
@@ -50,14 +55,6 @@ const EvoCard = ({ paginaAtual = [] }) => {
   const [escalasPorAgendamento, setEscalasPorAgendamento] = useState({});
   const [carregandoEscalasIds, setCarregandoEscalasIds] = useState(new Set());
 
-  // FUNÇÃO DE AJUSTE DE DATA (Subtrai 5 dias visualmente)
-  const getDataVisual = (dataIso) => {
-    if (!dataIso) return null;
-    const d = new Date(dataIso);
-    d.setDate(d.getDate() - 4); // Subtrai 5 dias
-    return d.toLocaleDateString('pt-BR'); // Retorna DD/MM/AAAA
-  };
-
   // Carrega escalas pendentes para cada item da página atual (apenas para exibir tags)
   useEffect(() => {
     let ativo = true;
@@ -76,12 +73,14 @@ const EvoCard = ({ paginaAtual = [] }) => {
         if (!ativo) return;
         
             const normalizadas = Array.isArray(lista)
-              ? lista.map((item) => ({
-                  id: item?.formularioId ?? null,
-                  nome: item?.formulario?.nomeEscala || item?.label || "Escala",
-                  data_referencia: item?.data_referencia || null,
-                  status: item?.status || null,
-                }))
+              ? uniqueEscalasByNomeClosestDate(
+                  lista.map((item) => ({
+                    id: item?.formularioId ?? null,
+                    nome: getEscalaNome(item),
+                    data_referencia: item?.data_referencia || null,
+                    status: item?.status || null,
+                  }))
+                )
               : [];
         setEscalasPorAgendamento((prev) => ({ ...prev, [agendamentoId]: normalizadas }));
       } catch {
@@ -151,15 +150,8 @@ const EvoCard = ({ paginaAtual = [] }) => {
                 {/* Tags de pendências de escala (somente exibição) */}
                 <div className="mt-2 flex flex-wrap gap-2">
                   {(escalasPorAgendamento[pen["AgendamentoID"]] || []).map((esc) => {
-                    
-                    // Lógica de Data Visual (-5 dias)
-                    let dataFormatada = null;
-                    if (esc.data_referencia) {
-                        const dataFull = getDataVisual(esc.data_referencia);
-                        // Pega apenas DD/MM para exibir na tag
-                        dataFormatada = dataFull ? dataFull.slice(0, 5) : null;
-                    }
-
+                    const dataFull = formatDataVisual(esc.data_referencia);
+                    const dataFormatada = dataFull ? dataFull.slice(0, 5) : null;
                     const tagClass = getEscalaTagClass(esc.status);
 
                     return (
@@ -169,7 +161,7 @@ const EvoCard = ({ paginaAtual = [] }) => {
                           ${tagClass || "text-purple-700 border border-purple-400 hover:bg-purple-100 hover:border-purple-500"}
                           hover:scale-105`}
                         // Tooltip com a data completa antecipada
-                        title={esc.data_referencia ? `Aplicar a partir de: ${getDataVisual(esc.data_referencia)}` : "Pendente"}
+                        title={esc.data_referencia ? `Aplicar a partir de: ${dataFull}` : "Pendente"}
                       >
                         {esc.nome}
                         

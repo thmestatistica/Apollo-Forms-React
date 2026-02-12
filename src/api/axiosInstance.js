@@ -28,7 +28,8 @@ axiosInstance.interceptors.response.use(
     if (response?.status === 401 && !isLoginAttempt) {
       // Token expirado ou inválido em rota protegida → limpa sessão e recarrega
       localStorage.removeItem("userAuthData");
-      localStorage.removeItem("escalasPorAgendamento"); // Limpeza completa
+      localStorage.removeItem("escalasPorAgendamento"); // Limpeza completa (legado)
+      localStorage.removeItem("pendenciasEscalaStatus");
       window.location.href = "/"; // Redireciona para a home/login
     }
     
