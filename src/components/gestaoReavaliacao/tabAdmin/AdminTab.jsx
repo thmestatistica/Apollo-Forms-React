@@ -5,12 +5,12 @@ import {
   atualizar_pendencia_admin,
   buscar_todas_pendencias,
   deletar_pendencia_admin
-} from '../../api/pendencias/pendencias_utils';
-import { atualizar_diagnostico_paciente } from '../../api/pacientes/pacientes_utils';
-import { listar_pacientes } from '../../api/jornada/jornada_utils';
-import { INCLUIR_TESTES_GESTAO, isNomeIgnorado } from '../../utils/gestao/gestaoReavaliacaoUtils';
-import GestaoSectionCard from './shared/GestaoSectionCard';
-import AdminPesquisaCard from './tabPesquisa/AdminPesquisaCard';
+} from '../../../api/pendencias/pendencias_utils';
+import { atualizar_diagnostico_paciente } from '../../../api/pacientes/pacientes_utils';
+import { listar_pacientes } from '../../../api/jornada/jornada_utils';
+import { INCLUIR_TESTES_GESTAO, isNomeIgnorado } from '../../../utils/gestao/gestaoReavaliacaoUtils';
+import GestaoSectionCard from '../GestaoSectionCard';
+import AdminPesquisaCard from './AdminPesquisaCard';
 
 const DIAGNOSTICO_OPCOES = [
   'AVC',

@@ -11,7 +11,7 @@ import {
 import { listar_profissionais } from '../../api/profissionais/profissionais_utils';
 import { buscar_todas_pendencias } from '../../api/pendencias/pendencias_utils';
 import { atribuir_profissional_paciente } from '../../api/navegador/navegador_utils';
-import { INCLUIR_TESTES_GESTAO, isNomeIgnorado } from './gestaoReavaliacaoUtils';
+import { INCLUIR_TESTES_GESTAO, isNomeIgnorado } from '../../utils/gestao/gestaoReavaliacaoUtils';
 
 const NavegadorTab = () => {
   const [profissionaisNavegador, setProfissionaisNavegador] = useState([]);

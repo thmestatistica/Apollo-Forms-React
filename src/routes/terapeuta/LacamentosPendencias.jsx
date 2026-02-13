@@ -201,14 +201,14 @@ function LacamentosPendencias() {
                   </button>
                 </div>
                 <p className="text-sm text-gray-500">
-                  Pendências marcadas como aplicadas, mas não lançada
+                  Pendências marcadas como aplicadas, mas não lançadas
                 </p>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
                   <span className="px-2 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100">
-                    {pendenciasFiltradas.length} pendencias
+                    {pendenciasFiltradas.length} pendências
                   </span>
                   <span className="px-2 py-1 rounded-full bg-gray-50 text-gray-600 border border-gray-200">
-                    Pagina {paginaSegura} de {totalPaginas}
+                    Página {paginaSegura} de {totalPaginas}
                   </span>
                 </div>
               </div>
@@ -233,7 +233,7 @@ function LacamentosPendencias() {
           {erro && <InfoGen message={erro} />}
 
           {!erro && pendenciasFiltradas.length === 0 && (
-            <InfoGen message="Nenhuma pendencia aplicada para lancamento." />
+            <InfoGen message="Nenhuma pendência aplicada para lançamento." />
           )}
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -251,7 +251,7 @@ function LacamentosPendencias() {
                       <div className="flex flex-wrap items-center gap-3">
                         <h2 className="text-lg font-semibold text-gray-800">{pacienteLabel}</h2>
                         <span className="text-xs font-bold px-3 py-1 rounded-full border border-amber-200 bg-amber-50 text-amber-800">
-                          Aplicado, nao lancado
+                          Aplicado, não lançado
                         </span>
                       </div>
                       <div className="text-sm text-gray-600">
@@ -270,7 +270,7 @@ function LacamentosPendencias() {
                         onClick={() => handleAbrirFormulario(item)}
                         className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-xl shadow-sm hover:shadow-md transition-all"
                       >
-                        Lancar agora
+                        Lançar agora
                       </button>
                     </div>
                   </div>
@@ -302,7 +302,7 @@ function LacamentosPendencias() {
                   disabled={paginaSegura === totalPaginas}
                   className="px-3 py-1 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Proxima
+                  Próxima
                 </button>
               </div>
             </div>

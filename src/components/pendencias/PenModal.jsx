@@ -180,6 +180,17 @@ const PenModal = ({ penData }) => {
     });
   };
 
+  const buildEscalaUpdate = (escala) => ({
+    ...escala,
+    agendamentoId:
+      escala?.agendamentoId ??
+      escala?.agendamento?.id ??
+      penData?.["AgendamentoID"] ??
+      null,
+    pacienteId: escala?.pacienteId ?? escala?.paciente?.id ?? penData?.["PacienteID"] ?? null,
+    formularioId: escala?.formularioId ?? escala?.formulario?.id ?? null,
+  });
+
   /**
    * Faz a marcação de uma pendência de escala como "Não Aplicável".
    *
@@ -201,7 +212,7 @@ const PenModal = ({ penData }) => {
       // Lógica para marcar a pendência como "Não Aplicável"
       console.log("Marcar pendência como Não Aplicável para escala:", escala);
 
-      const resposta = await nao_aplicar_pendencia_escala(escala);
+      const resposta = await nao_aplicar_pendencia_escala(buildEscalaUpdate(escala));
       if (!resposta?.ok) {
         await Swal.fire({
           title: "Erro",
@@ -263,7 +274,7 @@ const PenModal = ({ penData }) => {
     if (!result.isConfirmed) return;
 
     const resposta = await atualizar_status_pendencia_escala(
-      escala,
+      buildEscalaUpdate(escala),
       "APLICADO_NAO_LANCADO"
     );
 
@@ -477,7 +488,7 @@ const PenModal = ({ penData }) => {
         } text-white`}
       >
         Preencher{" "}
-        {penData["TipoAtendimento"] === "AVALIACAO INICIAL" ||
+        {penData["TipoAtendimento"] === "AVALIACAO_INICIAL" ||
         penData["TipoAtendimento"] === "REAVALIACAO"
           ? "Avaliação"
           : "Evolução"}

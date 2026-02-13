@@ -8,10 +8,12 @@ export const useReavaliacao = () => {
   const [escalas, setEscalas] = useState([]);
   const [rascunhos, setRascunhos] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingPacientes, setLoadingPacientes] = useState(true);
 
   // 1. Carregar dados iniciais (Pacientes Ativos e Escalas)
   useEffect(() => {
     const carregarDados = async () => {
+      setLoadingPacientes(true);
       try {
         const [resPac, resEsc] = await Promise.all([
           api.get('/pacientes'),
@@ -28,6 +30,8 @@ export const useReavaliacao = () => {
         setEscalas(resEsc.data);
       } catch (error) {
         console.error("Erro ao carregar dados iniciais:", error);
+      } finally {
+        setLoadingPacientes(false);
       }
     };
     carregarDados();
@@ -347,6 +351,7 @@ export const useReavaliacao = () => {
     atualizarRascunho,
     removerRascunho,
     salvarNoBanco,
-    setRascunhos
+    setRascunhos,
+    loadingPacientes
   };
 };

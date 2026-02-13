@@ -3,11 +3,10 @@ import {
   CheckBadgeIcon,
   ChevronLeftIcon,
   MagnifyingGlassIcon,
-  PlusCircleIcon,
-  TableCellsIcon
+  RectangleGroupIcon
 } from '@heroicons/react/24/outline';
 
-const GestaoReavaliacaoHeader = ({ activeTab, onTabChange, canSeeTab, accessMode, onBack }) => {
+const GestaoReavaliacaoHeader = ({ activeTab, onTabChange, canSeeTab, onBack }) => {
   return (
     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center w-full border-b border-gray-100 pb-6 mb-8 gap-4">
       <div className="flex flex-col items-center lg:items-start gap-1 w-full lg:w-auto">
@@ -25,21 +24,13 @@ const GestaoReavaliacaoHeader = ({ activeTab, onTabChange, canSeeTab, accessMode
           <ChevronLeftIcon className="w-5 h-5" /> Voltar
         </button>
         <div className="bg-gray-100 p-1 rounded-xl shadow-inner w-full lg:w-auto">
-          <div className={`grid ${accessMode === 'gestao' ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-4'} gap-1`}>
-            {canSeeTab('gerar') && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
+            {canSeeTab('gestao') && (
               <button
-                onClick={() => onTabChange('gerar')}
-                className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer w-full ${activeTab === 'gerar' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
+                onClick={() => onTabChange('gestao')}
+                className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer w-full ${activeTab === 'gestao' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
               >
-                <PlusCircleIcon className="w-4 h-4 sm:w-5 sm:h-5" /> Emissão
-              </button>
-            )}
-            {canSeeTab('admin') && (
-              <button
-                onClick={() => onTabChange('admin')}
-                className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer w-full ${activeTab === 'admin' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
-              >
-                <TableCellsIcon className="w-4 h-4 sm:w-5 sm:h-5" /> Admin
+                <RectangleGroupIcon className="w-4 h-4 sm:w-5 sm:h-5" /> Gerenciar
               </button>
             )}
             {canSeeTab('metodo') && (

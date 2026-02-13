@@ -20,7 +20,7 @@ import { buscar_pendencias_sem_avaliacao, buscar_todas_pendencias } from '../../
 import { tipoPorEspecialidade } from '../../config/tipoSlot';
 import { Modal } from '../modal/Modal';
 import MultiSelect from '../input/MultiSelect';
-import { INCLUIR_TESTES_GESTAO, isNomeIgnorado } from './gestaoReavaliacaoUtils';
+import { INCLUIR_TESTES_GESTAO, isNomeIgnorado } from '../../utils/gestao/gestaoReavaliacaoUtils';
 
 const DIAGNOSTICO_OPCOES = [
   'AVC',
