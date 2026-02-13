@@ -23,7 +23,7 @@ import MultiSelect from "../input/MultiSelect.jsx";
  * @param {Object} [props.initialValues={}] - Valores iniciais para preenchimento automático do campo.
  * @returns {JSX.Element} O campo renderizado dinamicamente.
  */
-const CampoDinamico = ({ campo, initialValues = {} }) => {
+const CampoDinamico = ({ campo, initialValues = {}, onFieldChange = null}) => {
     const {
         nome,
         label,
@@ -120,7 +120,13 @@ const CampoDinamico = ({ campo, initialValues = {} }) => {
                     <SingleSelect
                         options={selectOptions}
                         value={singleValue}
-                        onChange={(opt) => setSingleValue(opt)}
+                        onChange={(opt) => {
+                            setSingleValue(opt);
+
+                            if (onFieldChange) {
+                                onFieldChange(nome, opt?.value ?? "");
+                            }
+                        }}
                         placeholder={meta_dados.placeholder ?? "Selecione..."}
                         isClearable={meta_dados.isClearable ?? true}
                     />
@@ -141,7 +147,15 @@ const CampoDinamico = ({ campo, initialValues = {} }) => {
                     <MultiSelect
                         options={selectOptions}
                         value={multiValue}
-                        onChange={(opts) => setMultiValue(Array.isArray(opts) ? opts : [])}
+                        onChange={(opts) => {
+                            const array = Array.isArray(opts) ? opts : [];
+                            setMultiValue(array);
+
+                            if (onFieldChange) {
+                                onFieldChange(nome, array.map(o => o.value));
+                            }
+                        }}
+
                         placeholder={meta_dados.placeholder ?? "Selecione..."}
                         closeMenuOnSelect={meta_dados.closeMenuOnSelect ?? false}
                     />
