@@ -282,6 +282,11 @@ const AdminTab = ({ accessMode, allowedPatientIds }) => {
     [pacientesDisponiveis, selectedPacienteId]
   );
 
+  const pacienteSelecionadoInfo = useMemo(
+    () => (pacientesAdmin || []).find((pac) => String(pac?.id) === String(selectedPacienteId)),
+    [pacientesAdmin, selectedPacienteId]
+  );
+
   useEffect(() => {
     if (!selectedPacienteId) return;
     if (!pacienteSelecionado) setSelectedPacienteId('');
@@ -291,27 +296,23 @@ const AdminTab = ({ accessMode, allowedPatientIds }) => {
     setDiagnosticoPacienteEdicao(null);
   }, [selectedPacienteId]);
 
-  const dadosPaciente = useMemo(() => {
-    if (!selectedPacienteId) return [];
-    return dadosAdmin.filter((item) => {
-      if (accessMode === 'gestao' && allowedPatientIds.size > 0) {
-        const pid = item?.paciente?.id ?? item?.pacienteId;
-        if (pid == null || !allowedPatientIds.has(Number(pid))) return false;
-      }
-      if (isNomeIgnorado(item?.paciente?.nome, INCLUIR_TESTES_GESTAO)) return false;
-      const pid = item?.paciente?.id ?? item?.pacienteId;
-      return String(pid) === String(selectedPacienteId);
-    });
-  }, [dadosAdmin, accessMode, allowedPatientIds, selectedPacienteId]);
-
   const diagnosticoPacienteInfo = useMemo(() => {
-    const diagValues = new Set(dadosPaciente.map((item) => item.diagnosticoMacro).filter(Boolean));
+    const diagnosticoRaw = pacienteSelecionadoInfo?.diagnosticoMacro;
+    const diagnosticos = Array.isArray(diagnosticoRaw)
+      ? diagnosticoRaw
+      : diagnosticoRaw
+        ? [diagnosticoRaw]
+        : [];
+    const diagValues = new Set(diagnosticos.filter(Boolean));
     let label = 'Sem diagnostico';
     if (diagValues.size === 1) label = Array.from(diagValues)[0];
-    if (diagValues.size > 1) label = 'Misto';
+    if (diagValues.size > 1){
+      label = `${diagValues.size} diagnosticos`; 
+      // console.warn('Paciente com diagnosticos variados:', Array.from(diagValues));
+    }
     const selectValue = diagValues.size === 1 ? Array.from(diagValues)[0] : '';
     return { label, selectValue };
-  }, [dadosPaciente]);
+  }, [pacienteSelecionadoInfo]);
 
   const dadosFiltrados = useMemo(() => {
     if (!selectedPacienteId) return [];
@@ -441,30 +442,34 @@ const AdminTab = ({ accessMode, allowedPatientIds }) => {
       setLoadingAdmin(true);
       await atualizar_diagnostico_paciente(selectedPacienteId, diagnosticoPacienteEdicao);
 
-      const ids = new Set(dadosPaciente.map((item) => item.id));
-      setDadosAdmin((prev) => {
-        const atualizados = prev.map((item) => {
-          if (!ids.has(item.id)) return item;
-          return { ...item, diagnosticoMacro: diagnosticoPacienteEdicao };
-        });
-        adminDataCache.current = atualizados;
-        return atualizados;
-      });
-
-      setEditados((prev) => {
-        const novo = new Set(prev);
-        dadosPaciente.forEach((item) => novo.add(item.id));
-        return novo;
-      });
+      setPacientesAdmin((prev) =>
+        prev.map((pac) =>
+          String(pac?.id) === String(selectedPacienteId)
+            ? { ...pac, diagnosticoMacro: diagnosticoPacienteEdicao }
+            : pac
+        )
+      );
 
       setDiagnosticoPacienteEdicao(null);
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Diagnostico atualizado',
+        text: 'O diagnostico do paciente foi salvo com sucesso.',
+        timer: 1800,
+        showConfirmButton: false
+      });
     } catch (error) {
-      Swal.fire('Erro', 'Nao foi possivel atualizar o diagnostico do paciente.', 'error');
+      Swal.fire({
+        icon: 'error',
+        title: 'Erro ao atualizar',
+        text: 'Nao foi possivel atualizar o diagnostico do paciente.'
+      });
       console.error('Erro ao atualizar diagnostico do paciente:', error);
     } finally {
       setLoadingAdmin(false);
     }
-  }, [selectedPacienteId, diagnosticoPacienteEdicao, dadosPaciente]);
+  }, [selectedPacienteId, diagnosticoPacienteEdicao]);
 
   const handleSalvarTudoAdmin = async () => {
     if (editados.size === 0) return Swal.fire({ icon: 'info', title: 'Sem alterações', timer: 2000, showConfirmButton: false });
