@@ -19,6 +19,48 @@ import { useAuth } from "../../hooks/useAuth";
 import { useFormContext } from "../../hooks/useFormContext";
 import Swal from "sweetalert2";
 
+const CACHE_DURATION = 3 * 24 * 60 * 60 * 1000; // 3 dias em milisegundos
+
+// Chave para inserir, atualizar, recuperar e deletar os dados do cache
+const getCacheKey = (formId, userId) => {
+    return `form_cache_${formId}_${userId}`;
+};
+
+// Salva o cache
+const saveFormCache = (key, data) => {
+    const payload = {
+        timestamp: Date.now(),
+        data
+    };
+    localStorage.setItem(key, JSON.stringify(payload));
+};
+
+// Retornar os dados do cache
+const loadFormCache = (key) => {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+
+    try {
+        const parsed = JSON.parse(raw);
+        const isExpired = Date.now() - parsed.timestamp > CACHE_DURATION;
+
+        if (isExpired) {
+            localStorage.removeItem(key);
+            return null;
+        }
+
+        return parsed.data;
+    } catch {
+        localStorage.removeItem(key);
+        return null;
+    }
+};
+
+// Remover os dados em cache
+const clearFormCache = (key) => {
+    localStorage.removeItem(key);
+};
+
 const FormularioGenerico = () => {
     const { id_form, tipo_form } = useParams();
     const navigate = useNavigate();
@@ -32,6 +74,11 @@ const FormularioGenerico = () => {
     const [loading, setLoading] = useState(true);
     const [erro, setErro] = useState(null);
     const [submitting, setSubmitting] = useState(false); // indica envio em progresso
+
+    const userId = user?.profissionalId ?? user?.id ?? user?.usuarioId ?? "anon";
+    const cacheKey = getCacheKey(id_form, userId);
+    const [cachedValues, setCachedValues] = useState({});
+    const [cacheLoaded, setCacheLoaded] = useState(false);
 
     /**
      * Busca o formulário com base no ID da URL.
@@ -54,6 +101,14 @@ const FormularioGenerico = () => {
                     const titulo = info.nome_formulario || tituloFromNav || `Formulário ${id_form}`;
                     const f = montarFormularioGenerico(id_form, perguntas, { titulo });
                     setFormulario(f);
+
+                    const cached = loadFormCache(cacheKey);
+                    if (cached) {
+                        setCachedValues(cached);
+                    }
+                    setCacheLoaded(true);
+
+
                     return;
                 }
 
@@ -76,33 +131,34 @@ const FormularioGenerico = () => {
         };
 
         fetchFormulario();
-    }, [id_form, location]);
+    }, [id_form, user, location]);
 
     // Estado de carregamento ou erro
     if (loading) return <LoadingGen mensagem="Carregando formulário..." />;
 
     if (erro)
-    return (
-        <div className="flex flex-col justify-center items-center min-h-screen bg-apollo-50 text-center px-4">
-            <h2 className="text-xl font-semibold text-red-600 mb-2">
-                Erro ao carregar formulário
-            </h2>
-            <p className="text-gray-600">{erro}</p>
-            <Link
-                to={returnTo || "/forms-terapeuta/tela-inicial"}
-                state={{ reopenModal: true }}
-                className="mt-4 bg-apollo-200 hover:bg-apollo-300 text-white rounded-lg px-4 py-2"
-            >
-                Voltar
-            </Link>
-        </div>
-    );
+        return (
+            <div className="flex flex-col justify-center items-center min-h-screen bg-apollo-50 text-center px-4">
+                <h2 className="text-xl font-semibold text-red-600 mb-2">
+                    Erro ao carregar formulário
+                </h2>
+                <p className="text-gray-600">{erro}</p>
+                <Link
+                    to={returnTo || "/forms-terapeuta/tela-inicial"}
+                    state={{ reopenModal: true }}
+                    className="mt-4 bg-apollo-200 hover:bg-apollo-300 text-white rounded-lg px-4 py-2"
+                >
+                    Voltar
+                </Link>
+            </div>
+        );
 
     /**
      * Valores iniciais mapeados da pendência (caso exista).
      */
     const initialValues = {
         paciente: pendencia?.["Paciente"] || "",
+        ...cachedValues
     };
 
     /**
@@ -141,14 +197,14 @@ const FormularioGenerico = () => {
 
         if (obrigatoriosFaltando.length > 0) {
             Swal.fire({
-                    icon: 'warning',
-                    title: 'Campos Obrigatórios',
-                    html: `<div style="text-align: left;">Preencha os seguintes campos antes de enviar: <br><br><b>- ${obrigatoriosFaltando.join("<br>- ")}</b></div>`,
-                    confirmButtonColor: '#7C3AED',
-                    confirmButtonText: 'Entendido'
-                });
-                setSubmitting(false);
-                return;
+                icon: 'warning',
+                title: 'Campos Obrigatórios',
+                html: `<div style="text-align: left;">Preencha os seguintes campos antes de enviar: <br><br><b>- ${obrigatoriosFaltando.join("<br>- ")}</b></div>`,
+                confirmButtonColor: '#7C3AED',
+                confirmButtonText: 'Entendido'
+            });
+            setSubmitting(false);
+            return;
         }
 
         // =====================
@@ -242,7 +298,7 @@ const FormularioGenerico = () => {
                 }
             } catch (errRem) {
                 console.error("Erro ao remover presença:", errRem);
-    
+
                 // Alerta profissional para erro inesperado (Non-blocking)
                 const Toast = Swal.mixin({
                     toast: true,
@@ -275,7 +331,9 @@ const FormularioGenerico = () => {
         if (isEvolucao || isAvaliacao) {
             closeModal();
         }
-        
+
+        clearFormCache(cacheKey);
+
         navigate(returnTo || "/forms-terapeuta/tela-inicial", {
             replace: true,
             state: {
@@ -288,14 +346,16 @@ const FormularioGenerico = () => {
         });
     };
 
-  // Renderização do conteúdo principal
+    if (!cacheLoaded) return <LoadingGen mensagem="Carregando..." />;
+
+    // Renderização do conteúdo principal
     return (
         <div className="min-h-screen flex justify-center items-center bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-6 p-3">
             <div className="bg-white w-full max-w-4xl rounded-2xl shadow-lg flex flex-col gap-6 p-6 sm:p-8">
                 <h1 className="text-2xl font-semibold text-center text-gray-800">
                     {formulario.titulo}
                 </h1>
-                
+
 
                 {/* Bloco com informações da pendência */}
                 {pendencia && (
@@ -320,6 +380,24 @@ const FormularioGenerico = () => {
                 {/* Formulário dinâmico */}
                 <form
                     onSubmit={handleSubmit}
+                    onChange={(e) => {
+                        const fd = new FormData(e.currentTarget);
+                        const obj = {};
+
+                        for (let [key, value] of fd.entries()) {
+                            if (obj[key]) {
+                                if (!Array.isArray(obj[key])) {
+                                    obj[key] = [obj[key]];
+                                }
+                                obj[key].push(value);
+                            } else {
+                                obj[key] = value;
+                            }
+                        }
+
+                        console.log("Salvando no cache:", obj);
+                        saveFormCache(cacheKey, obj);
+                    }}
                     className="flex flex-col gap-6 w-full"
                     noValidate
                 >
@@ -328,6 +406,15 @@ const FormularioGenerico = () => {
                             key={campo.id}
                             campo={campo}
                             initialValues={initialValues}
+                            onFieldChange={(name, value) => {
+                                const updated = {
+                                    ...cachedValues,
+                                    [name]: value
+                                };
+
+                                setCachedValues(updated);
+                                saveFormCache(cacheKey, updated);
+                            }}
                         />
                     ))}
 
@@ -360,5 +447,6 @@ const FormularioGenerico = () => {
         </div>
     );
 };
+
 
 export default FormularioGenerico;
