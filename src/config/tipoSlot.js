@@ -4,7 +4,7 @@ export const tipoForms = {
         // 14: ['TO1', 'TO2'],
         // 15: ['PSI'],
         // 40: ['NUT'],
-        13: ['LKM'],
+        73: ['LKM'],
         46: ['CML'],
         14: ['ARM'],
         48: ['TMS'],
@@ -45,7 +45,7 @@ export const tipoPorEspecialidade = {
     },
 
     "Enfermagem": {
-        "Evoluções": null,
+        "Evoluções": 76,
         "Avaliações": 17,
     },
 
@@ -56,6 +56,6 @@ export const tipoPorEspecialidade = {
 
     "CondicionamentoFísico": {
         "Evoluções": 70,
-        "Avaliações": 47,
+        "Avaliações": 77,
     },
 }
