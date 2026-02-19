@@ -378,7 +378,14 @@ const PenModal = ({ penData }) => {
         ) : options.length === 0 ? (
           <p className="text-sm text-apollo-200">Nenhuma escala pendente para este agendamento.</p>
         ) : (
+          // Grid responsivo: 1 coluna no mobile, 2 no md, 3 no lg para organizar varias escalas.
+          // Modal Pequeno
           <ul className="flex flex-col gap-2">
+          
+          {/* 
+          // Modal Grande
+          <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2"> 
+          */}
             {options.map((escala) => {
               const status = getEffectiveStatus(escala);
               const statusLabel = getStatusLabel(status);

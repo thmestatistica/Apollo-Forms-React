@@ -3,13 +3,14 @@ import * as XLSX from 'xlsx-js-style';
 export const exportarPendenciasSemAvaliacao = ({
   pacientes,
   totalPendencias,
+  totalPacientes,
   filePrefix = 'pendencias_sem_avaliacao'
 }) => {
-  const totalPacientes = pacientes.length;
+  const totalPacientesUnicos = Number(totalPacientes ?? pacientes.length);
 
   const linhas = [
     ['Relatório Pendências Sem Avaliação'],
-    ['Total pacientes únicos', totalPacientes],
+    ['Total pacientes únicos', totalPacientesUnicos],
     ['Total pendências', totalPendencias],
     [],
     ['Paciente ID', 'Paciente', 'Especialidade']
@@ -19,7 +20,8 @@ export const exportarPendenciasSemAvaliacao = ({
     const especialidades = Array.isArray(p.especialidade)
       ? p.especialidade.join(' | ')
       : (p.especialidade || '-');
-    linhas.push([p.pacienteId, p.pacienteNome, especialidades]);
+    const pacienteId = p.pacienteId ?? p.paciente_id ?? '-';
+    linhas.push([pacienteId, p.pacienteNome, especialidades]);
   });
 
   const ws = XLSX.utils.aoa_to_sheet(linhas);

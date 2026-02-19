@@ -17,10 +17,14 @@ export const Modal = ({ isOpen, onClose, children }) => {
       onClick={handleBackdropClick}
       className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50 p-4"
     >
+      {/* 
+      Modal Pequeno: w-full max-w-2xl max-h-[90vh] 
+      Modal Grande: w-full max-w-[80vw] max-h-[95vh]
+      */}
       <div
         className="
           bg-white rounded-2xl shadow-xl
-          w-full max-w-2xl max-h-[90vh]
+          w-full max-w-2xl max-h-[90vh
           overflow-y-auto relative p-6 animate-fadeIn
           [scrollbar-width:thin] [scrollbar-color:rgba(90,39,121,0.55)_transparent]
           [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2

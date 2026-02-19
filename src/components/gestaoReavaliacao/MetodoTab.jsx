@@ -1,5 +1,7 @@
+// Importação dos hooks e bibliotecas necessárias
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
+// Importação de ícones para UI
 import {
   ArchiveBoxArrowDownIcon,
   ArrowPathIcon,
@@ -13,15 +15,18 @@ import {
   MagnifyingGlassIcon,
   PencilSquareIcon
 } from '@heroicons/react/24/outline';
+// Importação de hooks e funções utilitárias do projeto
 import { useReavaliacao } from '../../hooks/useReavaliacao';
 import { exportarPendenciasSemAvaliacao } from '../../utils/exportacao/exportar_excel';
-import { listar_escalas, listar_formularios, salvar_associacao_escala } from '../../api/forms/forms_utils';
+import { listar_escalas, listar_formularios, salvar_associacao_escala, verificar_forms_respondidos } from '../../api/forms/forms_utils';
 import { buscar_pendencias_sem_avaliacao, buscar_todas_pendencias } from '../../api/pendencias/pendencias_utils';
+import { listar_profissionais } from '../../api/profissionais/profissionais_utils';
 import { tipoPorEspecialidade } from '../../config/tipoSlot';
 import { Modal } from '../modal/Modal';
 import MultiSelect from '../input/MultiSelect';
 import { INCLUIR_TESTES_GESTAO, isNomeIgnorado } from '../../utils/gestao/gestaoReavaliacaoUtils';
 
+// Lista fixa de diagnósticos macros para associação
 const DIAGNOSTICO_OPCOES = [
   'AVC',
   'Doença de Parkinson',
@@ -37,56 +42,217 @@ const DIAGNOSTICO_OPCOES = [
   'Outros'
 ];
 
+// Componente principal responsável pela aba "Método Apollo"
 const MetodoTab = () => {
+  // Hook customizado para acessar pacientes e função de sugestão
   const { pacientes, avaliarPossiveisSugestoesPaciente } = useReavaliacao();
 
+  // Estado para controlar qual aba está ativa (sem avaliação, pendência, associação)
   const [activeMetodoTab, setActiveMetodoTab] = useState('sem-avaliacao');
+  // Estado para armazenar pendências sem avaliação
   const [pendenciasSemAvaliacao, setPendenciasSemAvaliacao] = useState({});
+  // Estado de loading e erro para pendências sem avaliação
   const [loadingSemAvaliacao, setLoadingSemAvaliacao] = useState(false);
   const [erroSemAvaliacao, setErroSemAvaliacao] = useState('');
+  // Estado para paginação da lista de pendências sem avaliação
   const [paginaSemAvaliacao, setPaginaSemAvaliacao] = useState(1);
+  // Constante para definir o número de itens por página
   const ITENS_POR_PAGINA_SEM_AVALIACAO = 10;
 
+  // Estado para pendências de escala (com ou sem pendência)
   const [pendenciasEscala, setPendenciasEscala] = useState([]);
+  // Estado de loading e erro para pendências de escala
   const [loadingPendenciasEscala, setLoadingPendenciasEscala] = useState(false);
   const [erroPendenciasEscala, setErroPendenciasEscala] = useState('');
+  // Estado para paginação das listas de pendência de escala
   const [paginaComPendenciaEscala, setPaginaComPendenciaEscala] = useState(1);
   const [paginaSemPendenciaEscala, setPaginaSemPendenciaEscala] = useState(1);
+  // Constante para definir o número de itens por página
   const ITENS_POR_PAGINA_PENDENCIA = 10;
 
+  // Estado para análise de pacientes sem pendência de escala
   const [analiseSemPendencia, setAnaliseSemPendencia] = useState({});
   const [loadingAnaliseSemPendencia, setLoadingAnaliseSemPendencia] = useState(false);
 
-  const [formulariosSistema, setFormulariosSistema] = useState([]);
-  const [escalasAssociadas, setEscalasAssociadas] = useState([]);
-  const [loadingAssociacao, setLoadingAssociacao] = useState(false);
-  const [erroAssociacao, setErroAssociacao] = useState('');
-  const [buscaAssociacao, setBuscaAssociacao] = useState('');
-  const [associacaoModalAberto, setAssociacaoModalAberto] = useState(false);
-  const [associacaoFormSelecionado, setAssociacaoFormSelecionado] = useState(null);
-  const [associacaoEscalaSelecionada, setAssociacaoEscalaSelecionada] = useState(null);
-  const [associacaoEspecialidades, setAssociacaoEspecialidades] = useState([]);
-  const [associacaoDiagnosticos, setAssociacaoDiagnosticos] = useState([]);
-  const [salvandoAssociacao, setSalvandoAssociacao] = useState(false);
 
+  // Estados para associação de formulários e escalas
+  const [formulariosSistema, setFormulariosSistema] = useState([]); // Lista de todos os formulários do sistema
+  const [escalasAssociadas, setEscalasAssociadas] = useState([]); // Lista de escalas já associadas
+  const [loadingAssociacao, setLoadingAssociacao] = useState(false); // Loading para operações de associação
+  const [erroAssociacao, setErroAssociacao] = useState(''); // Erro para operações de associação
+  const [buscaAssociacao, setBuscaAssociacao] = useState(''); // Termo de busca para filtrar formulários
+  const [associacaoModalAberto, setAssociacaoModalAberto] = useState(false); // Controle de exibição do modal de associação
+  const [associacaoFormSelecionado, setAssociacaoFormSelecionado] = useState(null); // Formulário selecionado para associação
+  const [associacaoEscalaSelecionada, setAssociacaoEscalaSelecionada] = useState(null); // Escala selecionada para associação
+  const [associacaoEspecialidades, setAssociacaoEspecialidades] = useState([]); // Especialidades selecionadas no modal
+  const [associacaoDiagnosticos, setAssociacaoDiagnosticos] = useState([]); // Diagnósticos selecionados no modal
+  const [salvandoAssociacao, setSalvandoAssociacao] = useState(false); // Loading para salvar associação
+
+  // Estado geral de carregamento do método (qualquer loading das principais operações)
   const metodoCarregando = loadingSemAvaliacao || loadingPendenciasEscala || loadingAnaliseSemPendencia;
 
+  /**
+   * Normaliza nomes para comparação e uso como chave (ex: nomes de pacientes)
+   * Remove espaços, converte para minúsculo e trata nulos
+   */
   const normalizeNome = useCallback((value) => String(value ?? '').trim().toLocaleLowerCase('pt-BR'), []);
 
+  /**
+   * Normaliza especialidades para garantir sempre um array de strings limpas
+   * Aceita string separada por vírgula ou array
+   */
+  const normalizarEspecialidades = useCallback(
+    (value) => {
+      if (!value) return [];
+      const lista = Array.isArray(value) ? value : String(value).split(',');
+      return lista.map((item) => String(item ?? '').trim()).filter(Boolean);
+    },
+    []
+  );
+
+  /**
+   * Monta um mapa profissionalId -> especialidades
+   * Útil para saber quais especialidades cada profissional possui
+   */
+  const mapProfissionaisEspecialidades = useCallback(
+    (dados) => {
+      const lista = Array.isArray(dados?.profissionais) ? dados.profissionais : Array.isArray(dados) ? dados : [];
+      const mapa = new Map();
+
+      lista.forEach((item) => {
+        const id = item?.id ?? item?.profissionalId ?? item?.profissional_id ?? item?.usuarioId;
+        if (id == null) return;
+        const especialidadesRaw = item?.especialidade ?? item?.profissional?.especialidade ?? item?.usuario?.especialidade;
+        const especialidades = normalizarEspecialidades(especialidadesRaw);
+        if (!mapa.has(Number(id))) mapa.set(Number(id), especialidades);
+      });
+
+      return mapa;
+    },
+    [normalizarEspecialidades]
+  );
+
+
+  /**
+   * Carrega pendências sem avaliação:
+   * - Busca pendências na API
+   * - Busca profissionais e respostas já existentes
+   * - Filtra pendências que já possuem avaliação respondida para a especialidade do profissional
+   * - Atualiza estado com lista filtrada
+   */
   const carregarPendenciasSemAvaliacao = useCallback(async () => {
     setLoadingSemAvaliacao(true);
     setErroSemAvaliacao('');
     try {
+      // Busca pendências sem avaliação
       const resposta = await buscar_pendencias_sem_avaliacao();
-      setPendenciasSemAvaliacao(resposta?.data ?? resposta ?? {});
+      const base = resposta?.data ?? resposta ?? {};
+      const lista = Array.isArray(base?.pacientes) ? base.pacientes : Array.isArray(base) ? base : [];
+      // Extrai todos os IDs de pacientes únicos
+      const pacienteIds = Array.from(
+        new Set(lista.map((item) => item?.pacienteId ?? item?.paciente_id).filter((id) => id != null))
+      );
+
+      let filtrados = lista;
+
+      // Se houver pacientes, busca respostas já existentes e profissionais
+      if (pacienteIds.length > 0) {
+        const [resVerificacao, resProfissionais] = await Promise.all([
+          verificar_forms_respondidos({ tipo: 'Avaliações', pacienteIds }),
+          listar_profissionais()
+        ]);
+
+        // Normaliza resultados de verificação
+        const resultados = Array.isArray(resVerificacao?.data?.resultados)
+          ? resVerificacao.data.resultados
+          : Array.isArray(resVerificacao?.data?.data?.resultados)
+            ? resVerificacao.data.data.resultados
+            : Array.isArray(resVerificacao?.resultados)
+              ? resVerificacao.resultados
+              : [];
+
+        // Mapeia pacienteId -> resultado de verificação
+        const mapaVerificacao = new Map(
+          resultados.map((item) => [Number(item?.paciente_id ?? item?.pacienteId), item])
+        );
+
+        // Mapeia profissionalId -> especialidades
+        const mapaEspecialidadesProfissionais = mapProfissionaisEspecialidades(resProfissionais);
+
+        // Filtra pendências que já possuem avaliação respondida para a especialidade
+        filtrados = lista.filter((item) => {
+          const pacienteId = item?.pacienteId ?? item?.paciente_id;
+          const verificado = mapaVerificacao.get(Number(pacienteId));
+          // Mantém se não houver respostas para o tipo solicitado
+          if (!verificado?.tem_tipo_respondido) return true;
+
+          // Normaliza especialidades da pendência
+          const especialidadesPendencia = normalizarEspecialidades(
+            item?.especialidade ?? item?.especialidades ?? item?.especialidadeNome
+          );
+
+          // Extrai IDs de profissionais relacionados à resposta
+          const profissionaisIds = Array.isArray(verificado?.profissionais_ids)
+            ? verificado.profissionais_ids
+            : Array.isArray(verificado?.profissionaisIds)
+              ? verificado.profissionaisIds
+              : [];
+
+          // Extrai IDs de profissionais das sessões
+          const profissionaisFromSessoes = Array.isArray(verificado?.sessoes)
+            ? verificado.sessoes
+                .map((sessao) => sessao?.profissional_id ?? sessao?.profissionalId)
+                .filter((id) => id != null)
+            : [];
+
+          // Junta todos IDs únicos
+          const profissionaisUnicos = Array.from(
+            new Set([...profissionaisIds, ...profissionaisFromSessoes].map((id) => Number(id)))
+          );
+
+          // Mantém se faltar especialidade ou profissional relacionado
+          if (especialidadesPendencia.length === 0 || profissionaisUnicos.length === 0) return true;
+
+          // Mapeia especialidades já respondidas
+          const especialidadesRespondidas = new Set();
+          profissionaisUnicos.forEach((id) => {
+            const especialidades = mapaEspecialidadesProfissionais.get(Number(id)) || [];
+            especialidades.forEach((esp) => especialidadesRespondidas.add(normalizeNome(esp)));
+          });
+
+          // Mantém se não for possível mapear especialidades respondidas
+          if (especialidadesRespondidas.size === 0) return true;
+
+          // Remove apenas se houver match entre especialidade pendente e respondida
+          const possuiMatch = especialidadesPendencia.some((esp) => especialidadesRespondidas.has(normalizeNome(esp)));
+          return !possuiMatch;
+        });
+      }
+
+      // Atualiza estado com lista filtrada
+      if (Array.isArray(base)) {
+        setPendenciasSemAvaliacao(filtrados);
+      } else {
+        setPendenciasSemAvaliacao({
+          ...base,
+          pacientes: filtrados,
+          // Mantém total alinhado com a lista filtrada exibida
+          total: filtrados.length
+        });
+      }
     } catch (err) {
       console.error(err);
       setErroSemAvaliacao('Não foi possível carregar as pendências.');
     } finally {
       setLoadingSemAvaliacao(false);
     }
-  }, []);
+  }, [mapProfissionaisEspecialidades, normalizarEspecialidades, normalizeNome]);
 
+
+  /**
+   * Carrega todas as pendências de escala (abertas, concluídas, etc.)
+   * Atualiza estado com a lista vinda da API
+   */
   const carregarPendenciasEscala = useCallback(async () => {
     setLoadingPendenciasEscala(true);
     setErroPendenciasEscala('');
@@ -101,32 +267,24 @@ const MetodoTab = () => {
     }
   }, []);
 
+
+  /**
+   * Carrega formulários e escalas do sistema para associação
+   * Normaliza os dados para facilitar o uso na tela
+   */
   const carregarAssociacoes = useCallback(async () => {
     setLoadingAssociacao(true);
     setErroAssociacao('');
     try {
+      // Busca formulários e escalas em paralelo
       const [forms, escalas] = await Promise.all([listar_formularios(), listar_escalas()]);
+      // Função para normalizar estrutura de formulário
       const normalizarFormulario = (form) => {
+        console.log("Formulário bruto para normalização:", form);
         const base = form?.formulario ?? form?.form ?? form;
-        const id =
-          base?.formulario_id ??
-          base?.id ??
-          base?.formularioId ??
-          base?.formId ??
-          form?.formulario_id ??
-          form?.id ??
-          form?.formularioId;
-        const nomeEscala =
-          base?.nome_formulario ??
-          base?.nomeEscala ??
-          base?.nomeFormulario ??
-          base?.formulario_nome ??
-          base?.titulo ??
-          base?.tituloFormulario ??
-          base?.nome ??
-          base?.name ??
-          base?.nome_escala;
-        const tipoFormulario = base?.tipo_formulario ?? base?.tipoFormulario ?? base?.tipo ?? base?.categoria ?? form?.tipoFormulario;
+        const id = base.formulario_id
+        const nomeEscala = base.nome_formulario;
+        const tipoFormulario = base?.tipo_formulario;
         const ativo = base?.ativo ?? base?.ativoFormulario ?? form?.ativo ?? form?.ativoFormulario;
 
         return {
@@ -138,6 +296,7 @@ const MetodoTab = () => {
         };
       };
 
+      // Normaliza lista de formulários
       const listaForms = Array.isArray(forms) ? forms.map(normalizarFormulario) : [];
       setFormulariosSistema(listaForms);
       setEscalasAssociadas(Array.isArray(escalas) ? escalas : []);
@@ -149,20 +308,25 @@ const MetodoTab = () => {
     }
   }, []);
 
+
+  // Carrega pendências de escala ao montar o componente
   useEffect(() => {
     carregarPendenciasEscala();
   }, [carregarPendenciasEscala]);
 
+  // Carrega associações ao montar o componente
   useEffect(() => {
     carregarAssociacoes();
   }, [carregarAssociacoes]);
 
+  // Carrega pendências sem avaliação ao trocar para a aba correspondente
   useEffect(() => {
     if (activeMetodoTab === 'sem-avaliacao') {
       carregarPendenciasSemAvaliacao();
     }
   }, [activeMetodoTab, carregarPendenciasSemAvaliacao]);
 
+  // Carrega associações ao trocar para a aba de associação
   useEffect(() => {
     if (activeMetodoTab === 'associacao') {
       carregarAssociacoes();
@@ -251,22 +415,40 @@ const MetodoTab = () => {
     return DIAGNOSTICO_OPCOES.map((diag) => ({ value: diag, label: diag }));
   }, []);
 
-  const pacientesPendenciasUnicas = useMemo(() => {
+  /**
+   * Lista de pendencias sem avaliacao pronta para tela e paginacao.
+   * Nao deduplica para manter todas as pendencias.
+   */
+  const pendenciasSemAvaliacaoLista = useMemo(() => {
     const lista = pendenciasSemAvaliacao?.pacientes ?? pendenciasSemAvaliacao ?? [];
     const normalizados = Array.isArray(lista) ? lista : [];
-    const mapa = new Map();
-    normalizados.forEach((p) => {
-      const nome = String(p?.pacienteNome ?? '').trim();
-      if (!nome || isNomeIgnorado(nome, INCLUIR_TESTES_GESTAO)) return;
-      if (!mapa.has(nome)) {
-        mapa.set(nome, p);
-      }
-    });
-    return Array.from(mapa.values()).sort((a, b) => {
-      const nomeA = String(a?.pacienteNome ?? '').trim();
-      const nomeB = String(b?.pacienteNome ?? '').trim();
-      return nomeA.localeCompare(nomeB, 'pt-BR', { sensitivity: 'base' });
-    });
+
+    return normalizados
+      .filter((p) => {
+        const nome = String(p?.pacienteNome ?? '').trim();
+        return Boolean(nome);
+      })
+      .sort((a, b) => {
+        const nomeA = String(a?.pacienteNome ?? '').trim();
+        const nomeB = String(b?.pacienteNome ?? '').trim();
+        if (nomeA !== nomeB) return nomeA.localeCompare(nomeB, 'pt-BR', { sensitivity: 'base' });
+
+        const espA = normalizarEspecialidades(a?.especialidade ?? a?.especialidades ?? a?.especialidadeNome).join(', ');
+        const espB = normalizarEspecialidades(b?.especialidade ?? b?.especialidades ?? b?.especialidadeNome).join(', ');
+        return espA.localeCompare(espB, 'pt-BR', { sensitivity: 'base' });
+      });
+  }, [pendenciasSemAvaliacao, normalizarEspecialidades]);
+
+  /**
+   * Total de pacientes unicos (por ID) nas pendencias.
+   */
+  const totalPacientesUnicosSemAvaliacao = useMemo(() => {
+    const lista = pendenciasSemAvaliacao?.pacientes ?? pendenciasSemAvaliacao ?? [];
+    const normalizados = Array.isArray(lista) ? lista : [];
+    const ids = normalizados
+      .map((item) => item?.pacienteId ?? item?.paciente_id)
+      .filter((id) => id != null);
+    return new Set(ids.map((id) => Number(id))).size;
   }, [pendenciasSemAvaliacao]);
 
   const { pendenciasComResumo, pacientesSemPendenciaEscala, totalPacientesConsiderados } = useMemo(() => {
@@ -276,14 +458,15 @@ const MetodoTab = () => {
       if (!nome || isNomeIgnorado(nome, INCLUIR_TESTES_GESTAO)) return;
       const key = normalizeNome(nome);
       if (!key) return;
-      const atual = pendentes.get(key) || { nome, total: 0, abertas: 0, concluidas: 0, nao_aplica: 0, ultimaData: null };
+      const atual = pendentes.get(key) || { nome, total: 0, abertas: 0, concluidas: 0, nao_aplica: 0, aplicado_nao_lancado: 0, ultimaData: null };
       atual.total += 1;
       const status = String(item?.status ?? '').toUpperCase();
       if (status === 'ABERTA') atual.abertas += 1;
       else if (status === 'CONCLUIDA') atual.concluidas += 1;
       else if (status === 'NAO_APLICA') atual.nao_aplica += 1;
+      else if (status === 'APLICADO_NAO_LANCADO') atual.aplicado_nao_lancado += 1;
 
-      const rawDate = item?.resolvidaEm ?? item?.data_referencia ?? item?.criadaEm ?? item?.createdAt ?? item?.dataReferencia;
+      const rawDate = item?.resolvidaEm ?? item?.criadaEm ?? item?.createdAt;
       const data = rawDate ? new Date(rawDate) : null;
       if (data && !isNaN(data.getTime())) {
         if (!atual.ultimaData || data > atual.ultimaData) atual.ultimaData = data;
@@ -471,26 +654,36 @@ const MetodoTab = () => {
     setPaginaSemPendenciaEscala(1);
   }, [pacientesSemPendenciaOrdenados.length]);
 
-  const totalPaginasSemAvaliacao = Math.max(1, Math.ceil(pacientesPendenciasUnicas.length / ITENS_POR_PAGINA_SEM_AVALIACAO));
+  /**
+   * Paginacao da lista de pendencias sem avaliacao.
+   */
+  const totalPaginasSemAvaliacao = Math.max(1, Math.ceil(pendenciasSemAvaliacaoLista.length / ITENS_POR_PAGINA_SEM_AVALIACAO));
   const pacientesPaginadosSemAvaliacao = useMemo(() => {
     const inicio = (paginaSemAvaliacao - 1) * ITENS_POR_PAGINA_SEM_AVALIACAO;
-    return pacientesPendenciasUnicas.slice(inicio, inicio + ITENS_POR_PAGINA_SEM_AVALIACAO);
-  }, [pacientesPendenciasUnicas, paginaSemAvaliacao]);
+    return pendenciasSemAvaliacaoLista.slice(inicio, inicio + ITENS_POR_PAGINA_SEM_AVALIACAO);
+  }, [pendenciasSemAvaliacaoLista, paginaSemAvaliacao]);
 
   useEffect(() => {
     setPaginaSemAvaliacao(1);
-  }, [pacientesPendenciasUnicas.length]);
+  }, [pendenciasSemAvaliacaoLista.length]);
 
+  /**
+   * Exporta a lista atual (filtrada) para Excel.
+   */
   const handleExportarSemAvaliacao = () => {
-    const totalPendencias = Number(pendenciasSemAvaliacao?.total ?? pacientesPendenciasUnicas.length);
+    // Usa a lista filtrada para refletir o que esta na tela.
+    const totalPendencias = Number(pendenciasSemAvaliacaoLista.length);
     exportarPendenciasSemAvaliacao({
-      pacientes: pacientesPendenciasUnicas,
-      totalPendencias
+      pacientes: pendenciasSemAvaliacaoLista,
+      totalPendencias,
+      totalPacientes: totalPacientesUnicosSemAvaliacao
     });
   };
 
+  // Renderização principal do componente
   return (
     <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden w-full animate-fade-in flex flex-col">
+      {/* Cabeçalho do método Apollo */}
       <div className="bg-emerald-50/50 p-6 border-b border-emerald-100">
         <h2 className="text-emerald-800 font-bold flex items-center gap-2 text-xl">
           <CheckBadgeIcon className="w-6 h-6" /> Método Apollo
@@ -498,6 +691,7 @@ const MetodoTab = () => {
         <p className="text-emerald-600 text-sm mt-2">Fluxos e integrações do método.</p>
       </div>
 
+      {/* Exibe loading geral se qualquer operação principal estiver carregando */}
       {metodoCarregando ? (
         <div className="p-16 flex flex-col items-center justify-center text-emerald-600">
           <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-emerald-500"></div>
@@ -505,22 +699,26 @@ const MetodoTab = () => {
         </div>
       ) : (
         <div className="p-6 flex flex-col gap-6">
+          {/* Bloco de notificações rápidas */}
           <div className="bg-white/70 border border-white/60 shadow-sm rounded-2xl p-4 sm:p-5 flex flex-col gap-3">
             <div className="flex items-center gap-2 text-slate-600 text-xs font-bold uppercase tracking-wider">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></span>
               Notificações
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {/* Notificação de sugestões */}
               <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-xl p-3">
                 <CheckCircleIcon className="w-5 h-5" />
                 <div className="text-sm font-semibold">
                   {loadingAnaliseSemPendencia ? 'Analisando sugestões...' : `Pacientes que possuem sugestões de escalas: ${totalPacientesComSugestoes}`}
                 </div>
               </div>
+              {/* Notificação de pendências concluídas */}
               <div className="flex items-center gap-3 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-xl p-3">
                 <CheckBadgeIcon className="w-5 h-5" />
                 <div className="text-sm font-semibold">Pacientes com pendências de escala concluídas: {totalPendenciasConcluidas}</div>
               </div>
+              {/* Notificação de formulários sem associação */}
               <div className="flex items-center gap-3 bg-rose-50 border border-rose-100 text-rose-700 rounded-xl p-3">
                 <ExclamationTriangleIcon className="w-5 h-5" />
                 <div className="text-sm font-semibold">Formulários sem associação completa: {formulariosSemAssociacao.length}</div>
@@ -528,20 +726,24 @@ const MetodoTab = () => {
             </div>
           </div>
 
+          {/* Abas de navegação do método Apollo */}
           <div className="bg-gray-100 p-1 rounded-xl shadow-inner w-full">
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-1">
+              {/* Botão para aba de pendências sem avaliação */}
               <button
                 onClick={() => setActiveMetodoTab('sem-avaliacao')}
                 className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-[11px] sm:text-sm font-bold transition-all cursor-pointer w-full ${activeMetodoTab === 'sem-avaliacao' ? 'bg-rose-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
               >
                 <ExclamationTriangleIcon className="w-4 h-4 sm:w-5 sm:h-5" /> Sem Avaliação
               </button>
+              {/* Botão para aba de pendências de escala */}
               <button
                 onClick={() => setActiveMetodoTab('sem-pendencia-escala')}
                 className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-[11px] sm:text-sm font-bold transition-all cursor-pointer w-full ${activeMetodoTab === 'sem-pendencia-escala' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
               >
                 <CheckBadgeIcon className="w-4 h-4 sm:w-5 sm:h-5" /> Pendência Escalas
               </button>
+              {/* Botão para aba de associação de formulários */}
               <button
                 onClick={() => setActiveMetodoTab('associacao')}
                 className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-[11px] sm:text-sm font-bold transition-all cursor-pointer w-full ${activeMetodoTab === 'associacao' ? 'bg-violet-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
@@ -580,11 +782,11 @@ const MetodoTab = () => {
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <div className="rounded-xl border border-rose-100 bg-rose-50 p-4">
                     <div className="text-xs text-rose-500 font-bold uppercase">Total pendências</div>
-                    <div className="text-2xl font-extrabold text-rose-700">{Number(pendenciasSemAvaliacao?.total ?? pacientesPendenciasUnicas.length)}</div>
+                    <div className="text-2xl font-extrabold text-rose-700">{Number(pendenciasSemAvaliacaoLista.length)}</div>
                   </div>
                   <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
                     <div className="text-xs text-emerald-500 font-bold uppercase">Pacientes únicos</div>
-                    <div className="text-2xl font-extrabold text-emerald-700">{pacientesPendenciasUnicas.length}</div>
+                    <div className="text-2xl font-extrabold text-emerald-700">{totalPacientesUnicosSemAvaliacao}</div>
                   </div>
                   <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
                     <div className="text-xs text-slate-500 font-bold uppercase">Última atualização</div>
@@ -614,7 +816,7 @@ const MetodoTab = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 text-sm">
-                          {pacientesPendenciasUnicas.length === 0 ? (
+                          {pendenciasSemAvaliacaoLista.length === 0 ? (
                             <tr>
                               <td colSpan="3" className="p-10 text-center text-gray-400 italic">
                                 Nenhum registro encontrado.
@@ -637,7 +839,7 @@ const MetodoTab = () => {
                   </div>
                 </div>
 
-                {pacientesPendenciasUnicas.length > 0 && (
+                {pendenciasSemAvaliacaoLista.length > 0 && (
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-bold text-gray-600 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100">
                     <span className="hidden sm:inline">Pág. {paginaSemAvaliacao} de {totalPaginasSemAvaliacao}</span>
                     <div className="flex gap-1">
@@ -685,6 +887,7 @@ const MetodoTab = () => {
                     </div>
                   </div>
                 )}
+
               </div>
             </div>
           )}
@@ -901,9 +1104,6 @@ const MetodoTab = () => {
                                   } else if (status === 'sem_sugestoes') {
                                     badgeLabel = 'Sem sugestões';
                                     badgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
-                                  } else if (status === 'sem_sugestoes_outros') {
-                                    badgeLabel = 'Diagnóstico Outros';
-                                    badgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
                                   } else if (status === 'sem_diagnostico') {
                                     badgeLabel = 'Sem diagnóstico';
                                     badgeClass = 'bg-slate-100 text-slate-600 border-slate-200';
@@ -1006,6 +1206,7 @@ const MetodoTab = () => {
                                 <th className="p-4">Paciente</th>
                                 <th className="p-4 w-24 text-center">Abertas</th>
                                 <th className="p-4 w-28 text-center">Concluídas</th>
+                                <th className="p-4 w-28 text-center">Aplicada, Não Lançada</th>
                                 <th className="p-4 w-28 text-center">Não aplica</th>
                                 <th className="p-4 w-20 text-center">Total</th>
                                 <th className="p-4 w-36 text-center">Dias desde última</th>
@@ -1024,12 +1225,14 @@ const MetodoTab = () => {
                                     <td className="p-4 text-slate-700 whitespace-normal wrap-break-word">{item.nome}</td>
                                     <td className="p-4 text-center font-bold text-rose-600">{item.abertas}</td>
                                     <td className="p-4 text-center font-bold text-emerald-600">{item.concluidas}</td>
+                                    <td className="p-4 text-center font-bold text-amber-700">{item.aplicado_nao_lancado || '-'}</td>
                                     <td className="p-4 text-center font-bold text-slate-500">{item.nao_aplica}</td>
                                     <td className="p-4 text-center font-bold text-indigo-700">{item.total}</td>
+                                    {/* Se houver valor em 'aplicado_nao_lancado', não mostrar 'Dias desde última' e tratar como pendência em aberto */}
                                     <td className="p-4 text-center text-slate-600">
-                                      {item.abertas === 0 && item.ultimaData
-                                        ? Math.floor((Date.now() - item.ultimaData.getTime()) / (1000 * 60 * 60 * 24))
-                                        : '-'}
+                                      {item.abertas === 0 && item.aplicado_nao_lancado > 0 ? '-' : item.abertas === 0 && item.ultimaData
+                                            ? Math.floor((Date.now() - item.ultimaData.getTime()) / (1000 * 60 * 60 * 24))
+                                            : '-'}
                                     </td>
                                   </tr>
                                 ))
@@ -1096,8 +1299,10 @@ const MetodoTab = () => {
         </div>
       )}
 
+      {/* Modal para criar/editar associação de formulário com escala */}
       <Modal isOpen={associacaoModalAberto} onClose={fecharModalAssociacao}>
         <div className="flex flex-col gap-4">
+          {/* Cabeçalho do modal */}
           <div>
             <h3 className="text-lg font-bold text-slate-800">Associação de Escala</h3>
             <p className="text-sm text-slate-500">
@@ -1110,9 +1315,11 @@ const MetodoTab = () => {
             </p>
           </div>
 
+          {/* Seleção de especialidades e diagnósticos macros */}
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="rounded-xl border border-slate-100 p-3">
               <div className="text-xs font-bold text-slate-500 uppercase mb-2">Especialidades</div>
+              {/* MultiSelect para especialidades */}
               <MultiSelect
                 options={opcoesEspecialidades}
                 value={opcoesEspecialidades.filter((opt) => associacaoEspecialidades.includes(opt.value))}
@@ -1123,6 +1330,7 @@ const MetodoTab = () => {
 
             <div className="rounded-xl border border-slate-100 p-3">
               <div className="text-xs font-bold text-slate-500 uppercase mb-2">Diagnósticos Macros</div>
+              {/* MultiSelect para diagnósticos macros */}
               <MultiSelect
                 options={opcoesDiagnosticos}
                 value={opcoesDiagnosticos.filter((opt) => associacaoDiagnosticos.includes(opt.value))}
@@ -1132,6 +1340,7 @@ const MetodoTab = () => {
             </div>
           </div>
 
+          {/* Botões de ação do modal */}
           <div className="flex justify-end gap-2">
             <button onClick={fecharModalAssociacao} className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 font-bold text-sm">
               Cancelar

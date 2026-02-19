@@ -159,6 +159,34 @@ export const listar_escalas = async () => {
 }
 
 /**
+ * Verifica se pacientes possuem formularios respondidos por tipo.
+ * Endpoint: GET /forms/answered/verify?tipo=...&pacienteIds=1&pacienteIds=2
+ */
+export const verificar_forms_respondidos = async ({ tipo, pacienteIds = [] }) => {
+  try {
+    if (!tipo || !Array.isArray(pacienteIds) || pacienteIds.length === 0) {
+      return { ok: true, data: { resultados: [] } };
+    }
+
+    const params = new URLSearchParams();
+    params.append('tipo', String(tipo));
+    pacienteIds
+      .filter((id) => id != null)
+      .forEach((id) => params.append('pacienteIds', String(Number(id))));
+
+    const { data } = await axiosInstanceForms.get('/forms/answered/verify', { params });
+    return { ok: true, data };
+  } catch (err) {
+    console.error("Erro ao verificar respostas:", {
+      message: err?.message,
+      status: err?.response?.status,
+      data: err?.response?.data,
+    });
+    return { ok: false, error: err };
+  }
+};
+
+/**
  * Cria ou atualiza associação de escala no Journey API.
  * Se escalaId for informado, tenta PUT /escalas/:id, senão POST /escalas.
  */

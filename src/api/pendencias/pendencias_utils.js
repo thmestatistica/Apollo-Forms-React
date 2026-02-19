@@ -75,6 +75,34 @@ export const buscar_pacientes_profissional = async (profissionalId) => {
 };
 
 /**
+ * Gera pendencias de escala para um paciente e especialidade.
+ * Endpoint: POST /pendencias/gerar-pendencias
+ * payload: { pacienteId, especialidade }
+ */
+export const gerar_pendencias_escala = async ({ pacienteId, especialidade }) => {
+  try {
+    if (!pacienteId || !especialidade) {
+      throw new Error("pacienteId e especialidade sao obrigatorios");
+    }
+
+    const payload = {
+      pacienteId: Number(pacienteId),
+      especialidade: String(especialidade),
+    };
+
+    const { data } = await axiosInstance.post('/pendencias/gerar-pendencias', payload);
+    return { ok: true, data };
+  } catch (err) {
+    console.error("Erro ao gerar pendencias de escala:", {
+      message: err?.message,
+      status: err?.response?.status,
+      data: err?.response?.data,
+    });
+    return { ok: false, error: err };
+  }
+};
+
+/**
  * ============================================================
  * 🩺 FUNÇÕES DO TERAPEUTA (Uso Diário)
  * ============================================================

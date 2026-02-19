@@ -1,0 +1,1 @@
+export const EQUIPAMENTO_SLOT = ['LKM', 'CML', 'ARM', 'TMS', 'ORT', 'KTS'];

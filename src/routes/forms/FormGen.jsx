@@ -14,16 +14,18 @@ import LoadingGen from "../../components/info/LoadingGen.jsx";
 import { formularios } from "../../data/formulario.jsx";
 import { carregar_perguntas_form, montarFormularioGenerico, carregar_info_form, enviar_respostas_form } from "../../api/forms/forms_utils";
 import { remover_presenca_profissional } from "../../api/profissionais/profissionais_utils";
-import { concluir_pendencia_escala } from "../../api/pendencias/pendencias_utils";
+import { concluir_pendencia_escala, gerar_pendencias_escala } from "../../api/pendencias/pendencias_utils";
 import { useAuth } from "../../hooks/useAuth";
 import { useFormContext } from "../../hooks/useFormContext";
+import { EQUIPAMENTO_SLOT } from "../../config/variaveisGlobais";
 import Swal from "sweetalert2";
 
 const CACHE_DURATION = 3 * 24 * 60 * 60 * 1000; // 3 dias em milisegundos
 
 // Chave para inserir, atualizar, recuperar e deletar os dados do cache
-const getCacheKey = (formId, userId) => {
-    return `form_cache_${formId}_${userId}`;
+const getCacheKey = (formId, userId, agendamentoId) => {
+    const agendamentoKey = agendamentoId ?? "sem_agendamento";
+    return `form_cache_${formId}_${userId}_${agendamentoKey}`;
 };
 
 // Salva o cache
@@ -76,7 +78,8 @@ const FormularioGenerico = () => {
     const [submitting, setSubmitting] = useState(false); // indica envio em progresso
 
     const userId = user?.profissionalId ?? user?.id ?? user?.usuarioId ?? "anon";
-    const cacheKey = getCacheKey(id_form, userId);
+    const agendamentoCacheId = pendencia?.["AgendamentoID"] ?? pendencia?.agendamentoId ?? null;
+    const cacheKey = getCacheKey(id_form, userId, agendamentoCacheId);
     const [cachedValues, setCachedValues] = useState({});
     const [cacheLoaded, setCacheLoaded] = useState(false);
 
@@ -230,9 +233,26 @@ const FormularioGenerico = () => {
         const pendEscala = location.state?.pendenciaEscala;
         const isEvolucao = location.state?.isEvolucao === true || /evolu/i.test(tipo_form ?? "");
         const isAvaliacao = location.state?.isAvaliacao === true || /avaliac/i.test(tipo_form ?? "");
+
+        // Sinais do agendamento para regras de negocio
+        const tipoAtendimento = String(pendencia?.["TipoAtendimento"] ?? "").toUpperCase();
+        const isAvaliacaoInicial = location.state?.isAvaliacaoInicial === true || tipoAtendimento === "AVALIACAO_INICIAL";
+        const slotSigla = String(pendencia?.["Sigla"] ?? pendencia?.["Slot"] ?? pendencia?.slot?.sigla ?? "").toUpperCase();
+        const isSlotEquipamento = EQUIPAMENTO_SLOT.some((sigla) => slotSigla.includes(sigla));
+
+        // Especialidade do profissional do agendamento (fallback para dados do usuario)
+        const especialidadeAgendamento =
+            pendencia?.["ProfissionalEspecialidade"] ??
+            pendencia?.profissionalEspecialidade ??
+            (Array.isArray(user?.especialidade) ? user.especialidade[0] : user?.especialidade) ??
+            (Array.isArray(user?.profissional?.especialidade) ? user.profissional.especialidade[0] : user?.profissional?.especialidade) ??
+            null;
+        
+        // console.warn("Dados de contexto para regras de negócio:",especialidadeAgendamento, tipoAtendimento, slotSigla, { isAvaliacaoInicial, isSlotEquipamento });
+
         const cameFromEscalaTag = location.state?.fromEscalaTag === true;
 
-        const resultados = { enviar: null, concluirPendencia: null, removerPresenca: null };
+        const resultados = { enviar: null, concluirPendencia: null, gerarPendencias: null, removerPresenca: null };
         let houveErro = false;
         let mensagensErro = [];
 
@@ -259,7 +279,23 @@ const FormularioGenerico = () => {
             }
         }
 
-        // (Remoção de presença movida para depois da verificação de sucesso total)
+        // Regra: ao concluir avaliacao inicial, gerar pendencias de escala para paciente/especialidade
+        // Não gerar pendências de escala para avaliações iniciais de slots de equipamento
+        if (!houveErro && isAvaliacaoInicial && !isSlotEquipamento) {
+            if (!paciente_id || !especialidadeAgendamento) {
+                houveErro = true;
+                mensagensErro.push("Dados insuficientes para gerar pendencias de escala.");
+            } else {
+                resultados.gerarPendencias = await gerar_pendencias_escala({
+                    pacienteId: paciente_id,
+                    especialidade: especialidadeAgendamento,
+                });
+                if (!resultados.gerarPendencias?.ok) {
+                    houveErro = true;
+                    mensagensErro.push("Falha ao gerar pendencias de escala.");
+                }
+            }
+        }
 
         // =====================
         // 4. Tratamento de Erros

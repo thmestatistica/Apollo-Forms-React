@@ -234,10 +234,7 @@ export const useReavaliacao = () => {
       });
 
       if (novasSugestoes.length === 0) {
-        const diagOutros = String(diagOriginal).toLowerCase() === 'outros';
-        if (diagOutros) {
-          return { status: 'sem_sugestoes_outros', motivo: 'Diagnóstico Outros', sugestoes: 0, diagnosticoMacro: diagOriginal };
-        } else if (diagOriginal === null || diagOriginal === undefined || diagOriginal === ''  ) {
+        if (diagOriginal === null || diagOriginal === undefined || diagOriginal === ''  ) {
           return { status: 'sem_diagnostico', motivo: 'Sem diagnóstico', sugestoes: 0, diagnosticoMacro: diagOriginal };
 
         } else if (specsEncontradas.length === 0) {
