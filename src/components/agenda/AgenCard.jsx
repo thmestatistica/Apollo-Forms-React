@@ -16,10 +16,38 @@ function AgenCard({ agendamentosPaginados = [] }) {
   const [, setCarregandoEscalas] = useState(false);
   const navigate = useNavigate();
 
-  const getEscalaTagClass = (status) =>
-    status === "APLICADO_NAO_LANCADO"
-      ? "bg-amber-100/20 text-amber-800 border-amber-200"
-      : null;
+  const getEscalaTagClass = (status) => status === "APLICADO_NAO_LANCADO" ? "bg-amber-100/20 text-amber-800 border-amber-200" : null;
+
+  const getPresencaClasses = (agendamento) => {
+    const presenca = agendamento?.presenca;
+
+    switch (presenca) {
+      case "Cancelado":
+        return {
+          header: "bg-red-600/10 text-red-700 border-l-4 border-red-600",
+          text: "text-red-600",
+          dot: "bg-red-600/90",
+        };
+      case "Ausência sem Aviso":
+        return {
+          header: "bg-gray-500/10 text-gray-700 border-l-4 border-gray-500",
+          text: "text-gray-500",
+          dot: "bg-gray-500/90",
+        };
+      case "Presente":
+        return {
+          header: "bg-green-600/10 text-green-800 border-l-4 border-green-600",
+          text: "text-green-600",
+          dot: "bg-green-600/90",
+        };
+      default:
+        return {
+          header: "bg-apollo-200/10 text-gray-800 border-l-4 border-apollo-200",
+          text: "text-apollo-200",
+          dot: "bg-apollo-200",
+        };
+    }
+  };
 
   useEffect(() => {
     const carregarEscalasParaAgendamentos = async () => {
@@ -200,16 +228,20 @@ function AgenCard({ agendamentosPaginados = [] }) {
       {agendamentosPaginados.length > 0 ? (
         agendamentosPaginados.map((agendamento) => {
           const escalas = escalasMap[agendamento.id] || [];
+          const presenca = getPresencaClasses(agendamento);
           return (
             <div 
                 key={agendamento.id} 
-                className="w-full border border-apollo-200 rounded-md bg-white hover:shadow-sm transition-shadow duration-200 flex flex-col overflow-hidden"
+                className="w-full border-apollo-200/30 border rounded-md bg-white hover:shadow-sm transition-shadow duration-200 flex flex-col overflow-hidden"
             >
-              <div className="bg-apollo-200/20 px-4 py-2 rounded-t-md font-semibold text-black wrap-break-words">
-                {abreviarNome(agendamento?.paciente?.nome ?? "Paciente", 2)}
+              <div className={`${presenca.header} px-4 py-2 rounded-t-md font-semibold wrap-break-words`}> 
+                <div className="flex items-center gap-2">
+                  <span className={`inline-block w-3 h-3 rounded-full ${presenca.dot}`} aria-hidden="true" />
+                  <span className="truncate">{abreviarNome(agendamento?.paciente?.nome ?? "Paciente", 2)}</span>
+                </div>
               </div>
 
-              <div className="px-4 py-2 text-sm text-gray-700 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2">
+              <div className="px-4 py-2 text-sm text-gray-700 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 justify-center">
                 <p className="flex flex-col sm:flex-row sm:gap-1">
                     <strong className="text-black">Dia:</strong> 
                     <span className="whitespace-nowrap">{formatarData(agendamento.inicio)}</span>
@@ -225,6 +257,12 @@ function AgenCard({ agendamentosPaginados = [] }) {
                     <strong className="text-black">Equipamento:</strong> 
                     <span className="wrap-break-word font-medium text-gray-800" title={agendamento?.slot?.nome ?? "-"}>
                         {agendamento?.slot?.nome ?? "-"}
+                    </span>
+                </p>
+                <p>
+                    <strong className="text-black">Presença: </strong> 
+                    <span className={`font-medium ${presenca.text}`}>
+                      {agendamento.presenca ?? "-"}
                     </span>
                 </p>
               </div>
