@@ -6,10 +6,10 @@ import { useFormContext } from "../../hooks/useFormContext";
 import { abreviarNome } from "../../utils/format/formatar_utils";
 import { carregar_escalas_pendentes } from "../../api/agenda/agenda_utils";
 import {
-  formatDataVisual,
   getEscalaNome,
   uniqueEscalasByNomeClosestDate,
 } from "../../utils/pendencias/escala_utils";
+import EscalaTags from "../escalas/EscalaTags";
 
 /**
  * Retorna classes de cor de fundo e borda para o nível da pendência.
@@ -38,11 +38,6 @@ const getCorBotao = (nivel) => {
   };
   return cores[nivel] || "bg-gray-600";
 };
-
-const getEscalaTagClass = (status) =>
-  status === "APLICADO_NAO_LANCADO"
-    ? "text-amber-800 border border-amber-300 bg-amber-100/20 hover:bg-amber-100/35"
-    : null;
 
 /**
  * @component EvoCard
@@ -148,44 +143,11 @@ const EvoCard = ({ paginaAtual = [] }) => {
                 </div>
 
                 {/* Tags de pendências de escala (somente exibição) */}
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {(escalasPorAgendamento[pen["AgendamentoID"]] || []).map((esc) => {
-                    const dataFull = formatDataVisual(esc.data_referencia);
-                    const dataFormatada = dataFull ? dataFull.slice(0, 5) : null;
-                    const tagClass = getEscalaTagClass(esc.status);
-
-                    return (
-                      <span
-                        key={`${pen["AgendamentoID"]}-${esc.id}-${esc.nome}`}
-                        className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full transition-all
-                          ${tagClass || "text-purple-700 border border-purple-400 hover:bg-purple-100 hover:border-purple-500"}
-                          hover:scale-105`}
-                        // Tooltip com a data completa antecipada
-                        title={esc.data_referencia ? `Aplicar a partir de: ${dataFull}` : "Pendente"}
-                      >
-                        {esc.nome}
-                        
-                        {/* Se tiver data, mostra entre parênteses */}
-                        {dataFormatada && (
-                          <strong
-                            className={`opacity-70 font-normal text-[10px] px-1 rounded-sm ${
-                            esc.status === "APLICADO_NAO_LANCADO"
-                              ? "bg-amber-100/30 text-amber-800"
-                              : "bg-black/5 text-purple-700"
-                            }`}
-                          >
-                            ({dataFormatada})
-                          </strong>
-                        )}
-
-                      </span>
-                    );
-                  })}
-
-                  {carregandoEscalasIds.has(pen["AgendamentoID"]) && (
-                    <span className="text-xs text-apollo-200/70">Carregando escalas…</span>
-                  )}
-                </div>
+                <EscalaTags
+                  escalas={escalasPorAgendamento[pen["AgendamentoID"]] || []}
+                  maxVisible={3}
+                  carregando={carregandoEscalasIds.has(pen["AgendamentoID"]) }
+                />
               </div>
 
               {/* Botão lateral do modal */}

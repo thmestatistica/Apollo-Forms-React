@@ -10,6 +10,7 @@ import {
   getEscalaNome,
   uniqueEscalasByNomeClosestDate,
 } from "../../utils/pendencias/escala_utils";
+import EscalaTags from "../escalas/EscalaTags";
 
 function AgenCard({ agendamentosPaginados = [] }) {
   const [escalasMap, setEscalasMap] = useState({});
@@ -267,36 +268,39 @@ function AgenCard({ agendamentosPaginados = [] }) {
                 </p>
               </div>
 
-              {escalas.length > 0 && (
+              {escalas.length > 0 && agendamento.presenca != "Ausente" && agendamento.presenca != "Cancelado" && (
                 <div className="border-t border-gray-100 px-4 py-3 bg-gray-50/50 rounded-b-md">
-                   <div className="flex flex-wrap gap-2"> 
-                    {escalas.map((escala) => {
-                      const tagClass = getEscalaTagClass(escala?.status);
-                      const isAplicadoNaoLancado = escala?.status === "APLICADO_NAO_LANCADO";
+                  <EscalaTags
+                    escalas={escalas}
+                    maxVisible={3}
+                    carregando={false}
+                    renderTag={(esc) => {
+                      const tagClass = getEscalaTagClass(esc?.status);
+                      const isAplicadoNaoLancado = esc?.status === "APLICADO_NAO_LANCADO";
 
                       return (
-                      <button
-                        key={escala.id}
-                        type="button"
-                        onClick={(e) => handleEscalaClick(e, agendamento, escala)}
-                        disabled={isAplicadoNaoLancado}
-                        className={`
-                          flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full transition-all
-                          ${tagClass || "bg-purple-200 text-purple-600 border border-purple-400"}
-                          ${
-                            isAplicadoNaoLancado
-                              ? "cursor-not-allowed opacity-80"
-                              : "hover:bg-purple-200 hover:border-purple-400 hover:scale-[1.02] cursor-pointer"
-                          }
-                          max-w-full text-left
-                        `}
-                        title={escala.data_referencia ? `Aplicar a partir de: ${formatDataVisual(escala.data_referencia)}` : ""}
-                      >
-                        {getEscalaLabel(escala, escala?.status)}
-                      </button>
-                    );
-                  })}
-                  </div>
+                        <button
+                          key={esc.id}
+                          type="button"
+                          onClick={(e) => handleEscalaClick(e, agendamento, esc)}
+                          disabled={isAplicadoNaoLancado}
+                          className={`
+                            flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full transition-all
+                            ${tagClass || "bg-purple-200 text-purple-600 border border-purple-400"}
+                            ${
+                              isAplicadoNaoLancado
+                                ? "cursor-not-allowed opacity-80"
+                                : "hover:bg-purple-200 hover:border-purple-400 hover:scale-[1.02] cursor-pointer"
+                            }
+                            max-w-full text-left
+                          `}
+                          title={esc.data_referencia ? `Aplicar a partir de: ${formatDataVisual(esc.data_referencia)}` : ""}
+                        >
+                          {getEscalaLabel(esc, esc?.status)}
+                        </button>
+                      );
+                    }}
+                  />
                 </div>
               )}
             </div>
