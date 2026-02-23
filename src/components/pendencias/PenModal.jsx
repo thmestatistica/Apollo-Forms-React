@@ -100,7 +100,8 @@ const PenModal = ({ penData }) => {
       return da - db;
     });
 
-  console.log("Escalas disponíveis no PenModal (normalizadas):", options);
+  // console.log("Escalas pendentes carregadas para o agendamento:", penData);
+  // console.log("Escalas disponíveis no PenModal (normalizadas):", options);
 
   const getPendenciaKey = (escala) =>
     String(
@@ -182,11 +183,7 @@ const PenModal = ({ penData }) => {
 
   const buildEscalaUpdate = (escala) => ({
     ...escala,
-    agendamentoId:
-      escala?.agendamentoId ??
-      escala?.agendamento?.id ??
-      penData?.["AgendamentoID"] ??
-      null,
+    agendamentoId: penData["AgendamentoID"],
     pacienteId: escala?.pacienteId ?? escala?.paciente?.id ?? penData?.["PacienteID"] ?? null,
     formularioId: escala?.formularioId ?? escala?.formulario?.id ?? null,
   });
