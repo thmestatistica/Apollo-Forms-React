@@ -31,8 +31,10 @@ import EditTela from './routes/terapeuta/EditTela.jsx'
 import JornadaPage from './routes/terapeuta/Jornada.jsx'
 import VisualizarFormulario from './routes/terapeuta/VisualizarFormulario.jsx'
 import VisualizarListaFormulario from './routes/terapeuta/VisualizarListaFormularios.jsx'
-import  GestaoReavaliacao from './routes/terapeuta/GestaoReavaliacao.jsx'
+import GestaoReavaliacao from './routes/terapeuta/GestaoReavaliacao.jsx'
 import LacamentosPendencias from './routes/terapeuta/LacamentosPendencias.jsx'
+import AgendaSemanalTerapeuta from './routes/terapeuta/AgendaSemanalTerapeuta.jsx'
+import AgendaSemanalPaciente from './routes/terapeuta/AgendaSemanalPaciente.jsx'
 
 // --- Configuração simples das Rotas com createBrowserRouter ---
 const router = createBrowserRouter([
@@ -93,6 +95,14 @@ const router = createBrowserRouter([
                         {
                             element: <LacamentosPendencias />,
                             path: 'lancamentos-pendencias'
+                        },
+                        {
+                            element: <AgendaSemanalTerapeuta/>,
+                            path: 'agenda-semanal-terapeuta'
+                        },
+                        {
+                            element: <AgendaSemanalPaciente/>,
+                            path: 'agenda-semanal-paciente'
                         }
                     ]
                 }

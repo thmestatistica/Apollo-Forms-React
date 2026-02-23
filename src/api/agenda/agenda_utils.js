@@ -24,14 +24,24 @@ export const listar_agendamentos = async (filters = {}) => {
       params.startDate = filters.startDate;
     }
 
+    // Adiciona endDate se fornecido
+    if (filters.endDate) {
+      params.endDate = filters.endDate;
+    }
+    
+    if(filters.pacienteId) {
+      params.pacienteId = filters.pacienteId;
+    }
+
     // Adiciona usuarioId se for número
     if (typeof filters.usuarioId === "number") {
       params.usuarioId = filters.usuarioId;
     }
 
     console.log("Listando agendamentos com parâmetros:", params);
+    
     // Requisição GET com query params
-    const response = await axiosInstance.get("/pacientes/agendamentos", {
+    const response = await axiosInstance.get("/agendamentos", {
       params,
     });
 
@@ -124,7 +134,7 @@ export const agendamentos_pendentes = async (profissionalId) => {
 
         // 3. Cria um array de promessas para buscar todos os agendamentos em paralelo.
         const promessasDeAgendamentos = agendamentoIds.map(id =>
-            axiosInstance.get(`/pacientes/agendamentos/${id}`).then(res => res.data)
+          axiosInstance.get(`/agendamentos/${id}`).then(res => res.data)
         );
 
         // 4. Executa todas as promessas em paralelo e aguarda a conclusão de todas.

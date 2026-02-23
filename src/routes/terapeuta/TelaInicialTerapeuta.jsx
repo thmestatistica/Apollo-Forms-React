@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../hooks/useAuth.jsx";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useFormContext } from "../../hooks/useFormContext";
 import AgenPag from "../../components/agenda/AgenPag.jsx";
 import InfoGen from "../../components/info/InfoGen";
@@ -192,7 +192,12 @@ const TelaInicialTerapeuta = () => {
             bg-white border border-gray-100 rounded-xl p-4
             shadow-sm hover:shadow-md transition-all duration-300
           ">
-            <h2 className="font-bold text-2xl text-gray-800">📅 Agendamentos de Hoje</h2>
+            <div className="flex justify-between">
+              <h2 className="font-bold text-2xl text-gray-800">📅 Agendamentos de Hoje</h2>
+              <Link to="/forms-terapeuta/agenda-semanal-terapeuta" className="py-1 px-3 bg-apollo-200 hover:bg-apollo-300 text-white rounded-xl text-sm font-semibold transition-colors duration-200">
+                Ver agenda completa
+              </Link>
+            </div>
 
             {carregandoAgendamentos && <InfoGen message="⏳ Carregando agendamentos..." />}
             {erroAgendamentos && <InfoGen message={erroAgendamentos} />}
@@ -304,7 +309,14 @@ const TelaInicialTerapeuta = () => {
                             transition-all duration-200 cursor-pointer flex items-center justify-center gap-2">
                 <span>📌</span> Lançamentos de Pendências
               </button>
-              
+              <button onClick={() => navigate("/forms-terapeuta/agenda-semanal-paciente")} 
+                      className="w-full bg-blue-900 hover:bg-apollo-500 text-white 
+                            font-bold py-3 px-4 rounded-xl 
+                            shadow-md hover:shadow-lg hover:shadow-apollo-200/40 
+                            hover:-translate-y-0.5 active:scale-95 
+                            transition-all duration-200 cursor-pointer flex items-center justify-center gap-2">
+                <span>📅</span> Agenda Semanal do Paciente
+              </button>
             </div>
           </div>
           
