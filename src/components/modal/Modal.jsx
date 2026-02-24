@@ -5,7 +5,7 @@
 
 import PropTypes from "prop-types";
 
-export const Modal = ({ isOpen, onClose, children }) => {
+export const Modal = ({ isOpen, onClose, children, isBig }) => {
   if (!isOpen) return null;
 
   const handleBackdropClick = (e) => {
@@ -22,9 +22,9 @@ export const Modal = ({ isOpen, onClose, children }) => {
       Modal Grande: w-full max-w-[80vw] max-h-[95vh]
       */}
       <div
-        className="
+        className={`${isBig ? "max-w-[85vw] max-h-[95vh]" : "max-w-2xl max-h-[90vh]"}$
           bg-white rounded-2xl shadow-xl
-          w-full max-w-2xl max-h-[90vh]
+          w-full
           overflow-y-auto relative p-6 animate-fadeIn
           [scrollbar-width:thin] [scrollbar-color:rgba(90,39,121,0.55)_transparent]
           [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2
@@ -33,7 +33,7 @@ export const Modal = ({ isOpen, onClose, children }) => {
           [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent
           [&::-webkit-scrollbar-thumb]:bg-clip-content
           [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(90,39,121,0.65)]
-        "
+        `}
       >
         <button
           onClick={onClose}

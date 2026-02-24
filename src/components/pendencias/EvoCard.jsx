@@ -168,7 +168,7 @@ const EvoCard = ({ paginaAtual = [] }) => {
       </div>
 
       {/* Modal global controlado via contexto */}
-      <Modal isOpen={isModalOpen} onClose={closeModal}>
+      <Modal isOpen={isModalOpen} onClose={closeModal} isBig={true}>
         {pendenciaSelecionada ? (
           <PenModal penData={pendenciaSelecionada} />
         ) : (
