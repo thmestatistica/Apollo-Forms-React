@@ -6,6 +6,8 @@ import LoadingGen from "../info/LoadingGen.jsx";
 import InfoGen from "../info/InfoGen.jsx";
 import SingleSelect from "../input/SingleSelect.jsx";
 import AgendaTable from "./AgendaTable.jsx";
+import AgendaHeader from "./AgendaHeader.jsx";
+import AgendaControls from "./AgendaControls.jsx";
 
 /**
  * Componente genérico de agenda semanal com filtro obrigatório de paciente/profissionais.
@@ -138,44 +140,21 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
         <div className="flex flex-col items-center justify-center min-h-screen gap-8 bg-gray-50">
             <div className="w-full h-screen flex flex-col md:gap-8 gap-4 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-6 p-2 items-center">
                 <div className="bg-white w-full h-full rounded-2xl shadow-xl flex flex-col md:p-8 p-4 overflow-hidden">
-                    <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 shrink-0">
-                        <h1 className="font-extrabold text-3xl md:text-4xl text-gray-800 tracking-tight animate-fade-in-down">{titulo}</h1>
-                        <button onClick={() => navigate(-1)} className="px-4 py-2 text-sm font-semibold bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-600 hover:text-white transition-colors flex items-center gap-2">← Voltar</button>
-                    </header>
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100 mb-6 shrink-0">
-                        <div className="w-full md:w-80">
-                            {FiltroComponent ? (
-                                <FiltroComponent
-                                    pessoas={pessoas}
-                                    pessoaId={pessoaId}
-                                    setPessoaId={setPessoaId}
-                                />
-                            ) : (
-                                <SingleSelect
-                                    options={pessoas.map(p => ({ value: p.id, label: p.nome }))}
-                                    value={pessoas.find(p => p.id === pessoaId) ? { value: pessoaId, label: pessoas.find(p => p.id === pessoaId)?.nome } : null}
-                                    onChange={opt => setPessoaId(opt?.value ?? null)}
-                                    placeholder="Filtrar Pacientes"
-                                />
-                            )}
-                        </div>
-                        <div className="font-bold text-gray-700 text-lg">
-                            {!isMobile ? (
-                                <span>📅 {weekDays[0].toLocaleDateString()} <span className="text-gray-400 font-normal mx-2">até</span> {weekDays[4].toLocaleDateString()}</span>
-                            ) : (
-                                <div className="flex items-center justify-center gap-4">
-                                    <button onClick={prevDay} className="px-3 py-1 bg-white hover:bg-gray-200 border border-gray-200 rounded-lg shadow-sm transition">‹</button>
-                                    <span>{displayedDays[0].toLocaleDateString()}</span>
-                                    <button onClick={nextDay} className="px-3 py-1 bg-white hover:bg-gray-200 border border-gray-200 rounded-lg shadow-sm transition">›</button>
-                                </div>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2 md:gap-4">
-                            <button onClick={prevWeek} className="px-4 py-2 text-sm bg-apollo-600 text-apollo-100 rounded-lg hover:bg-apollo-700 hover:shadow-md transition-all cursor-pointer font-medium">‹ Anterior</button>
-                            <button onClick={goToToday} className="px-4 py-2 text-sm bg-apollo-200/50 text-apollo-100 rounded-lg hover:bg-apollo-300 transition-all font-bold">Hoje</button>
-                            <button onClick={nextWeek} className="px-4 py-2 text-sm bg-apollo-600 text-apollo-100 rounded-lg hover:bg-apollo-700 hover:shadow-md transition-all cursor-pointer font-medium">Próxima ›</button>
-                        </div>
-                    </div>
+                    <AgendaHeader titulo={titulo} onBack={() => navigate("/forms-terapeuta/tela-inicial")} />
+                    <AgendaControls
+                        pessoas={pessoas}
+                        pessoaId={pessoaId}
+                        setPessoaId={setPessoaId}
+                        FiltroComponent={FiltroComponent}
+                        isMobile={isMobile}
+                        weekDays={weekDays}
+                        displayedDays={displayedDays}
+                        prevDay={prevDay}
+                        nextDay={nextDay}
+                        prevWeek={prevWeek}
+                        nextWeek={nextWeek}
+                        goToToday={goToToday}
+                    />
                     {agendamentos.length === 0 ? (
                         <div className="flex">
                             <InfoGen message="📄 Nenhum agendamento encontrado para este período." />

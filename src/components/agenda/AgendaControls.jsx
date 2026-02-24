@@ -2,9 +2,9 @@ import React from 'react';
 import SingleSelect from "../input/SingleSelect.jsx";
 
 const AgendaControls = ({
-    pacientes,
-    pacienteId,
-    setPacienteId,
+    pessoas,
+    pessoaId,
+    setPessoaId,
     FiltroComponent,
     isMobile,
     weekDays,
@@ -20,15 +20,15 @@ const AgendaControls = ({
             <div className="w-full md:w-64">
                 {FiltroComponent ? (
                     <FiltroComponent
-                        pacientes={pacientes}
-                        pacienteId={pacienteId}
-                        setPacienteId={setPacienteId}
+                        pessoas={pessoas}
+                        pessoaId={pessoaId}
+                        setPessoaId={setPessoaId}
                     />
                 ) : (
                     <SingleSelect
-                        options={pacientes.map(p => ({ value: p.id, label: p.nome }))}
-                        value={pacientes.find(p => p.id === pacienteId) ? { value: pacienteId, label: pacientes.find(p => p.id === pacienteId)?.nome } : null}
-                        onChange={opt => setPacienteId(opt?.value ?? null)}
+                        options={pessoas.map(p => ({ value: p.id, label: p.nome }))}
+                        value={pessoas.find(p => p.id === pessoaId) ? { value: pessoaId, label: pessoas.find(p => p.id === pessoaId)?.nome } : null}
+                        onChange={opt => setPessoaId(opt?.value ?? null)}
                         placeholder="Filtrar Paciente"
                     />
                 )}
