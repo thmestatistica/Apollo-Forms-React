@@ -54,7 +54,7 @@ export const tipoPorEspecialidade = {
         "Avaliações": 39,
     },
 
-    "CondicionamentoFísico": {
+    "Condicionamento Físico": {
         "Evoluções": 70,
         "Avaliações": 79,
     },
