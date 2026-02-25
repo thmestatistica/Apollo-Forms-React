@@ -11,7 +11,6 @@ import { useEffect, useState } from "react";
 import CampoDinamico from "../../components/form/CampoDinamico.jsx";
 import LoadingGen from "../../components/info/LoadingGen.jsx";
 
-import { formularios } from "../../data/formulario.jsx";
 import { carregar_perguntas_form, montarFormularioGenerico, carregar_info_form, enviar_respostas_form } from "../../api/forms/forms_utils";
 import { remover_presenca_profissional } from "../../api/profissionais/profissionais_utils";
 import { concluir_pendencia_escala, gerar_pendencias_escala } from "../../api/pendencias/pendencias_utils";
@@ -100,6 +99,7 @@ const FormularioGenerico = () => {
                     carregar_info_form(Number(id_form))
                 ]);
 
+                console.log(`Formulário ${id_form} carregado da API com sucesso:`, { perguntas, info });
                 if (Array.isArray(perguntas) && perguntas.length > 0) {
                     const titulo = info.nome_formulario || tituloFromNav || `Formulário ${id_form}`;
                     const f = montarFormularioGenerico(id_form, perguntas, { titulo });
@@ -113,21 +113,17 @@ const FormularioGenerico = () => {
 
 
                     return;
+                } else{
+                    console.warn(`API de formulários retornou vazio para ID ${id_form}.`);
+
+                    setCacheLoaded(true);
+
+                    throw new Error("Formulário vazio");
                 }
 
-                // 2) Fallback para mock local (caso API esteja vazia ou indisponível)
-                // Precisa comparar por formularioID (quando existir) e manter compatibilidade com mock (id)
-                const found = formularios.find((f) => {
-                    const fid = f?.formulario?.formularioID ?? f?.formulario?.formularioId ?? f?.formularioID ?? f?.formularioId ?? f?.id;
-                    return Number(fid) === Number(id_form);
-                });
-                if (found) {
-                    setFormulario(found);
-                } else {
-                    throw new Error("Formulário não encontrado");
-                }
             } catch (err) {
                 setErro(err?.message || String(err));
+                throw err;
             } finally {
                 setLoading(false);
             }

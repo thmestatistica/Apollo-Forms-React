@@ -20,7 +20,7 @@ const TelaInicialTerapeuta = () => {
   const podeEditar = EDITORES_PERMITIDOS.includes(Number(user?.profissionalId));
 
   // --- NOVA LÓGICA PARA GESTÃO (LISTA DE IDs) ---
-  const GESTAO_PERMITIDOS = [8, 17, 13, 15, 40, 43, 41]; 
+  const GESTAO_PERMITIDOS = [8, 17, 13, 15, 40, 43, 41, 5]; 
   const podeAcessarGestao = GESTAO_PERMITIDOS.includes(Number(user?.profissionalId));
   const [gestaoIdsPermitidos, setGestaoIdsPermitidos] = useState([]);
 
