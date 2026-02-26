@@ -22,7 +22,7 @@ export const Modal = ({ isOpen, onClose, children, isBig }) => {
       Modal Grande: w-full max-w-[80vw] max-h-[95vh]
       */}
       <div
-        className={`${isBig ? "max-w-[85vw] max-h-[95vh]" : "max-w-2xl max-h-[90vh]"}$
+        className={`${isBig ? "max-w-[85vw] max-h-[95vh]" : "max-w-2xl max-h-[90vh]"}
           bg-white rounded-2xl shadow-xl
           w-full
           overflow-y-auto relative p-6 animate-fadeIn
