@@ -456,7 +456,7 @@ const PenModal = ({ penData }) => {
         ) : (
           <>
             {/* Checkbox para desmarcar escalas de data distante em lote */}
-            <div className="flex items-center gap-2 mb-4 p-2 rounded-lg">
+            <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-apollo-200/5 border border-apollo-200">
               <input
                 type="checkbox"
                 id="toggleDistantes"
