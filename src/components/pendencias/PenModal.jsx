@@ -15,6 +15,10 @@ import { formatarData } from "../../utils/format/formatar_utils.js";
 import { formatDataVisual } from "../../utils/pendencias/escala_utils";
 
 import { EQUIPAMENTO_SLOT } from "../../config/variaveisGlobais.js";
+import SkeletonGen from "../info/SkeletonGen.jsx";
+import InfoGen from "../info/InfoGen.jsx";
+import ErroGen from "../info/ErroGen.jsx";
+import VazioGen from "../info/VazioGen.jsx";
 
 /**
  * Módulo utilitário: Calcula a diferença em dias entre a data alvo e a data atual (hoje).
@@ -448,11 +452,14 @@ const PenModal = ({ penData }) => {
       {/* Seção das Listagens das Escalas */}
       <div className="mt-3">
         {loadingEscalas ? (
-          <p className="text-sm text-apollo-200">Carregando escalas…</p>
+          <div className="flex flex-col gap-2">
+            <SkeletonGen range={1} />
+            <SkeletonGen range={6} display="grid" className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2"/>
+          </div>
         ) : erroEscalas ? (
-          <p className="text-sm text-red-600">{erroEscalas}</p>
+          <ErroGen error={erroEscalas} />
         ) : options.length === 0 ? (
-          <p className="text-sm text-apollo-200">Nenhuma escala pendente para este agendamento.</p>
+          <VazioGen message="Nenhuma pendência registrada" subMessage="Não foi encontrada nenhuma escala pendente para este paciente."/>
         ) : (
           <>
             {/* Checkbox para desmarcar escalas de data distante em lote */}

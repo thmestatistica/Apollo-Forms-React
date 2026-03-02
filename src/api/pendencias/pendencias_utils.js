@@ -256,3 +256,38 @@ export const buscar_pendencias_profissional_status = async (profissionalId, stat
     return [];
   }
 };
+
+
+export const carregar_pendencias_filtro = async (filtros = {}) => {
+  try {
+    const params = new URLSearchParams();
+
+    // Monta os params de forma genérica a partir do objeto `filtros`.
+    // - Arrays são expandidos como múltiplos parâmetros com mesmo nome
+    // - Valores nulos/undefined/'' são ignorados
+    Object.entries(filtros || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      if (Array.isArray(value)) {
+        value.forEach((v) => params.append(key, String(v)));
+      } else {
+        params.append(key, String(value));
+      }
+    });
+
+    const resp = await axiosInstance.get("/pendencias", { params });
+    const data = resp?.data;
+    const list = Array.isArray(data) ? data : data?.pendencias ?? [];
+
+    // Ordena pelas mais recentes de resolução (resolvidaEm) -> se não, pela criação
+    list.sort((a, b) => {
+      const va = a?.resolvidaEm ?? a?.criadaEm ?? null;
+      const vb = b?.resolvidaEm ?? b?.criadaEm ?? null;
+      return new Date(vb) - new Date(va);
+    });
+
+    return list;
+  } catch (error) {
+    console.error("Erro ao carregar pendências com filtro:", error);
+    return [];
+  }
+};

@@ -2,6 +2,7 @@ import CreateIcon from "@mui/icons-material/Create";
 import { useEffect, useState } from "react";
 import { Modal } from "../modal/Modal";
 import PenModal from "./PenModal";
+import PendenciasInfoModal from "./PendenciasInfoModal";
 import { useFormContext } from "../../hooks/useFormContext";
 import { abreviarNome } from "../../utils/format/formatar_utils";
 import { carregar_escalas_pendentes } from "../../api/agenda/agenda_utils";
@@ -49,6 +50,11 @@ const EvoCard = ({ paginaAtual = [] }) => {
   // Cache local das escalas pendentes por agendamento
   const [escalasPorAgendamento, setEscalasPorAgendamento] = useState({});
   const [carregandoEscalasIds, setCarregandoEscalasIds] = useState(new Set());
+  // Estado para modal de informações (histórico de pendências)
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [infoPacienteId, setInfoPacienteId] = useState(null);
+  const [infoPacienteNome, setInfoPacienteNome] = useState(null);
+  const [infoEspecialidade, setInfoEspecialidade] = useState(null);
 
   // Carrega escalas pendentes para cada item da página atual (apenas para exibir tags)
   useEffect(() => {
@@ -115,19 +121,38 @@ const EvoCard = ({ paginaAtual = [] }) => {
               )} grid grid-cols-12 rounded-xl overflow-hidden shadow-sm transition-transform duration-200 hover:scale-[1.01] hover:shadow-md`}
             >
               {/* Coluna com informações do paciente */}
-              <div className="col-span-9 p-3 text-black flex flex-col justify-center min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <strong className="truncate text-lg font-semibold">
-                    {abreviarNome(pen["Paciente"], 2)}
-                  </strong>
+              <div className="col-span-9 p-3 text-black flex flex-col justify-center min-w-0 relative">
+                
+                {/* Linha do Título com Badge e Botão de Info */}
+                <div className="flex justify-between items-start gap-2 mb-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <strong className="truncate text-lg font-semibold">
+                      {abreviarNome(pen["Paciente"], 2)}
+                    </strong>
 
-                  <span
-                    className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${getCorPendencia(
-                      nivel
-                    )} text-black/80`}
+                    <span
+                      className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${getCorPendencia(
+                        nivel
+                      )} text-black/80`}
+                    >
+                      {nivel}
+                    </span>
+                  </div>
+
+                  {/* Botão de Info */}
+                  <button
+                    type="button"
+                    aria-label="Informações pendências"
+                    className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-apollo-500/40 border border-apollo-500 text-apollo-100 hover:bg-apotext-apollo-500/10 hover:bg-apollo-500 font-bold text-lg cursor-pointer transition hover:scale-110 active:scale-95"
+                    onClick={() => {
+                      setInfoPacienteId(pen["PacienteID"] || pen.PacienteID || null);
+                      setInfoPacienteNome(pen["Paciente"] || pen.Paciente || "Paciente");
+                      setInfoEspecialidade(pen["ProfissionalEspecialidade"] || pen.ProfissionalEspecialidade || null);
+                      setInfoOpen(true);
+                    }}
                   >
-                    {nivel}
-                  </span>
+                    !
+                  </button>
                 </div>
 
                 <div className="text-sm text-black/90 leading-snug">
@@ -150,11 +175,11 @@ const EvoCard = ({ paginaAtual = [] }) => {
                 />
               </div>
 
-              {/* Botão lateral do modal */}
-              <div className="col-span-3 border-l border-black/10">
+              {/* Coluna 3 - Apenas o Botão de Editar */}
+              <div className="col-span-3 flex flex-col">
                 <button
                   type="button"
-                  className={`w-full h-full grid place-items-center text-white font-medium transition-all ${getCorBotao(
+                  className={`w-full h-full flex-1 grid place-items-center text-white font-medium transition-all ${getCorBotao(
                     nivel
                   )} hover:brightness-110 active:scale-95`}
                   onClick={() => openModal(pen)}
@@ -166,6 +191,15 @@ const EvoCard = ({ paginaAtual = [] }) => {
           );
         })}
       </div>
+
+      {/* Modal local de histórico (info) */}
+      <PendenciasInfoModal
+        isOpen={infoOpen}
+        onClose={() => setInfoOpen(false)}
+        pacienteId={infoPacienteId}
+        especialidade={infoEspecialidade}
+        pacienteNome={infoPacienteNome}
+      />
 
       {/* Modal global controlado via contexto */}
       <Modal isOpen={isModalOpen} onClose={closeModal} isBig={true}>

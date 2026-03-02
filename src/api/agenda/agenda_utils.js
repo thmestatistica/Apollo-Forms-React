@@ -38,6 +38,15 @@ export const listar_agendamentos = async (filters = {}) => {
       params.usuarioId = filters.usuarioId;
     }
 
+    // Adiciona order se for string válida
+    if (typeof filters.order === "string" && ["asc", "desc"].includes(filters.order.toLowerCase())) {
+      params.order = filters.order.toLowerCase();
+    }
+
+    if (filters.pageSize) {
+      params.pageSize = filters.pageSize;
+    }
+
     console.log("Listando agendamentos com parâmetros:", params);
     
     // Requisição GET com query params

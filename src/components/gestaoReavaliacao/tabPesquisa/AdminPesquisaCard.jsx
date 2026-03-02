@@ -69,9 +69,6 @@ const AdminPesquisaCard = ({
               </option>
             ))}
           </GestaoSelect>
-          {loadingPacientes && (
-            <div className="mt-2 text-xs text-gray-400">Carregando pacientes...</div>
-          )}
         </GestaoField>
         <GestaoField label="Busca" icon={MagnifyingGlassIcon}>
           <GestaoInput

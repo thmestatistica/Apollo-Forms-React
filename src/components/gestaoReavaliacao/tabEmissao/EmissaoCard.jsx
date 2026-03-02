@@ -109,9 +109,6 @@ const EmissaoCard = ({
               </option>
             ))}
           </GestaoSelect>
-          {loadingPacientes && (
-            <div className="mt-2 text-xs text-gray-400">Carregando pacientes...</div>
-          )}
         </GestaoField>
         <GestaoField label="Data Ref." icon={CalendarDaysIcon}>
           <GestaoInput
