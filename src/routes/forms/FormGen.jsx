@@ -237,12 +237,12 @@ const FormularioGenerico = () => {
         const isSlotEquipamento = EQUIPAMENTO_SLOT.some((sigla) => slotSigla.includes(sigla));
 
         // Especialidade do profissional do agendamento (fallback para dados do usuario)
-        const especialidadeAgendamento =
-            pendencia?.["ProfissionalEspecialidade"] ??
-            pendencia?.profissionalEspecialidade ??
-            (Array.isArray(user?.especialidade) ? user.especialidade[0] : user?.especialidade) ??
-            (Array.isArray(user?.profissional?.especialidade) ? user.profissional.especialidade[0] : user?.profissional?.especialidade) ??
-            null;
+        // const especialidadeAgendamento =
+        //     pendencia?.["ProfissionalEspecialidade"] ??
+        //     pendencia?.profissionalEspecialidade ??
+        //     (Array.isArray(user?.especialidade) ? user.especialidade[0] : user?.especialidade) ??
+        //     (Array.isArray(user?.profissional?.especialidade) ? user.profissional.especialidade[0] : user?.profissional?.especialidade) ??
+        //     null;
         
         // console.warn("Dados de contexto para regras de negócio:",especialidadeAgendamento, tipoAtendimento, slotSigla, { isAvaliacaoInicial, isSlotEquipamento });
 
@@ -277,21 +277,21 @@ const FormularioGenerico = () => {
 
         // Regra: ao concluir avaliacao inicial, gerar pendencias de escala para paciente/especialidade
         // Não gerar pendências de escala para avaliações iniciais de slots de equipamento
-        if (!houveErro && isAvaliacaoInicial && !isSlotEquipamento) {
-            if (!paciente_id || !especialidadeAgendamento) {
-                houveErro = true;
-                mensagensErro.push("Dados insuficientes para gerar pendencias de escala.");
-            } else {
-                resultados.gerarPendencias = await gerar_pendencias_escala({
-                    pacienteId: paciente_id,
-                    especialidade: especialidadeAgendamento,
-                });
-                if (!resultados.gerarPendencias?.ok) {
-                    houveErro = true;
-                    mensagensErro.push("Falha ao gerar pendencias de escala.");
-                }
-            }
-        }
+        // if (!houveErro && isAvaliacaoInicial && !isSlotEquipamento) {
+        //     if (!paciente_id || !especialidadeAgendamento) {
+        //         houveErro = true;
+        //         mensagensErro.push("Dados insuficientes para gerar pendencias de escala.");
+        //     } else {
+        //         resultados.gerarPendencias = await gerar_pendencias_escala({
+        //             pacienteId: paciente_id,
+        //             especialidade: especialidadeAgendamento,
+        //         });
+        //         if (!resultados.gerarPendencias?.ok) {
+        //             houveErro = true;
+        //             mensagensErro.push("Falha ao gerar pendencias de escala.");
+        //         }
+        //     }
+        // }
 
         // =====================
         // 4. Tratamento de Erros
