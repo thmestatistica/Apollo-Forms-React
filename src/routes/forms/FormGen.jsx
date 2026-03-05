@@ -13,10 +13,9 @@ import LoadingGen from "../../components/info/LoadingGen.jsx";
 
 import { carregar_perguntas_form, montarFormularioGenerico, carregar_info_form, enviar_respostas_form } from "../../api/forms/forms_utils";
 import { remover_presenca_profissional } from "../../api/profissionais/profissionais_utils";
-import { concluir_pendencia_escala, gerar_pendencias_escala } from "../../api/pendencias/pendencias_utils";
+import { concluir_pendencia_escala } from "../../api/pendencias/pendencias_utils";
 import { useAuth } from "../../hooks/useAuth";
 import { useFormContext } from "../../hooks/useFormContext";
-import { EQUIPAMENTO_SLOT } from "../../config/variaveisGlobais";
 import Swal from "sweetalert2";
 
 const CACHE_DURATION = 3 * 24 * 60 * 60 * 1000; // 3 dias em milisegundos
@@ -133,7 +132,7 @@ const FormularioGenerico = () => {
     }, [id_form, user, location]);
 
     // Estado de carregamento ou erro
-    if (loading) return <LoadingGen mensagem="Carregando formulário..." />;
+    if (loading) return <LoadingGen mensagem="Carregando formulário..." primaryColor="#ffffff" secondaryColor="#ffffff" messageColor="text-apollo-100" />;
 
     if (erro)
         return (
@@ -231,10 +230,10 @@ const FormularioGenerico = () => {
         const isAvaliacao = location.state?.isAvaliacao === true || /avaliac/i.test(tipo_form ?? "");
 
         // Sinais do agendamento para regras de negocio
-        const tipoAtendimento = String(pendencia?.["TipoAtendimento"] ?? "").toUpperCase();
-        const isAvaliacaoInicial = location.state?.isAvaliacaoInicial === true || tipoAtendimento === "AVALIACAO_INICIAL";
-        const slotSigla = String(pendencia?.["Sigla"] ?? pendencia?.["Slot"] ?? pendencia?.slot?.sigla ?? "").toUpperCase();
-        const isSlotEquipamento = EQUIPAMENTO_SLOT.some((sigla) => slotSigla.includes(sigla));
+        // const tipoAtendimento = String(pendencia?.["TipoAtendimento"] ?? "").toUpperCase();
+        // // const isAvaliacaoInicial = location.state?.isAvaliacaoInicial === true || tipoAtendimento === "AVALIACAO_INICIAL";
+        // const slotSigla = String(pendencia?.["Sigla"] ?? pendencia?.["Slot"] ?? pendencia?.slot?.sigla ?? "").toUpperCase();
+        // const isSlotEquipamento = EQUIPAMENTO_SLOT.some((sigla) => slotSigla.includes(sigla));
 
         // Especialidade do profissional do agendamento (fallback para dados do usuario)
         // const especialidadeAgendamento =

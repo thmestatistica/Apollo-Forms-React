@@ -142,9 +142,14 @@ export const listar_formularios =async () => {
 /**
  * Lista todas as escalas (associações) no Journey API.
  */
-export const listar_escalas = async () => {
+export const listar_escalas = async (filtros = {}) => {
   try {
-    const { data } = await axiosInstance.get('/escalas');
+    const params = new URLSearchParams();
+    Object.entries(filtros).forEach(([key, value]) => {
+      if (value) params.append(key, String(value));
+    });
+
+    const { data } = await axiosInstance.get('/escalas', { params });
     if (Array.isArray(data)) return data;
     if (Array.isArray(data?.escalas)) return data.escalas;
     return [];

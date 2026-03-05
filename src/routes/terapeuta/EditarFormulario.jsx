@@ -22,8 +22,8 @@ import MultiSelect from "../../components/input/MultiSelect.jsx";
 import SingleSelect from "../../components/input/SingleSelect.jsx"; 
 import AdaptiveInput from "../../components/input/AdaptiveInput.jsx"; 
 import ErroGen from "../../components/info/ErroGen.jsx";
-import PaginationButtons from "../../components/pagination/PaginationButtons.jsx";
 import LoadingGen from "../../components/info/LoadingGen.jsx";
+import PaginationControl from "../../components/pagination/PaginationControl.jsx";
 
 // API Utils
 import { listar_formularios, criar_formulario_completo } from "../../api/forms/forms_utils";
@@ -363,13 +363,13 @@ function EditarFormulario() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen gap-8 bg-gray-100">
+    <div className="flex flex-col items-center justify-center min-h-screen gap-8 bg-gray-50">
       
       {/* CONTAINER PRINCIPAL */}
-      <div className="w-screen h-full flex flex-col gap-4 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-4 p-2 xl:shadow-lg items-center">
+      <div className="w-full min-h-screen flex flex-col md:gap-8 gap-4 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-6 p-2 items-center">
         
         {/* CARD BASE BRANCO */}
-        <div className="bg-white h-full rounded-2xl w-full md:p-10 p-5 overflow-y-auto max-w-7xl xl:shadow-2xl relative shadow-lg flex flex-col">
+        <div className="bg-white w-full h-full rounded-2xl shadow-xl flex flex-col md:p-8 p-4">
           
           {/* --- CABEÇALHO --- */}
           <div className="flex flex-col md:flex-row justify-between items-center border-b border-gray-100 pb-6 gap-6 shrink-0">
@@ -486,8 +486,8 @@ function EditarFormulario() {
                 
                 {/* PAGINAÇÃO FIXA EMBAIXO DENTRO DO CARD */}
                 {!loading && !error && (
-                    <div className="mt-auto border-t border-gray-100 shrink-0">
-                        <PaginationButtons currentPage={currentPage} totalPages={totalPages} onPrev={() => setCurrentPage(p => Math.max(1, p-1))} onNext={() => setCurrentPage(p => Math.min(totalPages, p+1))} />
+                    <div className="mt-8 flex justify-center w-full">
+                        <PaginationControl currentPage={currentPage} totalPages={totalPages} onPrev={() => setCurrentPage(p => Math.max(1, p-1))} onNext={() => setCurrentPage(p => Math.min(totalPages, p+1))} />
                     </div>
                 )}
              </div>

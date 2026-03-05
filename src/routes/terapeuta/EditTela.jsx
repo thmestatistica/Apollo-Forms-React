@@ -719,9 +719,9 @@ function EditTela() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen gap-8">
-      <div className="w-screen h-full flex flex-col gap-4 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-4 p-2 xl:shadow-lg items-center">
-        <div ref={scrollRef} className="bg-white h-full rounded-xl flex flex-col gap-6 xl:shadow-md w-full md:p-8 p-4 overflow-y-auto">
+    <div className="flex flex-col items-center justify-center min-h-screen gap-8 bg-gray-50">
+      <div className="w-full min-h-screen flex flex-col md:gap-8 gap-4 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-6 p-2 items-center">
+        <div ref={scrollRef} className="bg-white w-full h-full rounded-2xl shadow-xl flex flex-col md:p-8 p-4 gap-6">
           {/* 👇 CABEÇALHO ATUALIZADO: Layout organizado + Cores padrão do sistema */}
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b pb-4 mb-6">
             
