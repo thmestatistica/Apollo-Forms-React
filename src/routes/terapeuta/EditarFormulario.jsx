@@ -34,22 +34,24 @@ const OPCOES_ESPECIALIDADES = [
     { value: 'Terapia Ocupacional', label: 'Terapia Ocupacional' },
     { value: 'Fonoaudiologia', label: 'Fonoaudiologia' },
     { value: 'Psicologia', label: 'Psicologia' },
-    { value: 'Medicina', label: 'Medicina' },
     { value: 'Enfermagem', label: 'Enfermagem' },
     { value: 'Nutrição', label: 'Nutrição' },
-    { value: 'Multidisciplinar', label: 'Multidisciplinar' },
     { value: 'Condicionamento Físico', label: 'Condicionamento Físico' }
 ];
 
 const OPCOES_DIAGNOSTICOS = [
     { value: 'AVC', label: 'AVC' },
-    { value: 'Parkinson', label: 'Doença de Parkinson' },
+    { value: 'Doença de Parkinson', label: 'Doença de Parkinson' },
     { value: 'TCE', label: 'TCE' },
     { value: 'Lesão Medular', label: 'Lesão Medular' },
+    { value: 'Dor Crônica', label: 'Dor Crônica' },
+    { value: 'Doenças Degenerativas', label: 'Doenças Degenerativas' },
+    { value: 'Doença Oncológica', label: 'Doença Oncológica' },
     { value: 'Paralisia Cerebral', label: 'Paralisia Cerebral' },
     { value: 'Neuropatia', label: 'Neuropatia' },
     { value: 'Ortopedia', label: 'Ortopedia' },
-    { value: 'Geral', label: 'Geral / Outros' }
+    { value: 'Distonia', label: 'Distonia' },
+    { value: 'Outros', label: 'Geral / Outros' }
 ];
 
 const OPCOES_TIPO_FORMULARIO = [
