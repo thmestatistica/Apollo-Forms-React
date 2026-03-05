@@ -38,3 +38,13 @@ export const listar_respostas_prontuario = async (pacienteId) => {
         return [];
     }
 };
+
+export const buscar_profissionais = async () => {
+    try{
+        const response = await axiosInstance.get(`/pacientes/profissionais/`);
+        return response.data;
+    } catch (error) {
+        console.error(`Erro ao buscar profissionais:`, error);
+        return [];
+    }
+};
