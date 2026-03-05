@@ -135,7 +135,7 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
 
     const timeSlots = useMemo(() => { const slots = []; for (let h = minHour; h <= maxHour; h++) slots.push(h); return slots; }, [minHour, maxHour]);
 
-    if(loadingPessoas || loadingAgendamento) return <LoadingGen mensagem="Carregando agenda semanal..." />;
+    if(loadingPessoas || loadingAgendamento) return <LoadingGen mensagem="Carregando agenda semanal..." primaryColor="#ffffff" secondaryColor="#ffffff" messageColor="text-apollo-100" />;
     return (
         <div className="flex flex-col items-center justify-center min-h-screen gap-8 bg-gray-50">
             <div className="w-full h-screen flex flex-col md:gap-8 gap-4 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-6 p-2 items-center">

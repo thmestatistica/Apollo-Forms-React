@@ -1,297 +1,70 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import Swal from "sweetalert2";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-// Hooks e componentes compartilhados do app
-import { useAuth } from "../../hooks/useAuth";
-import InfoGen from "../../components/info/InfoGen";
-import LoadingGen from "../../components/info/LoadingGen";
-import ErroGen from "../../components/info/ErroGen";
-import { formatarData } from "../../utils/format/formatar_utils";
-import { buscar_pendencias_profissional_status } from "../../api/pendencias/pendencias_utils";
-import LancamentoCard from "../../components/pendencias/LancamentoCard";
-
-// Status alvo que identifica pendências que já foram aplicadas, mas ainda não lançadas
-const STATUS_ALVO = "APLICADO_NAO_LANCADO";
-
-/**
- * Normaliza uma pendência recebida da API para a forma usada pela UI.
- * Ajusta nomes, identifica fallback de ids e normaliza datas para ISO.
- * Mantemos o objeto original em `raw` para acesso a campos pouco usados.
- */
-const normalizarPendencia = (item) => {
-  // Log temporário para depuração; pode ser removido se poluir o console.
-  console.log("item", item);
-
-  const pacienteNome = item.paciente?.nome ?? '-';
-  const formularioId = item.formularioId ?? null;
-  const formularioNome = item.formulario?.nomeEscala ?? '-';
-  const fallbackId = item.id;
-
-  // Ajuste simples de timezone/local — o código original subtrai 3 horas.
-  let dataUpdate = item.updatedAt ? new Date(item.updatedAt) : null;
-  if (dataUpdate) {
-    dataUpdate.setHours(dataUpdate.getHours() - 3);
-  }
-
-  return {
-    id: fallbackId,
-    pacienteNome,
-    formularioId,
-    formularioNome,
-    pacienteId: item.pacienteId ?? null,
-    agendamentoId: item?.agendamentoId ?? null,
-    especialidade: item.especialidade ?? null,
-    status: item?.status ?? STATUS_ALVO,
-    data_referencia: item?.data_referencia ?? null,
-    data_update: dataUpdate ? dataUpdate.toISOString() : item.updatedAt ?? null,
-    raw: item,
-  };
-};
+// Abas
+import PendenciasExistentesAba from "../../components/lancamentos_pendencias/PendenciasExistentesAba";
+import CriarPendenciaAba from "../../components/lancamentos_pendencias/CriarPendenciaAba";
 
 function LacamentosPendencias() {
-  // Usuário autenticado e navegação/rota
-  const { user } = useAuth();
-  const location = useLocation();
   const navigate = useNavigate();
-
-  // Estados locais: lista de pendências, loading e mensagem de erro
-  const [pendencias, setPendencias] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState(null);
-  
-  // Filtro de paciente e paginação
-  const [filtroPaciente, setFiltroPaciente] = useState("TODOS");
-  const [paginaAtual, setPaginaAtual] = useState(1);
-  
-  // Controle de quantos cards mostramos por página (ajustável)
-  const PAGE_SIZE = 8; 
-
-  /**
-   * Carrega pendências do profissional (filtradas por status definido acima).
-   * Faz validações simples (profissionalId presente) e trata erros.
-   */
-  const carregarPendencias = useCallback(async () => {
-    const profissionalId = user?.profissionalId ?? user?.id ?? user?.usuarioId;
-    
-    if (!profissionalId) {
-      // Caso o usuário não tenha identificação profissional, não tentamos a API
-      setPendencias([]);
-      setErro("Perfil sem identificação profissional.");
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setErro(null);
-    try {
-      const lista = await buscar_pendencias_profissional_status(profissionalId, [STATUS_ALVO]);
-      setPendencias(Array.isArray(lista) ? lista : []);
-    } catch (err) {
-      console.error("Erro ao carregar pendencias:", err);
-      setErro("Falha ao carregar pendências aplicadas.");
-      setPendencias([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.profissionalId, user?.id, user?.usuarioId]);
-
-  useEffect(() => {
-    carregarPendencias();
-  }, [carregarPendencias]);
-
-  useEffect(() => {
-    const { formSuccess, formTitulo, refreshPendencias } = location.state || {};
-    // Verifica se o usuário veio de um formulário recém-salvo e mostra aviso
-    const verificarAvisos = async () => {
-      if (formSuccess) {
-        await Swal.fire({
-          icon: "success",
-          title: "Lançamento concluído!",
-          text: formTitulo ? `${formTitulo} foi salvo corretamente.` : "As respostas foram salvas corretamente.",
-          confirmButtonColor: "#7C3AED",
-        });
-      }
-
-      // Se for para atualizar, recarrega as pendências e limpa o state da rota
-      if (formSuccess || refreshPendencias) {
-        await carregarPendencias();
-        navigate(location.pathname, { replace: true, state: {} }); 
-      }
-    };
-
-    verificarAvisos();
-  }, [location.state, location.pathname, navigate, carregarPendencias]);
-
-  useEffect(() => {
-    setPaginaAtual(1);
-  }, [filtroPaciente, pendencias.length]);
-
-  // Prepara e ordena pendências pela data de atualização (mais recentes primeiro)
-  const pendenciasOrdenadas = useMemo(() => {
-    const normalizadas = (pendencias || []).map(normalizarPendencia);
-    return normalizadas.sort((a, b) => {
-      const da = a?.data_update ? new Date(a.data_update).getTime() : Number.POSITIVE_INFINITY;
-      const db = b?.data_update ? new Date(b.data_update).getTime() : Number.POSITIVE_INFINITY;
-      return db - da;
-    });
-  }, [pendencias]);
-
-  // Gera lista única de pacientes para o filtro (ordenada alfabeticamente)
-  const listaPacientes = useMemo(() => {
-    const nomes = pendenciasOrdenadas
-      .map((item) => item.pacienteNome)
-      .filter(Boolean)
-      .map((nome) => String(nome).trim())
-      .filter((nome) => nome.length > 0);
-
-    return Array.from(new Set(nomes)).sort((a, b) => a.localeCompare(b));
-  }, [pendenciasOrdenadas]);
-
-  // Aplica o filtro selecionado (paciente) sobre as pendências já ordenadas
-  const pendenciasFiltradas = useMemo(() => {
-    if (filtroPaciente === "TODOS") return pendenciasOrdenadas;
-    return pendenciasOrdenadas.filter((item) => item.pacienteNome === filtroPaciente);
-  }, [pendenciasOrdenadas, filtroPaciente]);
-
-  const totalPaginas = Math.max(1, Math.ceil(pendenciasFiltradas.length / PAGE_SIZE));
-  const paginaSegura = Math.min(paginaAtual, totalPaginas);
-  const inicio = (paginaSegura - 1) * PAGE_SIZE;
-  const pendenciasPaginadas = pendenciasFiltradas.slice(inicio, inicio + PAGE_SIZE);
-  
-  const handleAbrirFormulario = (item) => {
-    if (!item.formularioId) {
-      Swal.fire({
-        icon: "error",
-        title: "Formulário indisponível",
-        text: "Não foi possível identificar o formulário desta pendência.",
-      });
-      return;
-    }
-
-    // Monta um objeto usado pela tela de formulário para preencher contexto
-    const pendenciaParaFormulario = {
-      Paciente: item.pacienteNome,
-      PacienteID: item.pacienteId ?? null,
-      AgendamentoID: item.agendamentoId ?? null,
-      ProfissionalEspecialidade: item.especialidade ?? null,
-      Data: item.data_update ? formatarData(item.data_update) : null,
-    };
-
-    // Navega até o formulário passando estado para retorno e refresh
-    navigate(`/forms-terapeuta/formulario/escala/${item.formularioId}`, {
-      state: {
-        pendencia: pendenciaParaFormulario,
-        pendenciaEscala: item.raw,
-        formTitulo: item.formularioNome,
-        returnTo: "/forms-terapeuta/lancamentos-pendencias",
-        refreshPendencias: true,
-      },
-    });
-  };
-
-  if (loading) return <LoadingGen mensagem="Carregando pendências aplicadas..." />;
+  const [activeTab, setActiveTab] = useState("pendencias");
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-8 bg-gray-50">
-        <div className="w-full h-screen flex flex-col md:gap-8 gap-4 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-6 p-2 items-center">
-            <div className="bg-white w-full h-full rounded-2xl shadow-xl flex flex-col md:p-8 p-4 overflow-hidden">
+        <div className="w-full min-h-screen flex flex-col md:gap-8 gap-4 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-6 p-2 items-center">
+            <div className="bg-white w-full min-h-[85dvh] rounded-2xl shadow-xl flex flex-col md:p-8 p-4">
                 
-                {/* Cabeçalho e Filtros */}
-                <div className="flex flex-col gap-6 mb-4">
-                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                        <div className="flex flex-col gap-2 w-full">
-                            <div className="flex flex-wrap items-center justify-between gap-3 w-full border-b border-gray-100 pb-3">
-                                <div>
-                                    <h1 className="font-extrabold text-2xl md:text-3xl text-gray-800 tracking-tight">Lançamentos de Pendências</h1>
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        Gerencie as pendências marcadas como aplicadas, mas ainda não lançadas.
-                                    </p>
-                                </div>
-                                <button
-                                onClick={() => navigate("/forms-terapeuta/tela-inicial")}
-                                className="bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 font-semibold py-1.5 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-200 flex items-center gap-2 text-sm"
-                                >
-                                Voltar
-                                </button>
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-3 text-xs font-medium pt-1">
-                                <span className="px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200">
-                                {pendenciasFiltradas.length} encontradas
-                                </span>
-                                <span className="px-2 py-1 rounded bg-gray-100 text-gray-600 border border-gray-200">
-                                Página {paginaSegura} de {totalPaginas}
-                                </span>
-                            </div>
+                {/* Cabeçalho Geral */}
+                <div className="flex flex-col gap-6 mb-6">
+                    <div className="flex flex-wrap items-center justify-between gap-3 w-full border-b border-gray-100 pb-3">
+                        <div>
+                            <h1 className="font-extrabold text-2xl md:text-3xl text-gray-800 tracking-tight">Lançamentos de Pendências</h1>
+                            <p className="text-sm text-gray-500 mt-1">
+                                Gerencie pendências aplicadas ou crie novos lançamentos retroativos.
+                            </p>
                         </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1 w-full sm:max-w-xs bg-gray-50 p-2 rounded-lg border border-gray-100">
-                        <label htmlFor="filtro-paciente" className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">
-                        Filtrar por paciente
-                        </label>
-                        <select
-                        id="filtro-paciente"
-                        value={filtroPaciente}
-                        onChange={(event) => setFiltroPaciente(event.target.value)}
-                        className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-apollo-200 shadow-sm focus:outline-none focus:ring-1 focus:ring-apollo-300 focus:border-apollo-300 cursor-pointer"
+                        <button
+                            onClick={() => navigate("/forms-terapeuta/tela-inicial")}
+                            className="bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 font-semibold py-1.5 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-200 flex items-center gap-2 text-sm"
                         >
-                            <option value="TODOS">Todos os pacientes</option>
-                            {listaPacientes.map((nome) => (
-                                <option key={nome} value={nome}>
-                                {nome}
-                                </option>
-                            ))}
-                        </select>
+                            Voltar
+                        </button>
+                    </div>
+
+                    {/* Navegação de Abas */}
+                    <div className="flex p-1 space-x-1 bg-gray-100/80 rounded-xl max-w-md">
+                        <button
+                            className={`w-full py-2.5 text-sm font-bold rounded-lg transition-all duration-200 ${
+                                activeTab === "pendencias"
+                                ? "bg-white text-apollo-400 shadow-sm ring-1 ring-black/5"
+                                : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                            }`}
+                            onClick={() => setActiveTab("pendencias")}
+                        >
+                            📋 Pendências Existentes
+                        </button>
+                        <button
+                            className={`w-full py-2.5 text-sm font-bold rounded-lg transition-all duration-200 ${
+                                activeTab === "nova"
+                                ? "bg-white text-apollo-400 shadow-sm ring-1 ring-black/5"
+                                : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                            }`}
+                            onClick={() => setActiveTab("nova")}
+                        >
+                            ➕ Nova Pendência Retroativa
+                        </button>
                     </div>
                 </div>
 
-                {/* Painel de Pendencias de Lançamentos de Pendencias */}
-                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                    {/* Mesagem de Erro */}
-                    {erro && <ErroGen erro={erro} />}
-
-                    {/* Mensagem de Não Encontrada Nenhuma Pendência */}
-                    {!erro && pendenciasFiltradas.length === 0 && <InfoGen message="📄 Nenhuma pendência aplicada para lançamento encontrada." /> }
-                    
-                    {/* Card's de Lançamento */}
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {pendenciasPaginadas.map((item) => <LancamentoCard item={item} handleAbrirFormulario={handleAbrirFormulario} />)}
-                    </div>
+                {/* Conteúdo da Aba Ativa */}
+                <div className="flex-1 transition-all duration-300 ease-in-out">
+                    {activeTab === "pendencias" ? (
+                        <PendenciasExistentesAba />
+                    ) : (
+                        <CriarPendenciaAba />
+                    )}
                 </div>
-                
-                {/* Paginação */}
-                {pendenciasFiltradas.length > PAGE_SIZE && (
-                    <div className="mt-4 pt-3 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3">
-                        <div className="text-xs font-medium text-gray-500">
-                            Mostrando <span className="text-gray-900">{inicio + 1}</span> a <span className="text-gray-900">{Math.min(inicio + PAGE_SIZE, pendenciasFiltradas.length)}</span> de <span className="text-gray-900">{pendenciasFiltradas.length}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setPaginaAtual((prev) => Math.max(1, prev - 1))}
-                                disabled={paginaSegura === 1}
-                                className="px-3 py-1.5 rounded border border-gray-300 text-apollo-200 text-xs font-bold bg-white hover:bg-gray-50 disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-all"
-                            >
-                                Anterior
-                            </button>
-                            <div className="flex items-center gap-1 mx-1">
-                                <span className="text-xs font-bold text-gray-800">{paginaSegura}</span>
-                                <span className="text-xs text-gray-500">/ {totalPaginas}</span>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setPaginaAtual((prev) => Math.min(totalPaginas, prev + 1))}
-                                disabled={paginaSegura === totalPaginas}
-                                className="px-3 py-1.5 rounded border border-gray-300 text-apollo-200 text-xs font-bold bg-white hover:bg-gray-50 disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-all"
-                            >
-                                Próxima
-                            </button>
-                        </div>
-                    </div>
-                )}
+
             </div>
         </div>
     </div>

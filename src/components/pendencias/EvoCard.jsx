@@ -1,8 +1,10 @@
 import CreateIcon from "@mui/icons-material/Create";
+import AddIcon from "@mui/icons-material/Add";
 import { useEffect, useState } from "react";
 import { Modal } from "../modal/Modal";
 import PenModal from "./PenModal";
 import PendenciasInfoModal from "./PendenciasInfoModal";
+import CriarPendenciaModal from "./CriarPendenciaModal";
 import { useFormContext } from "../../hooks/useFormContext";
 import { abreviarNome } from "../../utils/format/formatar_utils";
 import { carregar_escalas_pendentes } from "../../api/agenda/agenda_utils";
@@ -55,6 +57,10 @@ const EvoCard = ({ paginaAtual = [] }) => {
   const [infoPacienteId, setInfoPacienteId] = useState(null);
   const [infoPacienteNome, setInfoPacienteNome] = useState(null);
   const [infoEspecialidade, setInfoEspecialidade] = useState(null);
+
+  // Estado para modal de criar pendência manual
+  const [criarPendenciaOpen, setCriarPendenciaOpen] = useState(false);
+  const [pacienteCriarPendencia, setPacienteCriarPendencia] = useState({ id: null, nome: "" });
 
   // Carrega escalas pendentes para cada item da página atual (apenas para exibir tags)
   useEffect(() => {
@@ -121,7 +127,7 @@ const EvoCard = ({ paginaAtual = [] }) => {
               )} grid grid-cols-12 rounded-xl overflow-hidden shadow-sm transition-transform duration-200 hover:scale-[1.01] hover:shadow-md`}
             >
               {/* Coluna com informações do paciente */}
-              <div className="col-span-9 p-3 text-black flex flex-col justify-center min-w-0 relative">
+              <div className="col-span-12 sm:col-span-9 p-3 text-black flex flex-col justify-center min-w-0 relative">
                 
                 {/* Linha do Título com Badge e Botão de Info */}
                 <div className="flex justify-between items-start gap-2 mb-1">
@@ -139,20 +145,48 @@ const EvoCard = ({ paginaAtual = [] }) => {
                     </span>
                   </div>
 
-                  {/* Botão de Info */}
-                  <button
-                    type="button"
-                    aria-label="Informações pendências"
-                    className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-apollo-500/40 border border-apollo-500 text-apollo-100 hover:bg-apotext-apollo-500/10 hover:bg-apollo-500 font-bold text-lg cursor-pointer transition hover:scale-110 active:scale-95"
-                    onClick={() => {
-                      setInfoPacienteId(pen["PacienteID"] || pen.PacienteID || null);
-                      setInfoPacienteNome(pen["Paciente"] || pen.Paciente || "Paciente");
-                      setInfoEspecialidade(pen["ProfissionalEspecialidade"] || pen.ProfissionalEspecialidade || null);
-                      setInfoOpen(true);
-                    }}
-                  >
-                    !
-                  </button>
+                  <div className="flex gap-2 items-center shrink-0">
+                    {/* Botão de Info */}
+                    <button
+                      type="button"
+                      aria-label="Informações pendências"
+                      className="w-7 h-7 flex items-center justify-center rounded-full bg-apollo-500/40 border border-apollo-500 text-apollo-100 hover:bg-apotext-apollo-500/10 hover:bg-apollo-500 font-bold text-lg cursor-pointer transition hover:scale-110 active:scale-95"
+                      onClick={() => {
+                        setInfoPacienteId(pen["PacienteID"] || pen.PacienteID || null);
+                        setInfoPacienteNome(pen["Paciente"] || pen.Paciente || "Paciente");
+                        setInfoEspecialidade(pen["ProfissionalEspecialidade"] || pen.ProfissionalEspecialidade || null);
+                        setInfoOpen(true);
+                      }}
+                    >
+                      !
+                    </button>
+
+                    {/* Botão Criar Pendência Manual (+) */}
+                    <button
+                      type="button"
+                      title="Criar nova pendência manual"
+                      className="w-7 h-7 flex items-center justify-center rounded-full bg-apollo-400/40 border border-apollo-400 text-apollo-100 hover:bg-apollo-400 transition hover:scale-110 active:scale-95"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPacienteCriarPendencia({
+                          id: pen["PacienteID"] || pen.PacienteID,
+                          nome: pen["Paciente"] || pen.Paciente,
+                        });
+                        setCriarPendenciaOpen(true);
+                      }}
+                    >
+                      <AddIcon fontSize="small" />
+                    </button>
+
+                    {/* Botão de Editar (Mobile) */}
+                    <button
+                      type="button"
+                      className={`sm:hidden w-8 h-8 flex items-center justify-center rounded-full text-white shadow-sm transition active:scale-95 ${getCorBotao(nivel)}`}
+                      onClick={() => openModal(pen)}
+                    >
+                      <CreateIcon fontSize="small" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="text-sm text-black/90 leading-snug">
@@ -176,7 +210,7 @@ const EvoCard = ({ paginaAtual = [] }) => {
               </div>
 
               {/* Coluna 3 - Apenas o Botão de Editar */}
-              <div className="col-span-3 flex flex-col">
+              <div className="hidden sm:flex col-span-3 flex-col">
                 <button
                   type="button"
                   className={`w-full h-full flex-1 grid place-items-center text-white font-medium transition-all ${getCorBotao(
@@ -199,6 +233,14 @@ const EvoCard = ({ paginaAtual = [] }) => {
         pacienteId={infoPacienteId}
         especialidade={infoEspecialidade}
         pacienteNome={infoPacienteNome}
+      />
+
+      {/* Modal para criar pendência manual */}
+      <CriarPendenciaModal
+        isOpen={criarPendenciaOpen}
+        onClose={() => setCriarPendenciaOpen(false)}
+        pacienteId={pacienteCriarPendencia.id}
+        pacienteNome={pacienteCriarPendencia.nome}
       />
 
       {/* Modal global controlado via contexto */}

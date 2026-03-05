@@ -291,3 +291,21 @@ export const carregar_pendencias_filtro = async (filtros = {}) => {
     return [];
   }
 };
+
+/**
+ * Cria uma pendência pontual manualmente.
+ * Endpoint: POST /pendencias
+ */
+export const criar_pendencia_manual = async (payload) => {
+  try {
+    const { data } = await axiosInstance.post('/pendencias', payload);
+    return { ok: true, data };
+  } catch (err) {
+    console.error("Erro ao criar pendência manual:", {
+      message: err?.message,
+      status: err?.response?.status,
+      data: err?.response?.data,
+    });
+    return { ok: false, error: err };
+  }
+};

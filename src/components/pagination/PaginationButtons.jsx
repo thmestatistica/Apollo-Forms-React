@@ -3,6 +3,7 @@
  * -----------------------------
  * Exibe um conjunto de botões de paginação ("Anterior" e "Próxima"),
  * com suporte à desativação automática e customização de estilo.
+ * (Para o uso na tela principal)
  *
  * @component
  * @example
