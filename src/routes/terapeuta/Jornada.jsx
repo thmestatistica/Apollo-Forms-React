@@ -17,7 +17,8 @@ const JornadaPage = () => {
       pacientes, setPacienteSelecionadoId, pacienteDetalhes, pacienteSelecionadoId,
       agendamentos, stats, prontuario,
       loadingInicial, loadingDados, loadingProntuario,
-      recarregarProntuario
+      recarregarProntuario,
+      profissionais
   } = useJornadaController();
 
   if (loadingInicial) return <LoadingGen primaryColor="#ffffff" secondaryColor="#ffffff" messageColor="text-apollo-100" />;
@@ -54,6 +55,8 @@ const JornadaPage = () => {
                 loadingProntuario={loadingProntuario}
                 onReload={recarregarProntuario}
                 resetKey={pacienteSelecionadoId}
+                pacienteDetalhes={pacienteDetalhes}
+                profissionais={profissionais}
               />
             </div>
           ) : !loadingDados && (

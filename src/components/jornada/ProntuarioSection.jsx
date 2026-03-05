@@ -3,15 +3,15 @@ import EditableSelect from "../input/EditableSelect.jsx";
 import Pagination from "./Pagination.jsx";
 import ProntuarioItem from "./ProntuarioItem.jsx";
 
-const ProntuarioSection = ({ prontuario, agendamentos, loadingProntuario, onReload, resetKey }) => {
+const ProntuarioSection = ({ prontuario, agendamentos, loadingProntuario, onReload, resetKey, pacienteDetalhes, profissionais }) => {
   const [prontNomeFiltro, setProntNomeFiltro] = useState("");
-  const [prontLimit, setProntLimit] = useState(3);
+  const [prontLimit, setProntLimit] = useState(10);
   const [prontEspecialidade, setProntEspecialidade] = useState("Todas");
   const [prontPage, setProntPage] = useState(1);
 
   useEffect(() => {
     setProntNomeFiltro("");
-    setProntLimit(3);
+    setProntLimit(10);
     setProntEspecialidade("Todas");
     setProntPage(1);
   }, [resetKey]);
@@ -110,7 +110,7 @@ const ProntuarioSection = ({ prontuario, agendamentos, loadingProntuario, onRelo
         <div className="flex flex-col gap-4">
           {prontuarioPaginado.map((item) => (
             <div key={item.id} className="transform transition-all duration-300 hover:scale-[1.005]">
-              <ProntuarioItem item={item} agendamentos={agendamentos} />
+              <ProntuarioItem item={item} agendamentos={agendamentos} pacienteDetalhes={pacienteDetalhes} profissionais={profissionais}/>
             </div>
           ))}
           {totalProntPages > 1 && (

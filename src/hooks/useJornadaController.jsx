@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 // Imports das funções utilitárias e de API
-import { listar_pacientes, listar_agendamentos_paciente, listar_respostas_prontuario } from "../api/jornada/jornada_utils";
+import { listar_pacientes, listar_agendamentos_paciente, listar_respostas_prontuario, buscar_profissionais } from "../api/jornada/jornada_utils";
 import { calcularTotaisRobotica } from "../utils/jornada/stats";
 import { formatarNome, processarProntuario } from "../utils/jornada/format";
 
@@ -21,12 +21,36 @@ export const useJornadaController = () => {
     const [agendamentos, setAgendamentos] = useState([]);
     const [stats, setStats] = useState(null);
     const [prontuario, setProntuario] = useState([]);
+    const [profissionais, setProfissionais] = useState([])
 
     // --- Estados de Loading ---
     const [loadingInicial, setLoadingInicial] = useState(true);
     const [loadingDados, setLoadingDados] = useState(false);
     const [loadingProntuario, setLoadingProntuario] = useState(false);
 
+    useEffect(() => {
+        const loadProfissionais = async () => {
+            if (globalCache.profissionais) {
+                setProfissionais(globalCache.profissionais);
+                return;
+            }
+
+            try {
+                const dados = await buscar_profissionais();
+                globalCache.profissionais = dados;
+
+                const profissionaisMap = Object.fromEntries(
+                    dados.map(p => [p.id, p.usuario.nome])
+                );
+
+                setProfissionais(profissionaisMap);
+            } catch (e) {
+                console.error("Erro ao carregar profissionais", e);
+            }
+        };
+
+        loadProfissionais();
+    }, []);
 
     // 1. Carregar Pacientes (Executa apenas 1 vez por sessão do app)
     useEffect(() => {
@@ -40,10 +64,10 @@ export const useJornadaController = () => {
 
             try {
                 const dados = await listar_pacientes();
-                
+
                 // Filtros de exclusão (ADM, Teste, etc)
                 const invalidos = ["ADM", "TESTE", "TEMP", "TREINAMENTO", "AUSÊNCIA", "TERAP.DISP", "TESTA TESTO", "ORTESE"];
-                
+
                 const validos = dados
                     .filter(p => {
                         if (!p.ativo) return false;
@@ -52,7 +76,7 @@ export const useJornadaController = () => {
                     })
                     .map(p => ({ ...p, nomeFormatado: formatarNome(p.nome) }))
                     .sort((a, b) => a.nomeFormatado.localeCompare(b.nomeFormatado));
-                
+
                 // Salva no Cache Global e no Estado Local
                 globalCache.pacientes = validos;
                 setPacientes(validos);
@@ -122,7 +146,7 @@ export const useJornadaController = () => {
         };
 
         loadDetalhes();
-        
+
     }, [pacienteSelecionadoId, pacientes]);
 
     // 3. Ação: Recarregar Prontuário Manualmente
@@ -131,11 +155,12 @@ export const useJornadaController = () => {
         setLoadingProntuario(true);
         try {
             const rawForms = await listar_respostas_prontuario(pacienteSelecionadoId);
+
             // Re-processa usando o estado atual de agendamentos
-            const processedForms = processarProntuario(rawForms, agendamentos); 
-            
+            const processedForms = processarProntuario(rawForms, agendamentos);
+
             setProntuario(processedForms);
-            
+
             // Atualiza o cache também
             if (globalCache.dadosPorId[pacienteSelecionadoId]) {
                 globalCache.dadosPorId[pacienteSelecionadoId].prontuario = processedForms;
@@ -155,13 +180,13 @@ export const useJornadaController = () => {
         agendamentos,
         stats,
         prontuario,
-        
+
         loadingInicial,
         loadingDados,
         loadingProntuario,
-        
+
         recarregarProntuario,
-        
-        
+
+        profissionais
     };
 };
