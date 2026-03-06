@@ -130,6 +130,10 @@ const CriarPendenciaModal = ({ isOpen, onClose, pacienteId, pacienteNome }) => {
             
             const ultimaPendencia = sorted[0];
             const dataUltima = new Date(ultimaPendencia.data_referencia || ultimaPendencia.criadaEm);
+            
+            // Subtrai 5 dias da data sugerida
+            dataUltima.setDate(dataUltima.getDate() - 5);
+            
             const hoje = new Date();
             
             // Zera horas para comparação de datas apenas
