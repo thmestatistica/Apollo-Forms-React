@@ -32,8 +32,8 @@ export const classificarPendencias = async (idsPendentes, carregarAgendamento) =
                 // diferença em horas (Date.now() e dtFim.getTime() ambos em ms UTC)
                 const diffHoras = (Date.now() - dtFim.getTime()) / 3600000;
                 horasPendencia = Math.max(diffHoras, 0);
-                console.log("[classificarPendencias] id=", agId, " horasPendencia=", horasPendencia);
-                console.log(dtFim, new Date());
+                // console.log("[classificarPendencias] id=", agId, " horasPendencia=", horasPendencia);
+                // console.log(dtFim, new Date());
 
                 // Determina o nível conforme as horas de pendência
                 if (horasPendencia < 24) nivel = "Normal";
@@ -47,9 +47,9 @@ export const classificarPendencias = async (idsPendentes, carregarAgendamento) =
             const slotNome = ag?.slot?.nome || "—";
             const slotSigla = ag?.slot?.sigla || "—";
             const profissionalEspecialidade = ag?.profissional?.especialidade[0] || "—";
-            console.log("[classificarPendencias] id=", agId, " paciente=", paciente, " slot=", slotNome);
-            console.log(ag);
-            console.log(profissionalEspecialidade);
+            // console.log("[classificarPendencias] id=", agId, " paciente=", paciente, " slot=", slotNome);
+            // console.log(ag);
+            // console.log(profissionalEspecialidade);
 
             linhas.push({
                 _ordem: dtIni || new Date(8640000000000000),
@@ -71,8 +71,8 @@ export const classificarPendencias = async (idsPendentes, carregarAgendamento) =
                 "TipoAtendimento": ag?.tipo || "—",
             });
         } catch (err) {
-            console.log("[classificarPendencias] erro ao carregar id=", agId);
-            console.log(err);
+            // console.log("[classificarPendencias] erro ao carregar id=", agId);
+            console.warn(err);
         }
     }
 

@@ -47,14 +47,14 @@ export const listar_agendamentos = async (filters = {}) => {
       params.pageSize = filters.pageSize;
     }
 
-    console.log("Listando agendamentos com parâmetros:", params);
+    // console.log("Listando agendamentos com parâmetros:", params);
     
     // Requisição GET com query params
     const response = await axiosInstance.get("/agendamentos", {
       params,
     });
 
-    console.log("Agendamentos carregados:", response.data);
+    // console.log("Agendamentos carregados:", response.data);
 
     return response.data;
 
@@ -188,12 +188,12 @@ export const carregar_escalas_pendentes = async (pacienteId, especialidade) => {
     const response = await axiosInstance.get(`/pendencias`, { params });
 
     const data = response?.data;
-    console.log("Escalas pendentes carregadas:", data);
-    console.log(
-      `PacienteID: ${pacienteId}, Especialidade: ${especialidade}, Status: ${statusList.join(
-        ","
-      )}`
-    );
+    // console.log("Escalas pendentes carregadas:", data);
+    // console.log(
+    //   `PacienteID: ${pacienteId}, Especialidade: ${especialidade}, Status: ${statusList.join(
+    //     ","
+    //   )}`
+    // );
 
     // Garante retorno previsível (array) para o chamador
     if (Array.isArray(data)) return data;

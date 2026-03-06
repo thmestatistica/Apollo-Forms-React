@@ -78,11 +78,11 @@ export const useReavaliacao = () => {
           if (ag.slot) addSpec(ag.slot.especialidade, ag.id);
           if (ag.profissional) addSpec(ag.profissional.especialidade, ag.id);
         } else {
-          console.log(`Agendamento ID ${ag.id} não foi marcado como presente (status: ${status}). Ignorando para sugestões.`);
+          // console.log(`Agendamento ID ${ag.id} não foi marcado como presente (status: ${status}). Ignorando para sugestões.`);
         }
       });
 
-      console.log("Specs detectadas (com IDs):", mapSpecToId);
+      // console.log("Specs detectadas (com IDs):", mapSpecToId);
 
       let diagOriginal = paciente.diagnosticoMacro;
       if (Array.isArray(diagOriginal) && diagOriginal.length > 0) diagOriginal = diagOriginal[0];

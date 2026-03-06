@@ -123,7 +123,7 @@ function AgenCard({ agendamentosPaginados = [] }) {
     const nomeReal = escala?.formulario?.nomeEscala ?? escala?.nome ?? escala?.titulo ?? "Escala";
     const pendenciaId = escala?.id;
 
-    console.log("Escala clicada:", { escala, formularioId });
+    // console.log("Escala clicada:", { escala, formularioId });
 
     if (!formularioId) {
       Swal.fire({ icon: 'warning', title: 'Indisponível', text: 'ID do formulário não encontrado.' });

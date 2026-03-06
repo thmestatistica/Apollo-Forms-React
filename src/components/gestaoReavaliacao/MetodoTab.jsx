@@ -280,7 +280,7 @@ const MetodoTab = () => {
       const [forms, escalas] = await Promise.all([listar_formularios(), listar_escalas()]);
       // Função para normalizar estrutura de formulário
       const normalizarFormulario = (form) => {
-        console.log("Formulário bruto para normalização:", form);
+        // console.log("Formulário bruto para normalização:", form);
         const base = form?.formulario ?? form?.form ?? form;
         const id = base.formulario_id
         const nomeEscala = base.nome_formulario;
@@ -575,7 +575,7 @@ const MetodoTab = () => {
   }, [pendenciasComResumo]);
 
   const formulariosAtivos = useMemo(() => {
-    const tiposValidos = ['escalas/testes', 'avaliacao', 'avaliação'];
+    const tiposValidos = ['escalas/testes', 'avaliações', 'online survey'];
     return (formulariosSistema || []).filter((form) => {
       const tipo = String(form?.tipo_formulario ?? form?.tipoFormulario ?? form?.tipo ?? '').toLowerCase();
       const elegivel = tiposValidos.some((t) => tipo.includes(t));

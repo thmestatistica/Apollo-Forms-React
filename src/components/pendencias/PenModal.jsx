@@ -10,6 +10,7 @@ import {
   nao_aplicar_pendencia_escala,
   atualizar_status_pendencia_escala,
 } from "../../api/pendencias/pendencias_utils.js";
+import { listar_formularios } from "../../api/forms/forms_utils.js";
 
 import { formatarData } from "../../utils/format/formatar_utils.js";
 import { formatDataVisual } from "../../utils/pendencias/escala_utils";
@@ -19,6 +20,7 @@ import SkeletonGen from "../info/SkeletonGen.jsx";
 import InfoGen from "../info/InfoGen.jsx";
 import ErroGen from "../info/ErroGen.jsx";
 import VazioGen from "../info/VazioGen.jsx";
+import SingleSelect from "../input/SingleSelect.jsx";
 
 /**
  * Módulo utilitário: Calcula a diferença em dias entre a data alvo e a data atual (hoje).
@@ -67,6 +69,38 @@ const PenModal = ({ penData }) => {
   const [erroEscalas, setErroEscalas] = useState(null);
   // Estado para controlar o toggle de escalas distantes (> 10 dias)
   const [isToggleDistantesAtivo, setIsToggleDistantesAtivo] = useState(false);
+
+  // Estados para controle de Avaliação vs Evolução
+  const [isAvaliacaoDeclarada, setIsAvaliacaoDeclarada] = useState(false);
+  const [avaliacaoForms, setAvaliacaoForms] = useState([]);
+  const [selectedAvaliacaoForm, setSelectedAvaliacaoForm] = useState(null);
+  const [loadingAvaliacao, setLoadingAvaliacao] = useState(false);
+
+  // Carrega lista de avaliações se o usuário declarar que é uma avaliação
+  useEffect(() => {
+    if (isAvaliacaoDeclarada && avaliacaoForms.length === 0) {
+      setLoadingAvaliacao(true);
+      listar_formularios()
+        .then((data) => {
+          const lista = Array.isArray(data) ? data : [];
+          // Filtra no frontend apenas os formulários que são do tipo 'Avaliações'
+          const avaliacoes = lista.filter((f) => {
+             const tipo = String(f.tipo_formulario || "").toUpperCase();
+
+             return tipo.includes("AVALIAÇÕES"); 
+          });
+
+          const options = avaliacoes.map((f) => ({
+              value: f.formulario_id ?? f.id,
+              label: f.nome_formulario ?? f.titulo ?? `Formulário ${f.formulario_id}`,
+          }));
+          
+          setAvaliacaoForms(options);
+        })
+        .catch((err) => console.error("Erro ao listar avaliações:", err))
+        .finally(() => setLoadingAvaliacao(false));
+    }
+  }, [isAvaliacaoDeclarada, avaliacaoForms.length]);
 
 
   // Efeito responsável por buscar as escalas pendentes assim que os dados do agendamento mudam
@@ -172,11 +206,11 @@ const PenModal = ({ penData }) => {
    */
   const getStatusClass = (status) => {
     switch (status) {
-      case "PREENCHIDA": return "bg-emerald-100 text-emerald-800 border-emerald-200";
-      case "NAO_APLICA": return "bg-slate-100 text-slate-700 border-slate-200";
-      case "NAO_FEITO": return "bg-gray-100 text-gray-800 border-gray-400";
-      case "APLICADO_NAO_LANCADO": return "bg-amber-100 text-amber-800 border-amber-200";
-      case "ABERTA": return "bg-emerald-100 text-emerald-800 border-emerald-200";
+      case "PREENCHIDA": return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      case "NAO_APLICA": return "bg-slate-100 text-slate-600 border-slate-200";
+      case "NAO_FEITO": return "bg-gray-100 text-gray-700 border-gray-300";
+      case "APLICADO_NAO_LANCADO": return "bg-amber-50 text-amber-700 border-amber-200";
+      case "ABERTA": return "bg-emerald-50 text-emerald-700 border-emerald-200";
       default: return "";
     }
   };
@@ -204,7 +238,7 @@ const PenModal = ({ penData }) => {
    */
   const getActionButtonClass = (currentStatus, targetStatus, baseClass, activeClass) => {
     const isActive = currentStatus === targetStatus;
-    return `${baseClass} ${isActive ? activeClass : "opacity-60 hover:opacity-100"}`;
+    return `${baseClass} ${isActive ? activeClass : "opacity-60 hover:opacity-100 shadow-sm"}`;
   };
 
 
@@ -390,71 +424,138 @@ const PenModal = ({ penData }) => {
    * detectando automaticamente o ID da configuração baseada na Sigla ou Especialidade.
    */
   const handlePreencherAuto = () => {
-    const tipoRaw = String(penData?.["TipoAtendimento"] || "").toUpperCase();
-    const isAvaliacao = tipoRaw.includes("AVALIACAO") || tipoRaw.includes("REAVALIACAO");
-    const grupo = isAvaliacao ? "Avaliações" : "Evoluções";
+    // Se não for declarada explicitamente como avaliação, assume Evolução
+    const isAvaliacao = isAvaliacaoDeclarada;
 
-    const sigla = penData?.["Sigla"] || penData?.["Slot"] || penData?.["ProfissionalEspecialidade"] || "";
-    const mapa = tipoForms?.[grupo] || {};
-
-    const especialidade = penData?.["ProfissionalEspecialidade"] || "";
-    
-
-    let alvoId = null;
-    const siglaNorm = String(sigla || "").toUpperCase();
-
-    // Lógica para detectar e vincular equipamentos aos seus respectivos forms
-    if (EQUIPAMENTO_SLOT.includes(siglaNorm)) {
-      for (const [fid, slots] of Object.entries(mapa)) {
-        if (!Array.isArray(slots)) continue;
-        const slotsUpper = slots.map(s => String(s).toUpperCase());
-        if (slotsUpper.includes(siglaNorm)) {
-          const parsed = Number(fid);
-          if (Number.isFinite(parsed)) alvoId = parsed;
-          break;
-        }
-      }
-    } else {
-      // Lógica para detectar forms padrões vinculados diretamente à especialidade
-      const idPorEsp = tipoPorEspecialidade?.[especialidade]?.[grupo] ?? null;
-      if (idPorEsp != null) {
-        const parsed = Number(idPorEsp);
-        if (Number.isFinite(parsed)) {
-          alvoId = parsed;
-        }
-      }
-    }
-
-    if (alvoId === null) {
-      alert("Nenhum formulário configurado para este atendimento/slot.");
+    // Se for avaliação declarada, o formulário deve ter sido selecionado pelo usuário
+    if (isAvaliacao && !selectedAvaliacaoForm) {
+      Swal.fire({
+        id: "avaliacao-nao-selecionada",
+        title: "Seleção necessária",
+        text: "Por favor, selecione qual formulário de avaliação deseja preencher.",
+        icon: "warning",
+      });
       return;
     }
 
+    let alvoId = null;
+    const sigla = penData?.["Sigla"] || penData?.["Slot"] || penData?.["ProfissionalEspecialidade"] || "";
+    const siglaNorm = String(sigla || "").toUpperCase();
+
+    if (isAvaliacao) {
+      alvoId = Number(selectedAvaliacaoForm);
+    } else {
+      // Lógica padrão para Evolução (automática por slot/especialidade)
+      const grupo = "Evoluções";
+      const mapa = tipoForms?.[grupo] || {};
+      const especialidade = penData?.["ProfissionalEspecialidade"] || "";
+
+      // Prioridade 1: Equipamento/Slot específico
+      if (EQUIPAMENTO_SLOT.includes(siglaNorm)) {
+        for (const [fid, slots] of Object.entries(mapa)) {
+          if (!Array.isArray(slots)) continue;
+          const slotsUpper = slots.map((s) => String(s).toUpperCase());
+          if (slotsUpper.includes(siglaNorm)) {
+            const parsed = Number(fid);
+            if (Number.isFinite(parsed)) alvoId = parsed;
+            break;
+          }
+        }
+      } 
+      
+      // Prioridade 2: Especialidade genérica (se não achou por slot)
+      if (alvoId === null) {
+        const idPorEsp = tipoPorEspecialidade?.[especialidade]?.[grupo] ?? null;
+        if (idPorEsp != null) {
+          const parsed = Number(idPorEsp);
+          if (Number.isFinite(parsed)) {
+            alvoId = parsed;
+          }
+        }
+      }
+
+      if (alvoId === null) {
+        Swal.fire("Erro", "Nenhum formulário de evolução configurado para este atendimento/slot.", "error");
+        return;
+      }
+    }
+
     const titulo = `${isAvaliacao ? "Avaliação" : "Evolução"} ${sigla}`.trim();
-    const tipoParam = isAvaliacao ? "Avaliacao" : "Evolucao"; // Formatação safe URL sem acentos
+    // O backend/frontend espera 'Avaliacao' ou 'Evolucao' (sem acento/cedilha)
+    const tipoParam = isAvaliacao ? "Avaliacao" : "Evolucao"; 
+    
+    // isEvolucao é o inverso de isAvaliacao
     handleNavForm(alvoId, tipoParam, titulo, { id: null, agendamentoId, pacienteId: null }, !isAvaliacao);
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       {/* Título do modal */}
-      <h2 className="font-bold text-xl text-apollo-200">Pendências do Agendamento</h2>
+      <h2 className="font-bold text-2xl text-apollo-200 tracking-tight">Pendências do Agendamento</h2>
+
 
       {/* Grid com as informações principais descritivas do agendamento vindo da props `penData` */}
-      <div className="grid md:grid-cols-2 gap-2 text-apollo-200">
-        <p><strong>Paciente:</strong> {penData["Paciente"]}</p>
-        <p><strong>Data:</strong> {penData["Data"]}</p>
-        <p><strong>Horário:</strong> {penData["Início"]} até {penData["Fim"]}</p>
-        <p><strong>ID:</strong> {penData["AgendamentoID"]}</p>
-        <p><strong>Slot:</strong> {penData['Sigla']}</p>
+      <div className="grid md:grid-cols-2 gap-3 p-4 bg-apollo-100 rounded-xl border border-apollo-200/30 shadow-sm text-sm">
+        <p><strong className="text-apollo-200 font-semibold mr-1">Paciente:</strong> <span className="text-gray-700">{penData["Paciente"]}</span></p>
+        <p><strong className="text-apollo-200 font-semibold mr-1">Data:</strong> <span className="text-gray-700">{penData["Data"]}</span></p>
+        <p><strong className="text-apollo-200 font-semibold mr-1">Horário:</strong> <span className="text-gray-700">{penData["Início"]} até {penData["Fim"]}</span></p>
+        <p><strong className="text-apollo-200 font-semibold mr-1">ID:</strong> <span className="text-gray-700">{penData["AgendamentoID"]}</span></p>
+        <p><strong className="text-apollo-200 font-semibold mr-1">Slot:</strong> <span className="text-gray-700">{penData['Sigla']}</span></p>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* Toggle para declarar Avaliação */}
+        <div className="p-4 bg-apollo-200/5 border border-apollo-200/30 hover:bg-apollo-200/10 rounded-xl shadow-sm transition-all duration-300">
+          <label className="flex items-center gap-2.5 cursor-pointer w-fit select-none text-apollo-200 font-semibold">
+            <input
+              type="checkbox"
+              className="w-4 h-4 text-apollo-500 rounded border-gray-300 focus:ring-apollo-500 cursor-pointer transition-all"
+              checked={isAvaliacaoDeclarada}
+              onChange={(e) => {
+                setIsAvaliacaoDeclarada(e.target.checked);
+                if (!e.target.checked) setSelectedAvaliacaoForm(null);
+              }}
+            />
+            Este atendimento é uma Avaliação?
+          </label>
+        
+          {isAvaliacaoDeclarada && (
+            <div className="mt-4 w-full max-w-md animate-fadeIn">
+              <SingleSelect
+                label="Selecione o Formulário de Avaliação"
+                placeholder={loadingAvaliacao ? "Carregando avaliações..." : "Busque pelo nome..."}
+                options={avaliacaoForms}
+                value={
+                  selectedAvaliacaoForm
+                    ? avaliacaoForms.find((o) => String(o.value) === String(selectedAvaliacaoForm))
+                    : null
+                }
+                onChange={(opt) => setSelectedAvaliacaoForm(opt?.value || null)}
+                isDisabled={loadingAvaliacao}
+              />
+            </div>
+          )}
+        </div>
+        {/* Checkbox para desmarcar escalas de data distante em lote */}
+        <div className="flex items-center gap-3 p-3.5 rounded-xl bg-apollo-200/5 border border-apollo-200/30 transition-colors hover:bg-apollo-200/10">
+          <input
+            type="checkbox"
+            id="toggleDistantes"
+            checked={isToggleDistantesAtivo}
+            onChange={(e) => handleToggleDistantes(e.target.checked)}
+            className="cursor-pointer w-4 h-4 text-apollo-500 rounded border-gray-300 focus:ring-apollo-500 transition-all"
+          />
+          <label htmlFor="toggleDistantes" className="text-sm font-medium text-apollo-200 cursor-pointer select-none">
+            Marcar escalas com mais de 10 dias de distância como "Não feito"
+          </label>
+        </div>
+      </div>
       {/* Seção das Listagens das Escalas */}
-      <div className="mt-3">
+      <div>
         {loadingEscalas ? (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             <SkeletonGen range={1} />
-            <SkeletonGen range={6} display="grid" className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2"/>
+            <SkeletonGen range={6} display="grid" className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"/>
           </div>
         ) : erroEscalas ? (
           <ErroGen error={erroEscalas} />
@@ -462,22 +563,9 @@ const PenModal = ({ penData }) => {
           <VazioGen message="Nenhuma pendência registrada" subMessage="Não foi encontrada nenhuma escala pendente para este paciente."/>
         ) : (
           <>
-            {/* Checkbox para desmarcar escalas de data distante em lote */}
-            <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-apollo-200/5 border border-apollo-200">
-              <input
-                type="checkbox"
-                id="toggleDistantes"
-                checked={isToggleDistantesAtivo}
-                onChange={(e) => handleToggleDistantes(e.target.checked)}
-                className="cursor-pointer w-4 h-4 text-apollo-500 rounded focus:ring-apollo-500"
-              />
-              <label htmlFor="toggleDistantes" className="text-sm font-medium text-apollo-200 cursor-pointer select-none">
-                Marcar escalas com mais de 10 dias de distância como "Não feito"
-              </label>
-            </div>
 
             {/* Grid responsivo organizando os cards de escala */}
-            <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2"> 
+            <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"> 
               {options.map((escala) => {
                 const status = getEffectiveStatus(escala);
                 const statusLabel = getStatusLabel(status);
@@ -488,16 +576,16 @@ const PenModal = ({ penData }) => {
                 return (
                 <li
                   key={getPendenciaKey(escala) || escala.formularioId}
-                  className="relative flex flex-col gap-3 p-3 border border-gray-200 rounded-lg shadow-sm bg-white"
+                  className="relative flex flex-col justify-between gap-4 p-4 border border-apollo-200/30 rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200"
                 >
                   {/* Cabeçalho do Card da Escala: Título, Tag de Status e Data Referência */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium text-apollo-200">{escala.formulario?.nomeEscala || escala.label}</span>
+                  <div className="flex flex-wrap items-start gap-2">
+                    <span className="font-semibold text-apollo-200 w-full mb-1">{escala.formulario?.nomeEscala || escala.label}</span>
                     
                     {/* Badge de Status Atualizado */}
                     {statusLabel && (
                       <span
-                        className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${getStatusClass(status)}`}
+                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-md border ${getStatusClass(status)} tracking-wide uppercase`}
                       >
                         {statusLabel}
                       </span>
@@ -506,15 +594,15 @@ const PenModal = ({ penData }) => {
                     {/* Badge da Data Referência para o profissional saber para quando era a escala */}
                     {escala.data_referencia && (
                       <span
-                        className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-apollo-200/15 text-apollo-200 border-apollo-200"
+                        className="text-[11px] font-semibold px-2.5 py-1 rounded-md border bg-apollo-200/10 text-apollo-200 border-apollo-200/30 tracking-wide uppercase"
                       >
-                        Ref.: {formatDataVisual(escala.data_referencia) || formatarData(escala.data_referencia)}
+                        Ref: {formatDataVisual(escala.data_referencia) || formatarData(escala.data_referencia)}
                       </span>
                     )}
                   </div>
 
                   {/* Conjunto de Ações/Botões para a escala específica */}
-                  <div className="relative z-10 flex flex-wrap gap-2">
+                  <div className="relative z-10 flex flex-wrap gap-2 mt-auto pt-2">
                     
                     {/* Botão de "Não Feito" (Apenas Front) */}
                     <button
@@ -523,8 +611,8 @@ const PenModal = ({ penData }) => {
                       className={getActionButtonClass(
                         status,
                         "NAO_FEITO",
-                        "bg-gray-500 hover:bg-gray-600 text-white py-1.5 px-3 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer",
-                        "ring-2 ring-gray-400 "
+                        "bg-slate-500 hover:bg-slate-600 text-white py-1.5 px-3 rounded-lg text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer",
+                        "ring-2 ring-slate-400 ring-offset-1"
                       )}
                       disabled={isLocked}
                     >
@@ -537,8 +625,8 @@ const PenModal = ({ penData }) => {
                       className={getActionButtonClass(
                         status,
                         "NAO_APLICA",
-                        "bg-red-800 hover:bg-red-600 text-white py-1.5 px-3 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer",
-                        "ring-2 ring-red-300"
+                        "bg-red-600 hover:bg-red-700 text-white py-1.5 px-3 rounded-lg text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer",
+                        "ring-2 ring-red-400 ring-offset-1"
                       )}
                       onClick={() => handleNaoAplicar(escala)}
                       disabled={isLocked}
@@ -553,8 +641,8 @@ const PenModal = ({ penData }) => {
                       className={getActionButtonClass(
                         status,
                         "APLICADO_NAO_LANCADO",
-                        "bg-yellow-500 hover:bg-yellow-600 text-white py-1.5 px-3 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer",
-                        "ring-2 ring-yellow-300 opacity-100!"
+                        "bg-amber-500 hover:bg-amber-600 text-white py-1.5 px-3 rounded-lg text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer",
+                        "ring-2 ring-amber-400 ring-offset-1 opacity-100!"
                       )}
                       disabled={isLocked}
                     >
@@ -575,8 +663,8 @@ const PenModal = ({ penData }) => {
                       className={getActionButtonClass(
                         status,
                         "PREENCHIDA",
-                        "bg-apollo-200 hover:bg-apollo-300 text-white py-1.5 px-3 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer",
-                        "ring-2 ring-apollo-300"
+                        "bg-apollo-200/80 hover:bg-apollo-200 text-white py-1.5 px-3 rounded-lg text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer w-full mt-1 sm:mt-0 sm:w-auto",
+                        "ring-2 ring-apollo-400 ring-offset-1"
                       )}
                       disabled={isLocked}
                     >
@@ -591,22 +679,29 @@ const PenModal = ({ penData }) => {
         )}
       </div>
 
-      {/* Botão inferior: Fica bloqueado enquanto não decidirem o status de cada pendência */}
-      <button
-        onClick={handlePreencherAuto}
-        disabled={hasPendenciasEmAberto}
-        className={`mt-6 font-semibold py-2 px-4 rounded-xl transition  ${
-          hasPendenciasEmAberto
-            ? "bg-gray-600 cursor-not-allowed"
-            : "bg-apollo-500 hover:bg-apollo-600 cursor-pointer"
-        } text-white`}
-      >
-        Preencher{" "}
-        {penData["TipoAtendimento"] === "AVALIACAO_INICIAL" ||
-        penData["TipoAtendimento"] === "REAVALIACAO"
-          ? "Avaliação"
-          : "Evolução"}
-      </button>
+      
+      <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-gray-100">
+        {/* Botão inferior: Ação Principal */}
+        <button
+          onClick={handlePreencherAuto}
+          disabled={hasPendenciasEmAberto || (isAvaliacaoDeclarada && !selectedAvaliacaoForm)}
+          className={`mt-2 font-semibold py-2.5 px-2 rounded-xl transition-all duration-200 shadow-sm w-full flex items-center justify-center gap-2 ${
+            hasPendenciasEmAberto || (isAvaliacaoDeclarada && !selectedAvaliacaoForm)
+              ? "bg-gray-300 cursor-not-allowed text-gray-500 border border-gray-300"
+              : "bg-apollo-500 hover:bg-apollo-600 hover:shadow-md text-white cursor-pointer"
+          }`}
+        >
+          {isAvaliacaoDeclarada ? (
+            <>
+              Preencher Avaliação
+            </>
+          ) : (
+            <>
+              Preencher Evolução
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 };

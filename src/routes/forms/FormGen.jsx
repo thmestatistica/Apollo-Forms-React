@@ -98,7 +98,7 @@ const FormularioGenerico = () => {
                     carregar_info_form(Number(id_form))
                 ]);
 
-                console.log(`Formulário ${id_form} carregado da API com sucesso:`, { perguntas, info });
+                // console.log(`Formulário ${id_form} carregado da API com sucesso:`, { perguntas, info });
                 if (Array.isArray(perguntas) && perguntas.length > 0) {
                     const titulo = info.nome_formulario || tituloFromNav || `Formulário ${id_form}`;
                     const f = montarFormularioGenerico(id_form, perguntas, { titulo });
@@ -219,7 +219,7 @@ const FormularioGenerico = () => {
             agendamento_id: agendamento_id
         };
 
-        console.log("Payload de respostas preparado:", payloadRespostas);
+        // console.log("Payload de respostas preparado:", payloadRespostas);
 
         // =====================
         // 3. Execução das Requisições
@@ -426,7 +426,7 @@ const FormularioGenerico = () => {
                             }
                         }
 
-                        console.log("Salvando no cache:", obj);
+                        // console.log("Salvando no cache:", obj);
                         saveFormCache(cacheKey, obj);
                     }}
                     className="flex flex-col gap-6 w-full"

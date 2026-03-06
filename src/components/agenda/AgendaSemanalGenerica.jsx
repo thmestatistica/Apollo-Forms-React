@@ -62,7 +62,7 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
         const startDate = start.toISOString().split("T")[0];
         const endDate = end.toISOString().split("T")[0];
         const paramKey = tipo === "paciente" ? "pacienteId" : "usuarioId";
-        console.log("Buscando agendamentos com params:", { startDate, endDate, [paramKey]: pessoaId });
+        // console.log("Buscando agendamentos com params:", { startDate, endDate, [paramKey]: pessoaId });
         const params = { startDate, endDate, [paramKey]: pessoaId };
         listarAgendamentos(params)
             .then(resp => setAgendamentos(resp || []))

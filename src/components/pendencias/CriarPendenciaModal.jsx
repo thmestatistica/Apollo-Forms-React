@@ -226,8 +226,11 @@ const CriarPendenciaModal = ({ isOpen, onClose, pacienteId, pacienteNome }) => {
     setError(null);
 
     try {
-      // Ajusta data referência para meio-dia UTC
-      const dataRefIso = new Date(dataReferencia + "T12:00:00.000Z").toISOString();
+      // Ajusta data referência para meio-dia UTC e adiciona 5 dias na data selecionada
+      const dateRefObj = new Date(dataReferencia + "T12:00:00.000Z");
+      dateRefObj.setDate(dateRefObj.getDate() + 5);
+      const dataRefIso = dateRefObj.toISOString();
+
       const agora = new Date().toISOString();
 
       const payload = {
@@ -242,7 +245,7 @@ const CriarPendenciaModal = ({ isOpen, onClose, pacienteId, pacienteNome }) => {
         diagnosticoMacro: diagnosticoMacro
       };
 
-      console.log("Payload enviado:", payload);
+      // console.log("Payload enviado:", payload);
 
       const result = await criar_pendencia_manual(payload);
 

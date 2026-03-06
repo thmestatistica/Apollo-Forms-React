@@ -66,7 +66,7 @@ export const processarProntuario = (dadosBrutos, agendamentos = []) => {
 
     dadosBrutos.forEach(item => {
         const sessao = item.sessao_resposta || {};
-        console.log("Processando item de prontuário: ", item);
+        // console.log("Processando item de prontuário: ", item);
         const id = sessao.sessao_resposta_id;
         const tipo_pergunta = item.pergunta?.tipo_resposta_esperada || "—";
         if (!id) return;
@@ -121,7 +121,7 @@ export const processarProntuario = (dadosBrutos, agendamentos = []) => {
                 return key;
             }).join(', ');
         }
-        console.log("Resposta Bruta: ", item.valor_resposta, " => Processada: ", valor);
+        // console.log("Resposta Bruta: ", item.valor_resposta, " => Processada: ", valor);
 
         mapaSessoes[id].respostas.push({
             pergunta: item.pergunta?.texto_pergunta || "Questão",
