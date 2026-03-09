@@ -7,7 +7,18 @@ export const getEscalaNome = (item) =>
 
 export const getDataVisualDate = (dataIso, offsetDays = DEFAULT_OFFSET_DAYS) => {
   if (!dataIso) return null;
-  const d = new Date(dataIso);
+
+  // Tenta normalizar para evitar problemas de fuso horário (UTC -> Local -3h virando dia anterior)
+  // Se for string YYYY-MM-DD ou ISO com hora zerada, forçamos meio-dia local
+  let d;
+  if (typeof dataIso === 'string' && (dataIso.length === 10 || dataIso.includes('T00:00:00'))) {
+      const datePart = dataIso.split('T')[0];
+      const [y, m, day] = datePart.split('-').map(Number);
+      d = new Date(y, m - 1, day, 12, 0, 0);
+  } else {
+      d = new Date(dataIso);
+  }
+
   d.setDate(d.getDate() - offsetDays);
   return d;
 };
