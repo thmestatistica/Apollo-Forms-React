@@ -186,6 +186,55 @@ const FormularioGenerico = () => {
                 continue;
             }
 
+            if (tipo_resposta_esperada === "MATRIX") {
+                const raw = fd.get(nome);
+                const value = typeof raw === "string" ? raw.trim() : raw;
+                let parsed = null;
+                let valid = true;
+                let dataRows = [];
+
+                try {
+                    parsed = JSON.parse(value);
+                    // Suporta formato antigo (Array) e novo ({ columns, data })
+                    if (Array.isArray(parsed)) {
+                        dataRows = parsed;
+                    } else if (parsed && Array.isArray(parsed.data)) {
+                        dataRows = parsed.data;
+                    } else {
+                        valid = false;
+                    }
+                } catch {
+                    valid = false;
+                }
+
+                if (!isOptional) {
+                    if (!valid) {
+                        obrigatoriosFaltando.push(label || nome);
+                    } else {
+                        // Validação extra: verificar se todas as células obrigatórias estão preenchidas
+                        const { titulo_colunas = [] } = meta_dados || {};
+                        let allFilled = true;
+                        
+                        for (const row of dataRows) {
+                            const metadataCols = titulo_colunas || [];
+                            for (const col of metadataCols) {
+                                const cellVal = row[col];
+                                if (cellVal === undefined || cellVal === null || String(cellVal).trim() === "") {
+                                    allFilled = false;
+                                    break;
+                                }
+                            }
+                            if (!allFilled) break;
+                        }
+
+                        if (!allFilled) obrigatoriosFaltando.push(label || nome);
+                    }
+                }
+
+                respostasForm[nome] = parsed; // Envia o objeto JSON parseado (seja Array ou Object com columns/data)
+                continue;
+            }
+
             const raw = fd.get(nome);
             const value = typeof raw === "string" ? raw.trim() : raw;
             const isEmpty = !value;
@@ -382,7 +431,7 @@ const FormularioGenerico = () => {
     // Renderização do conteúdo principal
     return (
         <div className="min-h-screen flex justify-center items-center bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-6 p-3">
-            <div className="bg-white w-full max-w-4xl rounded-2xl shadow-lg flex flex-col gap-6 p-6 sm:p-8">
+            <div className="bg-white w-full max-w-6xl rounded-2xl shadow-lg flex flex-col gap-6 p-6 sm:p-8">
                 <h1 className="text-2xl font-semibold text-center text-gray-800">
                     {formulario.titulo}
                 </h1>

@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { formatarNome, formatarDataHoraBR } from "../../utils/jornada/format.js";
 import { formatarData, formatarHora } from "../../utils/format/formatar_utils.js";
+import TabelaMatriz from "./TabelaMatriz.jsx";
+
+
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import RelatorioPacientePDF from "./RelatorioPdfJornada.jsx";
 
@@ -40,6 +43,7 @@ const ProntuarioItem = React.memo(({ item, agendamentos, pacienteDetalhes, profi
     const dataAg = formatarData(agDetalhe?.inicio);
     const horarioStr = inicio !== "—" && fim !== "—" ? `${inicio} - ${fim}` : "—";
     /*console.log("Agendamento para item de prontuário: ", agDetalhe);*/
+    // console.log("Dados do item de prontuário: ", item);
 
     const slotExtra = agendamentos.find(a => a.id == item.sessao_raw?.agendamento_id)?.slot?.nome;
 
@@ -91,13 +95,26 @@ const ProntuarioItem = React.memo(({ item, agendamentos, pacienteDetalhes, profi
                     {item.respostas.length === 0 ? (
                         <p className="text-gray-500 italic">Sem detalhes informados.</p>
                     ) : (
-                        item.respostas.map((r, i) => (
-                            <div key={i} className="mb-3 border-b border-gray-100 pb-2 last:border-0">
-                                <p className="font-bold text-gray-700 text-sm mb-1">{r.pergunta}</p>
-                                <p className="text-gray-600 text-sm whitespace-pre-wrap">{r.resposta}</p>
-                            </div>
-                        ))
-                    )}
+                        item.respostas.map((r, i) => {
+                            const tipo = r.tipo_resposta_esperada || "—";
+                            
+                            if (tipo === "MATRIZ") {
+                                return (
+                                    <div key={i} className="mb-3 border-b border-gray-100 pb-2 last:border-0">
+                                        <p className="font-bold text-gray-700 text-sm mb-1">{r.pergunta}</p>
+                                        <TabelaMatriz resposta={r.resposta} />
+                                    </div>
+                                );
+                            }
+
+                            return (
+                                <div key={i} className="mb-3 border-b border-gray-100 pb-2 last:border-0">
+                                    <p className="font-bold text-gray-700 text-sm mb-1">{r.pergunta}</p>
+                                    <p className="text-gray-600 text-sm whitespace-pre-wrap">{r.resposta}</p>
+                                </div>
+                            );
+                        }))
+                    }
                 </div>
             )}
         </div>

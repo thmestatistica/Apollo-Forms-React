@@ -56,7 +56,7 @@ const extrairEspecialidade = (ag, sessao) => {
 
 export const processarProntuario = (dadosBrutos, agendamentos = []) => {
     if (!dadosBrutos || !Array.isArray(dadosBrutos)) return [];
-
+    console.log("Processando prontuário bruto: ", dadosBrutos);
     const agendamentoMap = new Map();
     agendamentos.forEach(ag => {
         if (ag.id) agendamentoMap.set(String(ag.id), ag);
@@ -85,7 +85,9 @@ export const processarProntuario = (dadosBrutos, agendamentos = []) => {
         }
         
         let valor = item.valor_resposta;
-        if (valor && typeof valor === 'string' && valor.trim().startsWith('[') && valor.trim().endsWith(']')) {
+        // Se for MATRIZ (esperado JSON), não removemos colchetes/aspas destrutivamente.
+        // Para outros tipos (ex: select múltiplo salvo como array string), mantemos a limpeza antiga.
+        if (tipo_pergunta !== "MATRIZ" && valor && typeof valor === 'string' && valor.trim().startsWith('[') && valor.trim().endsWith(']')) {
             valor = valor.replace(/["[\]]/g, '');
         }
         if (tipo_pergunta === "SELECAO_UNICA" || tipo_pergunta === "SELECAO_MULTIPLA") {
@@ -126,7 +128,8 @@ export const processarProntuario = (dadosBrutos, agendamentos = []) => {
         mapaSessoes[id].respostas.push({
             pergunta: item.pergunta?.texto_pergunta || "Questão",
             resposta: valor,
-            ordem: item.pergunta?.ordem_pergunta || 999
+            ordem: item.pergunta?.ordem_pergunta || 999,
+            tipo_resposta_esperada: item.pergunta?.tipo_resposta_esperada
         });
     });
 

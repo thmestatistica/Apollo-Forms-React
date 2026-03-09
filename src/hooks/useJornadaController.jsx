@@ -66,7 +66,7 @@ export const useJornadaController = () => {
                 const dados = await listar_pacientes();
 
                 // Filtros de exclusão (ADM, Teste, etc)
-                const invalidos = ["ADM", "TESTE", "TEMP", "TREINAMENTO", "AUSÊNCIA", "TERAP.DISP", "TESTA TESTO", "ORTESE"];
+                const invalidos = ["ADM", "TEMP", "TREINAMENTO", "AUSÊNCIA", "TERAP.DISP", "TESTA TESTO", "ORTESE"];
 
                 const validos = dados
                     .filter(p => {

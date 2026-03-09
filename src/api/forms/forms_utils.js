@@ -369,6 +369,7 @@ export const criar_formulario_completo = async (payload) => {
                 texto_pergunta: p.texto_pergunta,
                 tipo_resposta_esperada: p.tipo_resposta_esperada,
                 opcoes_resposta: p.opcoes_resposta, // Array JSON
+                metadados_pergunta: p.metadados_pergunta,
                 obrigatoria: p.obrigatoria,
                 ordem_pergunta: index + 1,
                 inativa: false

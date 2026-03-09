@@ -194,13 +194,13 @@ const buscarAgendamentos = useCallback(async () => {
 
     const mostrarErroToast = (msg) => {
     Swal.fire({
-    icon: 'error',
-    title: 'Atenção',
-    text: msg,
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    timer: 3000
+        icon: 'error',
+        title: 'Atenção',
+        text: msg,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000
     });
 };
 const opcoesFormularios = useMemo(() => {

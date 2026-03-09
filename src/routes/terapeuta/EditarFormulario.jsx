@@ -70,7 +70,15 @@ const TIPO_PERGUNTA_OPTIONS = [
     { value: "SELECAO_UNICA", label: "Seleção única" },
     { value: "SELECAO_MULTIPLA", label: "Seleção múltipla" },
     { value: "TEXTO_TOPICO", label: "Tópico de texto" },
-    { value: "TEXTO_SUBTOPICO", label: "Subtópico de texto" }
+    { value: "TEXTO_SUBTOPICO", label: "Subtópico de texto" },
+    { value: "MATRIZ", label: "Matriz (Tabela)" }
+];
+
+const MATRIZ_CELL_TYPES = [
+  { id: "texto", label: "Texto Livre" },
+  { id: "numero", label: "Número" },
+  { id: "selecao_unica", label: "Seleção Única" },
+  { id: "selecao_multipla", label: "Seleção Múltipla" },
 ];
 
 function EditarFormulario() {
@@ -180,6 +188,156 @@ function EditarFormulario() {
 
   const requiresOptions = (tipo) => tipo === "SELECAO_UNICA" || tipo === "SELECAO_MULTIPLA";
 
+  const updateMatrizTitle = (qIndex, type, index, value) => {
+    setQuestions((prev) => {
+        const arr = [...prev];
+        const q = { ...arr[qIndex] };
+        const meta = { ...q.metadados_pergunta };
+        const titleKey = type === "linha" ? "titulo_linhas" : "titulo_colunas";
+        
+        const newTitles = [...(meta[titleKey] || [])];
+        newTitles[index] = value;
+        meta[titleKey] = newTitles;
+        
+        q.metadados_pergunta = meta;
+        arr[qIndex] = q;
+        return arr.map((q, idx) => ({ ...q, ordem: idx + 1 }));
+      });
+  };
+
+  const updateMatrizMeta = (qIndex, field, value) => {
+    setQuestions((prev) => {
+        const arr = [...prev];
+        const q = { ...arr[qIndex] };
+        const meta = { ...(q.metadados_pergunta ?? {}) };
+
+        if (field === "linhas" || field === "colunas") {
+            const newVal = Math.max(1, parseInt(value) || 1);
+            const oldVal = meta[field] || 1;
+            meta[field] = newVal;
+
+            // Ajusta arrays de títulos
+            const titleKey = field === "linhas" ? "titulo_linhas" : "titulo_colunas";
+            const prefix = field === "linhas" ? "Linha" : "Coluna";
+            
+            // Garantir que existe array
+            let currentTitles = meta[titleKey] || [];
+            if (!Array.isArray(currentTitles)) currentTitles = [];
+
+            const newTitles = [...currentTitles];
+            
+            if (newVal > oldVal) {
+                // Cresceu
+                for (let i = oldVal; i < newVal; i++) {
+                    newTitles.push(`${prefix} ${i + 1}`);
+                }
+            } else if (newVal < oldVal) {
+                // Encolheu
+                newTitles.splice(newVal); 
+            }
+            // Se newVal == oldVal, não faz nada com títulos, só atualiza numero
+            
+            // Caso especial: inicialização (oldVal=1, mas array pode estar vazio se veio de payload incompleto)
+            if (newTitles.length < newVal) {
+                for (let i = newTitles.length; i < newVal; i++) {
+                     newTitles.push(`${prefix} ${i + 1}`);
+                }
+            }
+
+            meta[titleKey] = newTitles;
+        } else {
+            // Outros campos (titulo_geral_linhas, etc)
+            meta[field] = value;
+        }
+
+        q.metadados_pergunta = meta;
+        arr[qIndex] = q;
+        return arr.map((q, idx) => ({ ...q, ordem: idx + 1 }));;
+    });
+  };
+
+  const updateMatrizRowType = (qIndex, rowIndex, newType) => {
+    setQuestions((prev) => {
+      const arr = [...prev];
+      const q = { ...arr[qIndex] };
+      q.metadados_pergunta = { ...(q.metadados_pergunta ?? {}) };
+      const config = { ...(q.metadados_pergunta.config_linhas ?? {}) };
+      const rowConfig = { ...(config[rowIndex] ?? { tipo: "texto", opcoes: [] }) };
+      
+      rowConfig.tipo = newType;
+      // Reset opções se não for select
+      if (newType !== "selecao_unica" && newType !== "selecao_multipla") {
+          rowConfig.opcoes = [];
+      } else if (newType !== config[rowIndex]?.tipo && (!rowConfig.opcoes || rowConfig.opcoes.length === 0)) {
+           // Inicializa com uma opção padrão
+           rowConfig.opcoes = [{ valor: "opcao_1", label: "Opção 1" }];
+      }
+
+      config[rowIndex] = rowConfig;
+      q.metadados_pergunta.config_linhas = config;
+      arr[qIndex] = q;
+      return arr;
+    });
+  };
+
+  const addMatrizRowOption = (qIndex, rowIndex) => {
+    setQuestions((prev) => {
+        const arr = [...prev];
+        const q = { ...arr[qIndex] };
+        q.metadados_pergunta = { ...(q.metadados_pergunta ?? {}) };
+        const config = { ...(q.metadados_pergunta.config_linhas ?? {}) };
+        const rowConfig = { ...(config[rowIndex] ?? { tipo: "selecao_unica", opcoes: [] }) };
+        
+        const nextIdx = (rowConfig.opcoes?.length ?? 0) + 1;
+        const newOpt = { valor: `opcao_${nextIdx}`, label: `Opção ${nextIdx}` };
+        rowConfig.opcoes = [...(rowConfig.opcoes ?? []), newOpt];
+        
+        config[rowIndex] = rowConfig;
+        q.metadados_pergunta.config_linhas = config;
+        arr[qIndex] = q;
+        return arr;
+    });
+  };
+
+  const updateMatrizRowOption = (qIndex, rowIndex, optIndex, value) => {
+      setQuestions((prev) => {
+          const arr = [...prev];
+          const q = { ...arr[qIndex] };
+          q.metadados_pergunta = { ...(q.metadados_pergunta ?? {}) };
+          const config = { ...(q.metadados_pergunta.config_linhas ?? {}) };
+          const rowConfig = { ...(config[rowIndex] ?? { tipo: "selecao_unica", opcoes: [] }) };
+          
+          const newOpts = [...(rowConfig.opcoes ?? [])];
+          if (newOpts[optIndex]) {
+              newOpts[optIndex] = { ...newOpts[optIndex], label: value, valor: value }; // Simplificando valor=label por enquanto
+          }
+          
+          rowConfig.opcoes = newOpts;
+          config[rowIndex] = rowConfig;
+          q.metadados_pergunta.config_linhas = config;
+          arr[qIndex] = q;
+          return arr;
+      });
+  };
+
+  const removeMatrizRowOption = (qIndex, rowIndex, optIndex) => {
+      setQuestions((prev) => {
+          const arr = [...prev];
+          const q = { ...arr[qIndex] };
+          q.metadados_pergunta = { ...(q.metadados_pergunta ?? {}) };
+          const config = { ...(q.metadados_pergunta.config_linhas ?? {}) };
+          const rowConfig = { ...(config[rowIndex] ?? { tipo: "selecao_unica", opcoes: [] }) };
+          
+          const newOpts = (rowConfig.opcoes ?? []).filter((_, i) => i !== optIndex);
+          
+          rowConfig.opcoes = newOpts;
+          config[rowIndex] = rowConfig;
+          q.metadados_pergunta.config_linhas = config;
+          arr[qIndex] = q;
+          return arr;
+      });
+  };
+
   const updateField = (index, field, value) => {
     setQuestions((prev) => {
       let arr = [...prev];
@@ -191,6 +349,24 @@ function EditarFormulario() {
           }
           if (value === 'TEXTO_TOPICO' || value === 'TEXTO_SUBTOPICO') {
              current.obrigatoria = false;
+          }
+          if (value === 'MATRIZ' && (!current.metadados_pergunta)) {
+             current.metadados_pergunta = {
+                tipo: "matriz",
+                linhas: 3,
+                colunas: 3,
+                titulo_linhas: ["Linha 1", "Linha 2", "Linha 3"],
+                titulo_colunas: ["Coluna 1", "Coluna 2", "Coluna 3"],
+                rodape: false,
+                celulas: {},
+                titulo_geral_linhas: "",
+                titulo_geral_colunas: "",
+                config_linhas: {
+                    "1": { tipo: "texto", opcoes: [] },
+                    "2": { tipo: "texto", opcoes: [] },
+                    "3": { tipo: "texto", opcoes: [] }
+                }
+             };
           }
       }
       arr[index] = current;
@@ -299,6 +475,29 @@ function EditarFormulario() {
     questions.forEach((q, idx) => {
         if (!q.texto.trim()) errors.push(`Pergunta ${idx+1}: Texto obrigatório.`);
         if (requiresOptions(q.tipo) && (!q.opcoes || q.opcoes.length === 0)) errors.push(`Pergunta ${idx+1}: Requer opções.`);
+        
+        if (q.tipo === "MATRIZ") {
+            const m = q.metadados_pergunta;
+            if (!m) {
+                errors.push(`Pergunta ${idx+1}: Configuração da Matriz incompleta.`);
+            } else {
+                if ((m.linhas || 0) < 1) errors.push(`Pergunta ${idx+1}: Matriz deve ter linhas.`);
+                if ((m.colunas || 0) < 1) errors.push(`Pergunta ${idx+1}: Matriz deve ter colunas.`);
+                
+                // Validar títulos das linhas
+                for(let r=0; r < (m.linhas||0); r++) {
+                    if (!m.titulo_linhas?.[r]?.trim()) {
+                         errors.push(`Pergunta ${idx+1}: Título da Linha ${r+1} é obrigatório.`);
+                    }
+                }
+                // Validar títulos das colunas
+                for(let c=0; c < (m.colunas||0); c++) {
+                    if (!m.titulo_colunas?.[c]?.trim()) {
+                         errors.push(`Pergunta ${idx+1}: Título da Coluna ${c+1} é obrigatório.`);
+                    }
+                }
+            }
+        }
     });
     if (errors.length > 0) return Swal.fire('Erro nas Perguntas', errors.join('<br>'), 'error');
 
@@ -313,7 +512,8 @@ function EditarFormulario() {
             tipo_resposta_esperada: q.tipo,
             ordem_pergunta: index + 1,
             obrigatoria: q.obrigatoria,
-            opcoes_resposta: q.opcoes.map(o => ({ label: o.label, valor: o.valor }))
+            opcoes_resposta: q.opcoes.map(o => ({ label: o.label, valor: o.valor })),
+            metadados_pergunta: q.metadados_pergunta
         }))
     };
 
@@ -497,11 +697,11 @@ function EditarFormulario() {
 
           {/* ======================= CONTEÚDO: CRIAR NOVO ======================= */}
           {activeTab === 'criar' && (
-            <div className="flex flex-col gap-8 max-w-5xl mx-auto w-full mt-6 animate-fade-in overflow-y-auto pb-20 [scrollbar-width:thin] [scrollbar-color:rgba(90,39,121,0.55)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:rounded-2xl [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-2xl [&::-webkit-scrollbar-thumb]:bg-[rgba(90,39,121,0.45)] [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-clip-content [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(90,39,121,0.65)]" ref={scrollRef}>
+            <div className="flex flex-col gap-6 md:gap-8 max-w-full mx-auto w-full mt-6 animate-fade-in overflow-y-auto pb-20 [scrollbar-width:thin] [scrollbar-color:rgba(90,39,121,0.55)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:rounded-2xl [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-2xl [&::-webkit-scrollbar-thumb]:bg-[rgba(90,39,121,0.45)] [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-clip-content [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(90,39,121,0.65)]" ref={scrollRef}>
                 
                 {/* DADOS GERAIS */}
-                <div className="grid md:grid-cols-2 gap-8">
-                    <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 md:gap-8">
+                    <div className="bg-white p-4 md:p-8 rounded-3xl border border-gray-100 shadow-sm w-full">
                         <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3 border-b border-gray-100 pb-4">
                             <div className="p-2 bg-apollo-200/5 rounded-lg"><ClipboardDocumentListIcon className="w-6 h-6 text-apollo-200" /></div>
                             Informações Básicas
@@ -530,18 +730,18 @@ function EditarFormulario() {
                         </div>
                     </div>
 
-                    <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                    <div className="bg-white p-4 md:p-8 rounded-3xl border border-gray-100 shadow-sm w-full">
                         <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3 border-b border-gray-100 pb-4">
                             <div className="p-2 bg-emerald-50 rounded-lg"><TagIcon className="w-6 h-6 text-emerald-500" /></div>
                             Classificação
                         </h2>
                         <div className="grid grid-cols-1 gap-6 h-full content-start">
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1 tracking-wider flex items-center gap-2"><BriefcaseIcon className="w-4 h-4" /> Especialidades <span className="text-red-500">*</span></label>
+                                <label className="text-xs font-bold text-gray-400 uppercase mb-2 ml-1 tracking-wider flex items-center gap-2"><BriefcaseIcon className="w-4 h-4" /> Especialidades <span className="text-red-500">*</span></label>
                                 <MultiSelect options={OPCOES_ESPECIALIDADES} value={novasEspecialidades} onChange={setNovasEspecialidades} placeholder="Selecione as áreas..." className="text-sm cursor-pointer" />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1 tracking-wider flex items-center gap-2"><span className="text-emerald-500 font-black text-xs bg-emerald-50 px-1.5 py-0.5 rounded">Dx</span> Diagnósticos <span className="text-red-500">*</span></label>
+                                <label className="text-xs font-bold text-gray-400 uppercase mb-2 ml-1 tracking-wider flex items-center gap-2"><span className="text-emerald-500 font-black text-xs bg-emerald-50 px-1.5 py-0.5 rounded">Dx</span> Diagnósticos <span className="text-red-500">*</span></label>
                                 <MultiSelect options={OPCOES_DIAGNOSTICOS} value={novosDiagnosticos} onChange={setNovosDiagnosticos} placeholder="Selecione os diagnósticos..." className="text-sm cursor-pointer" />
                             </div>
                         </div>
@@ -549,13 +749,13 @@ function EditarFormulario() {
                 </div>
 
                 {/* ENGINE DE PERGUNTAS */}
-                <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm relative">
-                    <div className="flex justify-between items-center mb-8 border-b border-gray-100 pb-4">
+                <div className="bg-white p-4 md:p-8 rounded-3xl border border-gray-100 shadow-sm relative">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 md:mb-8 border-b border-gray-100 pb-4 gap-4">
                         <h2 className="text-xl font-bold text-gray-800 flex items-center gap-3">
                             <div className="p-2 bg-indigo-50 rounded-lg"><ListBulletIcon className="w-6 h-6 text-indigo-500" /></div>
                             Perguntas ({questions.length})
                         </h2>
-                        <button onClick={addQuestion} className="bg-white text-apollo-200 border-2 border-apollo-200 px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-apollo-200 hover:text-white transition-all flex items-center gap-2 active:scale-95 shadow-sm cursor-pointer">
+                        <button onClick={addQuestion} className="w-full sm:w-auto justify-center bg-white text-apollo-200 border-2 border-apollo-200 px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-apollo-200 hover:text-white transition-all flex items-center gap-2 active:scale-95 shadow-sm cursor-pointer">
                             <PlusCircleIcon className="w-5 h-5" /> Nova Pergunta
                         </button>
                     </div>
@@ -623,6 +823,186 @@ function EditarFormulario() {
                                             />
                                         </div>
                                     </div>
+
+                                    {q.tipo === "MATRIZ" && (
+                                        <div className="mt-6 border border-zinc-200 rounded-xl p-5 bg-gray-50/50 shadow-sm animate-fade-in">
+                                            <h3 className="font-bold text-gray-800 text-lg border-b pb-2 mb-5">
+                                                <span>⚙️</span> Configuração da Matriz
+                                            </h3>
+                                            
+                                            <div className="flex gap-4 items-end flex-wrap mb-6">
+                                                <div className="flex flex-col gap-1">
+                                                    <label className="text-xs font-semibold text-gray-600">Qtd. Linhas</label>
+                                                    <input 
+                                                    type="number" min="1" max="20"
+                                                    className="w-24 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-apollo-100 outline-none"
+                                                    value={q?.metadados_pergunta?.linhas || 1}
+                                                    onChange={(e) => updateMatrizMeta(i, "linhas", e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="flex flex-col gap-1">
+                                                    <label className="text-xs font-semibold text-gray-600">Qtd. Colunas</label>
+                                                    <input 
+                                                    type="number" min="1" max="20"
+                                                    className="w-24 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-apollo-100 outline-none"
+                                                    value={q?.metadados_pergunta?.colunas || 1}
+                                                    onChange={(e) => updateMatrizMeta(i, "colunas", e.target.value)}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-inner mt-4">
+                                                <table className="w-full text-left bg-white border-collapse min-w-max">
+                                                    <thead>
+                                                        {/* Títulos Gerais */}
+                                                        <tr>
+                                                            <th className="p-3 bg-gray-50 border-b border-r border-gray-200 min-w-[150px] align-bottom">
+                                                                <div className="flex flex-col gap-1">
+                                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider text-center">Título das Linhas</label>
+                                                                    <input 
+                                                                        type="text"
+                                                                        className="w-full text-center bg-white border border-gray-300 rounded px-2 py-1 focus:border-apollo-200 focus:outline-none text-sm font-bold text-apollo-800 placeholder-gray-300 transition-all"
+                                                                        placeholder="Ex:Linhas"
+                                                                        value={q?.metadados_pergunta?.titulo_geral_linhas || ""}
+                                                                        onChange={(e) => updateMatrizMeta(i, "titulo_geral_linhas", e.target.value)}
+                                                                    />
+                                                                </div>
+                                                            </th>
+                                                            <th 
+                                                                colSpan={q?.metadados_pergunta?.colunas || 1} 
+                                                                className="p-3 bg-gray-50 border-b border-gray-200 text-center align-bottom"
+                                                            >
+                                                                <div className="flex flex-col gap-1">
+                                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Título das Colunas</label>
+                                                                    <input 
+                                                                        type="text"
+                                                                        className="w-full text-center bg-white border border-gray-300 rounded px-2 py-1 focus:border-apollo-200 focus:outline-none text-sm font-bold text-apollo-800 placeholder-gray-300 transition-all"
+                                                                        placeholder="Ex:Colunas"
+                                                                        value={q?.metadados_pergunta?.titulo_geral_colunas || ""}
+                                                                        onChange={(e) => updateMatrizMeta(i, "titulo_geral_colunas", e.target.value)}
+                                                                    />
+                                                                </div>
+                                                            </th>
+                                                        </tr>
+                                                        {/* Títulos Individuais */}
+                                                        <tr>
+                                                            <th className="p-3 bg-gray-100 border-b border-r border-gray-200 text-xs font-medium text-gray-400 italic text-center">
+                                                                (Nomes das Linhas abaixo)
+                                                            </th>
+                                                            {Array.from({ length: q?.metadados_pergunta?.colunas || 1 }).map((_, c) => (
+                                                                <th key={c} className="p-2 bg-gray-50 border-b border-gray-200 text-center min-w-[180px]">
+                                                                    <input 
+                                                                        type="text"
+                                                                        className="w-full text-center bg-transparent border-b-2 border-transparent hover:border-gray-200 focus:border-apollo-200 focus:outline-none text-sm font-semibold text-gray-600 focus:text-apollo-600 transition-colors"
+                                                                        value={q?.metadados_pergunta?.titulo_colunas?.[c] || `Coluna ${c + 1}`}
+                                                                        onChange={(e) => updateMatrizTitle(i, "coluna", c, e.target.value)}
+                                                                    />
+                                                                </th>
+                                                            ))}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {Array.from({ length: q?.metadados_pergunta?.linhas || 1 }).map((_, r) => {
+                                                            const rowConfig = q?.metadados_pergunta?.config_linhas?.[r + 1] ?? { tipo: "texto" };
+                                                            const typeLabel = MATRIZ_CELL_TYPES.find(t => t.id === rowConfig.tipo)?.label || "Texto";
+
+                                                            return (
+                                                            <tr key={r} className="hover:bg-gray-50/50">
+                                                                <td className="p-2 border-b border-r border-gray-200 bg-gray-50 min-w-[150px]">
+                                                                    <input 
+                                                                        type="text"
+                                                                        className="w-full bg-transparent border-b border-transparent hover:border-gray-300 focus:border-apollo-200 focus:outline-none text-sm font-bold text-gray-700"
+                                                                        value={q?.metadados_pergunta?.titulo_linhas?.[r] || `Linha ${r + 1}`}
+                                                                        onChange={(e) => updateMatrizTitle(i, "linha", r, e.target.value)}
+                                                                    />
+                                                                </td>
+                                                                
+                                                                {/* Células: Nome do Tipo Selecionado */}
+                                                                {Array.from({ length: q?.metadados_pergunta?.colunas || 1 }).map((_, c) => (
+                                                                    <td key={c} className="p-3 border-b border-gray-200 align-top min-w-[200px]">
+                                                                        <div className="flex items-center justify-center p-2 rounded bg-gray-50 border border-gray-200">
+                                                                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                                                                {typeLabel}
+                                                                            </span>
+                                                                        </div>
+                                                                    </td>
+                                                                ))}
+                                                            </tr>
+                                                        )})}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            {/* Configuração detalhada das Linhas (Pós Tabela) */}
+                                            <div className="mt-8 flex flex-col gap-6">
+                                                <h3 className="font-bold text-gray-800 text-lg border-b pb-2">⚙️ Configuração das Linhas</h3>
+                                                {Array.from({ length: q?.metadados_pergunta?.linhas || 1 }).map((_, r) => {
+                                                    const rowConfig = q?.metadados_pergunta?.config_linhas?.[r + 1] ?? { tipo: "texto", opcoes: [] };
+                                                    const currentTypeOption = MATRIZ_CELL_TYPES.map(t => ({ value: t.id, label: t.label })).find(o => o.value === rowConfig.tipo) ?? { value: "texto", label: "Texto" };
+                                                    const needsOptions = rowConfig.tipo === "selecao_unica" || rowConfig.tipo === "selecao_multipla";
+
+                                                    return (
+                                                        <div key={r} className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col gap-4">
+                                                            <div className="flex flex-col md:flex-row md:items-start gap-4 justify-between">
+                                                                    <div className="flex flex-col gap-1 mt-1">
+                                                                        <span className="font-bold text-gray-700 text-sm">
+                                                                            {q?.metadados_pergunta?.titulo_linhas?.[r] || `Linha ${r + 1}`}
+                                                                        </span>
+                                                                        <span className="text-xs text-gray-400">Configuração individual</span>
+                                                                    </div>
+                                                                    <div className="w-full md:w-64">
+                                                                        <label className="text-sm font-semibold mb-1 block">Tipo da Linha</label>
+                                                                        <SingleSelect
+                                                                            options={MATRIZ_CELL_TYPES.map(t => ({ value: t.id, label: t.label }))}
+                                                                            value={currentTypeOption}
+                                                                            onChange={(opt) => updateMatrizRowType(i, r + 1, opt?.value)}
+                                                                            placeholder="Selecione o tipo..."
+                                                                            isClearable={false}
+                                                                        />
+                                                                    </div>
+                                                            </div>
+
+                                                            {/* Se for seleção, mostra opções */}
+                                                            {needsOptions && (
+                                                                <div className="pt-2 border-t border-gray-100 flex flex-col gap-3">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <label className="text-sm font-semibold">Opções de Resposta</label>
+                                                                        <button
+                                                                            className="py-1 px-2 rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-xs font-medium"
+                                                                            onClick={() => addMatrizRowOption(i, r + 1)}
+                                                                        >
+                                                                            + Adicionar opção
+                                                                        </button>
+                                                                    </div>
+                                                                    <div className="flex flex-col gap-2">
+                                                                        {rowConfig.opcoes?.map((opt, optIndex) => (
+                                                                            <div key={optIndex} className="flex items-center gap-2">
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        className="h-8 w-8 flex items-center justify-center rounded-full bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm shrink-0"
+                                                                                        onClick={() => removeMatrizRowOption(i, r + 1, optIndex)}
+                                                                                    >
+                                                                                        ×
+                                                                                    </button>
+                                                                                    <AdaptiveInput
+                                                                                        className="flex-1 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-gray-800 text-sm placeholder-gray-400 shadow-sm outline-none transition-all duration-200 focus:border-apollo-200 focus:ring-2 focus:ring-apollo-200/30 hover:border-apollo-200"
+                                                                                        placeholder={`Opção ${optIndex + 1}`}
+                                                                                        value={opt.label || ""}
+                                                                                        onChange={(val) => updateMatrizRowOption(i, r + 1, optIndex, val)}
+                                                                                        ariaLabel={`Opção ${optIndex + 1}`}
+                                                                                        maxChars={60}
+                                                                                    />
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {requiresOptions(q.tipo) && (
                                         <div className="mt-6 ml-2 pl-6 border-l-4 border-apollo-100 bg-gray-50/50 p-5 rounded-r-2xl">

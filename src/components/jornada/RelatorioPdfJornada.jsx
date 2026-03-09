@@ -8,6 +8,7 @@ import {
 } from "@react-pdf/renderer";
 
 import LogoApollo from "./../../assets/logo_apollo.png"
+import TabelaPDF from "./TabelaPdf";
 
 const styles = StyleSheet.create({
     page: {
@@ -111,9 +112,9 @@ export default function RelatorioPacientePDF({
 }) {
     const idade = calcularIdade(paciente.dataNascimento)
     const perguntasIgnorar = [
-    "Avaliação ou Reavaliação?",
-    "Tipo de Atendimento"
-]
+        "Avaliação ou Reavaliação?",
+        "Tipo de Atendimento"
+    ]
 
     return (
         <Document>
@@ -144,6 +145,45 @@ export default function RelatorioPacientePDF({
                             return null
                         }
 
+                        const tipoPergunta = resp.tipo_resposta_esperada || "—";
+                        if (tipoPergunta === "MATRIZ") {
+                            // Prepara a variável para receber o objeto
+                            let dadosTabela = null;
+
+                            // Tenta converter de string para objeto, caso venha como string
+                            try {
+                                if (typeof resp.resposta === 'string') {
+                                    // Se por acaso vier com aspas simples (formato Python, etc), 
+                                    // o replace ajuda a evitar erro no JSON.parse
+                                    const jsonFormatado = resp.resposta.replace(/'/g, '"');
+                                    dadosTabela = JSON.parse(jsonFormatado);
+                                } else {
+                                    // Se já for um objeto, apenas repassa
+                                    dadosTabela = resp.resposta;
+                                }
+                            } catch (erro) {
+                                console.error("Erro ao converter os dados da tabela:", erro);
+                                console.log("Dado recebido:", resp.resposta);
+                            }
+
+                            return (
+                                <View key={index} style={styles.perguntaCard}>
+                                    <Text style={[styles.pergunta, { marginBottom: 8 }]}>
+                                        {ordem}. {resp.pergunta}
+                                    </Text>
+                                    
+                                    {/* Só renderiza a tabela se o parse deu certo */}
+                                    {dadosTabela && dadosTabela.columns ? (
+                                        <TabelaPDF tableData={dadosTabela} />
+                                    ) : (
+                                        <Text style={styles.resposta}>
+                                            [Não foi possível carregar os dados desta tabela]
+                                        </Text>
+                                    )}
+                                </View>
+                            );
+                        }
+
                         return (
                             <View key={index} style={styles.perguntaCard}>
                                 <Text style={styles.pergunta}>
@@ -160,7 +200,7 @@ export default function RelatorioPacientePDF({
                 </View>
                 <Separador />
                 <View style={styles.finalView}>
-                    <Text>Relatório gerado em {new Date().toLocaleDateString('pt-BR')} • Clínica Apollo • </Text><Text style={styles.linkApollo}>https://apolloreab.com.br/</Text>
+                    <Text>Relatório gerado em {hoje} • Clínica Apollo • </Text><Text style={styles.linkApollo}>https://apolloreab.com.br/</Text>
                 </View>
             </Page>
         </Document>
