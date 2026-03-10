@@ -28,6 +28,70 @@ const MATRIZ_CELL_TYPES = [
   { id: "selecao_multipla", label: "Seleção Múltipla" },
 ];
 
+const createDefaultMatrizRowConfig = () => ({ tipo: "texto", opcoes: [] });
+
+const normalizeMatrizOptions = (options = []) => {
+  if (!Array.isArray(options)) return [];
+
+  return options.map((option, index) => {
+    if (typeof option === "object" && option !== null) {
+      const label = String(option.label ?? option.nome ?? option.valor ?? option.value ?? `Opção ${index + 1}`);
+      return {
+        valor: String(option.valor ?? option.value ?? `opcao_${index + 1}`),
+        label,
+      };
+    }
+
+    return {
+      valor: `opcao_${index + 1}`,
+      label: String(option),
+    };
+  });
+};
+
+const normalizeMatrizConfigLinhas = (config, linhas) => {
+  const source = Array.isArray(config)
+    ? config
+    : config && typeof config === "object"
+      ? Object.keys(config)
+          .sort((a, b) => Number(a) - Number(b))
+          .map((key) => config[key])
+      : [];
+
+  return Array.from({ length: linhas }, (_, index) => {
+    const current = source[index] ?? createDefaultMatrizRowConfig();
+    const tipo = typeof current?.tipo === "string" ? current.tipo : "texto";
+    const needsOptions = tipo === "selecao_unica" || tipo === "selecao_multipla";
+
+    return {
+      tipo,
+      opcoes: needsOptions ? normalizeMatrizOptions(current?.opcoes) : [],
+    };
+  });
+};
+
+const normalizeMatrizMetadata = (meta = {}) => {
+  const linhas = Math.max(1, Number.parseInt(meta?.linhas, 10) || 1);
+  const colunas = Math.max(1, Number.parseInt(meta?.colunas, 10) || 1);
+  const tituloLinhas = Array.isArray(meta?.titulo_linhas) ? [...meta.titulo_linhas] : [];
+  const tituloColunas = Array.isArray(meta?.titulo_colunas) ? [...meta.titulo_colunas] : [];
+
+  while (tituloLinhas.length < linhas) tituloLinhas.push(`Linha ${tituloLinhas.length + 1}`);
+  while (tituloColunas.length < colunas) tituloColunas.push(`Coluna ${tituloColunas.length + 1}`);
+
+  return {
+    tipo: "matriz",
+    linhas,
+    colunas,
+    titulo_linhas: tituloLinhas.slice(0, linhas),
+    titulo_colunas: tituloColunas.slice(0, colunas),
+    titulo_geral_linhas: String(meta?.titulo_geral_linhas ?? ""),
+    titulo_geral_colunas: String(meta?.titulo_geral_colunas ?? ""),
+    rodape: meta?.rodape === true,
+    config_linhas: normalizeMatrizConfigLinhas(meta?.config_linhas, linhas),
+  };
+};
+
 /**
  * Componente de edição de formulário.
  *
@@ -102,7 +166,10 @@ function EditTela() {
             ordem: p?.ordem_pergunta ?? idx + 1,
             inativa: p?.inativa === true,
             obrigatoria: p?.obrigatoria === true,
-            metadados_pergunta: p?.metadados_pergunta ?? {},
+            metadados_pergunta:
+              p?.tipo_resposta_esperada === "MATRIZ"
+                ? normalizeMatrizMetadata(p?.metadados_pergunta)
+                : p?.metadados_pergunta ?? {},
             opcoes: Array.isArray(p?.opcoes_resposta)
               ? p.opcoes_resposta.map((o) => {
                   if (typeof o === "object") {
@@ -247,6 +314,9 @@ function EditTela() {
     setQuestions((prev) => {
       let arr = [...prev];
       const current = { ...arr[index], [field]: value };
+      if (current.tipo === "MATRIZ" || field === "metadados_pergunta") {
+        current.metadados_pergunta = normalizeMatrizMetadata(current.metadados_pergunta);
+      }
       if (field === "inativa" && value === true) {
         arr.splice(index, 1);
         arr = [...arr, current];
@@ -262,28 +332,13 @@ function EditTela() {
     setQuestions((prev) => {
       const arr = [...prev];
       const q = { ...arr[qIndex] };
-      const meta = { ...(q.metadados_pergunta ?? {}) };
-
-      if (field === "linhas" || field === "colunas") {
-        const newVal = Math.max(1, parseInt(value) || 1);
-        const oldVal = meta[field] || 1;
-        meta[field] = newVal;
-
-        const titleKey = field === "linhas" ? "titulo_linhas" : "titulo_colunas";
-        const prefix = field === "linhas" ? "Linha" : "Coluna";
-        const newTitles = [...(meta[titleKey] || [])];
-        
-        if (newVal > oldVal) {
-          for (let i = oldVal; i < newVal; i++) newTitles.push(`${prefix} ${i + 1}`);
-        } else {
-          newTitles.splice(newVal);
-        }
-        meta[titleKey] = newTitles;
-      } else {
-        meta[field] = value;
-      }
-
-      q.metadados_pergunta = meta;
+      const meta = normalizeMatrizMetadata(q.metadados_pergunta);
+      q.metadados_pergunta = normalizeMatrizMetadata({
+        ...meta,
+        [field]: field === "linhas" || field === "colunas"
+          ? Math.max(1, Number.parseInt(value, 10) || 1)
+          : value,
+      });
       arr[qIndex] = q;
       return arr;
     });
@@ -293,14 +348,12 @@ function EditTela() {
     setQuestions((prev) => {
       const arr = [...prev];
       const q = { ...arr[qIndex] };
-      const meta = { ...q.metadados_pergunta };
+      const meta = normalizeMatrizMetadata(q.metadados_pergunta);
       const titleKey = type === "linha" ? "titulo_linhas" : "titulo_colunas";
       
       const newTitles = [...(meta[titleKey] || [])];
       newTitles[index] = value;
-      meta[titleKey] = newTitles;
-      
-      q.metadados_pergunta = meta;
+      q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, [titleKey]: newTitles });
       arr[qIndex] = q;
       return arr;
     });
@@ -310,21 +363,19 @@ function EditTela() {
     setQuestions((prev) => {
       const arr = [...prev];
       const q = { ...arr[qIndex] };
-      q.metadados_pergunta = { ...(q.metadados_pergunta ?? {}) };
-      const config = { ...(q.metadados_pergunta.config_linhas ?? {}) };
-      const rowConfig = { ...(config[rowIndex] ?? { tipo: "texto", opcoes: [] }) };
+      const meta = normalizeMatrizMetadata(q.metadados_pergunta);
+      const config = [...meta.config_linhas];
+      const rowConfig = { ...(config[rowIndex] ?? createDefaultMatrizRowConfig()) };
       
       rowConfig.tipo = newType;
-      // Reset opções se não for select
       if (newType !== "selecao_unica" && newType !== "selecao_multipla") {
-          rowConfig.opcoes = [];
+        rowConfig.opcoes = [];
       } else if (newType !== config[rowIndex]?.tipo && (!rowConfig.opcoes || rowConfig.opcoes.length === 0)) {
-           // Inicializa com uma opção padrão
-           rowConfig.opcoes = [{ valor: "opcao_1", label: "Opção 1" }];
+        rowConfig.opcoes = [{ valor: "opcao_1", label: "Opção 1" }];
       }
 
       config[rowIndex] = rowConfig;
-      q.metadados_pergunta.config_linhas = config;
+      q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, config_linhas: config });
       arr[qIndex] = q;
       return arr;
     });
@@ -334,8 +385,8 @@ function EditTela() {
     setQuestions((prev) => {
         const arr = [...prev];
         const q = { ...arr[qIndex] };
-        q.metadados_pergunta = { ...(q.metadados_pergunta ?? {}) };
-        const config = { ...(q.metadados_pergunta.config_linhas ?? {}) };
+        const meta = normalizeMatrizMetadata(q.metadados_pergunta);
+        const config = [...meta.config_linhas];
         const rowConfig = { ...(config[rowIndex] ?? { tipo: "selecao_unica", opcoes: [] }) };
         
         const nextIdx = (rowConfig.opcoes?.length ?? 0) + 1;
@@ -343,7 +394,7 @@ function EditTela() {
         rowConfig.opcoes = [...(rowConfig.opcoes ?? []), newOpt];
         
         config[rowIndex] = rowConfig;
-        q.metadados_pergunta.config_linhas = config;
+        q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, config_linhas: config });
         arr[qIndex] = q;
         return arr;
     });
@@ -353,18 +404,22 @@ function EditTela() {
       setQuestions((prev) => {
           const arr = [...prev];
           const q = { ...arr[qIndex] };
-          q.metadados_pergunta = { ...(q.metadados_pergunta ?? {}) };
-          const config = { ...(q.metadados_pergunta.config_linhas ?? {}) };
-          const rowConfig = { ...(config[rowIndex] ?? { tipo: "selecao_unica", opcoes: [] }) };
+        const meta = normalizeMatrizMetadata(q.metadados_pergunta);
+        const config = [...meta.config_linhas];
+        const rowConfig = { ...(config[rowIndex] ?? { tipo: "selecao_unica", opcoes: [] }) };
           
           const newOpts = [...(rowConfig.opcoes ?? [])];
           if (newOpts[optIndex]) {
-              newOpts[optIndex] = { ...newOpts[optIndex], label: value, valor: value }; // Simplificando valor=label por enquanto
+          newOpts[optIndex] = {
+          ...newOpts[optIndex],
+          label: value,
+          valor: newOpts[optIndex]?.valor ?? `opcao_${optIndex + 1}`,
+          };
           }
           
           rowConfig.opcoes = newOpts;
           config[rowIndex] = rowConfig;
-          q.metadados_pergunta.config_linhas = config;
+        q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, config_linhas: config });
           arr[qIndex] = q;
           return arr;
       });
@@ -374,15 +429,15 @@ function EditTela() {
       setQuestions((prev) => {
           const arr = [...prev];
           const q = { ...arr[qIndex] };
-          q.metadados_pergunta = { ...(q.metadados_pergunta ?? {}) };
-          const config = { ...(q.metadados_pergunta.config_linhas ?? {}) };
-          const rowConfig = { ...(config[rowIndex] ?? { tipo: "selecao_unica", opcoes: [] }) };
+        const meta = normalizeMatrizMetadata(q.metadados_pergunta);
+        const config = [...meta.config_linhas];
+        const rowConfig = { ...(config[rowIndex] ?? { tipo: "selecao_unica", opcoes: [] }) };
           
           const newOpts = (rowConfig.opcoes ?? []).filter((_, i) => i !== optIndex);
           
           rowConfig.opcoes = newOpts;
           config[rowIndex] = rowConfig;
-          q.metadados_pergunta.config_linhas = config;
+        q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, config_linhas: config });
           arr[qIndex] = q;
           return arr;
       });
@@ -634,11 +689,13 @@ function EditTela() {
         }
       }
       if (q?.tipo === "MATRIZ") {
-        const m = q.metadados_pergunta;
+        const m = normalizeMatrizMetadata(q.metadados_pergunta);
         if (!m?.linhas || m.linhas < 1) errors.push(`Pergunta ${idx + 1}: a matriz precisa de pelo menos 1 linha.`);
         if (!m?.colunas || m.colunas < 1) errors.push(`Pergunta ${idx + 1}: a matriz precisa de pelo menos 1 coluna.`);
+        if (!Array.isArray(m?.config_linhas) || m.config_linhas.length !== m.linhas) {
+          errors.push(`Pergunta ${idx + 1}: config_linhas deve ter exatamente ${m.linhas} itens.`);
+        }
 
-        // Validation: Row Titles
         if (m?.titulo_linhas) {
             for (let r = 0; r < (m.linhas || 0); r++) {
                 if (!m.titulo_linhas[r] || !m.titulo_linhas[r].trim()) {
@@ -655,6 +712,19 @@ function EditTela() {
                 }
             }
         }
+
+        m.config_linhas.forEach((configLinha, rowIndex) => {
+          if (!configLinha?.tipo) {
+            errors.push(`Pergunta ${idx + 1}: A linha ${rowIndex + 1} precisa ter um tipo.`);
+          }
+
+          if (
+            (configLinha?.tipo === "selecao_unica" || configLinha?.tipo === "selecao_multipla") &&
+            (!Array.isArray(configLinha?.opcoes) || configLinha.opcoes.length === 0)
+          ) {
+            errors.push(`Pergunta ${idx + 1}: A linha ${rowIndex + 1} precisa ter ao menos uma opção.`);
+          }
+        });
       }
     });
     return errors;
@@ -680,7 +750,10 @@ function EditTela() {
       opcoes_resposta: q?.opcoes ?? [],
       inativa: q?.inativa === true,
       obrigatoria: q?.obrigatoria === true,
-      metadados_pergunta: q?.metadados_pergunta ?? {}
+      metadados_pergunta:
+        q?.tipo === "MATRIZ"
+          ? normalizeMatrizMetadata(q?.metadados_pergunta)
+          : q?.metadados_pergunta ?? {}
     }));
 
     let detailsRes = { ok: true };
@@ -909,15 +982,7 @@ function EditTela() {
                           
                           // Template inicial caso Matriz seja selecionado
                           if (newTipo === "MATRIZ" && (!q?.metadados_pergunta || !q.metadados_pergunta.tipo)) {
-                             updateField(i, "metadados_pergunta", {
-                                tipo: "matriz",
-                                linhas: 3,
-                                colunas: 3,
-                                titulo_linhas: ["Linha 1", "Linha 2", "Linha 3"],
-                                titulo_colunas: ["Coluna 1", "Coluna 2", "Coluna 3"],
-                                rodape: false,
-                                celulas: { "1x1": ["texto"] }
-                             });
+                              updateField(i, "metadados_pergunta", normalizeMatrizMetadata(q?.metadados_pergunta));
                           }
 
                           if (!requiresOptions(newTipo)) {

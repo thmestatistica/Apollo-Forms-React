@@ -9,6 +9,79 @@ import { useMemo, useState } from "react";
 import SingleSelect from "../input/SingleSelect.jsx";
 import MultiSelect from "../input/MultiSelect.jsx";
 
+const createDefaultMatrizRowConfig = () => ({ tipo: "texto", opcoes: [] });
+
+const normalizeStoredMatrizOptions = (options = []) => {
+    if (!Array.isArray(options)) return [];
+
+    return options.map((option, index) => {
+        if (typeof option === "object" && option !== null) {
+            const label = String(option.label ?? option.nome ?? option.valor ?? option.value ?? `Opção ${index + 1}`);
+            return {
+                valor: String(option.valor ?? option.value ?? `opcao_${index + 1}`),
+                label,
+            };
+        }
+
+        return {
+            valor: `opcao_${index + 1}`,
+            label: String(option),
+        };
+    });
+};
+
+const mapMatrizOptionsToSelect = (options = []) => {
+    if (!Array.isArray(options)) return [];
+
+    return options.map((option, index) => ({
+        value: String(option?.valor ?? option?.value ?? `opcao_${index + 1}`),
+        label: String(option?.label ?? option?.nome ?? option?.valor ?? option?.value ?? `Opção ${index + 1}`),
+    }));
+};
+
+const normalizeMatrizConfigLinhas = (config, linhas) => {
+    const source = Array.isArray(config)
+        ? config
+        : config && typeof config === "object"
+            ? Object.keys(config)
+                .sort((a, b) => Number(a) - Number(b))
+                .map((key) => config[key])
+            : [];
+
+    return Array.from({ length: linhas }, (_, index) => {
+        const current = source[index] ?? createDefaultMatrizRowConfig();
+        const tipo = typeof current?.tipo === "string" ? current.tipo : "texto";
+        const needsOptions = tipo === "selecao_unica" || tipo === "selecao_multipla";
+
+        return {
+            tipo,
+            opcoes: needsOptions ? normalizeStoredMatrizOptions(current?.opcoes) : [],
+        };
+    });
+};
+
+const normalizeMatrizMetadata = (meta = {}) => {
+    const linhas = Math.max(1, Number.parseInt(meta?.linhas, 10) || 1);
+    const colunas = Math.max(1, Number.parseInt(meta?.colunas, 10) || 1);
+    const tituloLinhas = Array.isArray(meta?.titulo_linhas) ? [...meta.titulo_linhas] : [];
+    const tituloColunas = Array.isArray(meta?.titulo_colunas) ? [...meta.titulo_colunas] : [];
+
+    while (tituloLinhas.length < linhas) tituloLinhas.push(`Linha ${tituloLinhas.length + 1}`);
+    while (tituloColunas.length < colunas) tituloColunas.push(`Coluna ${tituloColunas.length + 1}`);
+
+    return {
+        tipo: "matriz",
+        linhas,
+        colunas,
+        titulo_linhas: tituloLinhas.slice(0, linhas),
+        titulo_colunas: tituloColunas.slice(0, colunas),
+        titulo_geral_linhas: String(meta?.titulo_geral_linhas ?? ""),
+        titulo_geral_colunas: String(meta?.titulo_geral_colunas ?? ""),
+        rodape: meta?.rodape === true,
+        config_linhas: normalizeMatrizConfigLinhas(meta?.config_linhas, linhas),
+    };
+};
+
 /**
  * Renderiza dinamicamente um campo de formulário conforme o tipo de resposta.
  *
@@ -32,11 +105,17 @@ const CampoDinamico = ({ campo, initialValues = {}, onFieldChange = null}) => {
         meta_dados = {},
     } = campo;
 
+    // Normaliza a matriz para o contrato novo: estrutura fixa + config_linhas como array por linha.
+    const matrizMeta = useMemo(
+        () => (tipo_resposta_esperada === "MATRIZ" ? normalizeMatrizMetadata(meta_dados) : null),
+        [meta_dados, tipo_resposta_esperada]
+    );
+
     // Define valor inicial com fallback para string vazia
     const valorInicial = initialValues[nome] ?? "";
 
     // Extrai configurações da matriz para uso no escopo do componente
-    const { titulo_linhas = [], titulo_colunas = [], titulo_geral_linhas } = meta_dados || {};
+    const { titulo_linhas = [], titulo_colunas = [], titulo_geral_linhas } = matrizMeta ?? {};
     // Define a chave da primeira coluna (onde fica o nome da linha)
     const rowKey = titulo_geral_linhas && titulo_geral_linhas.trim() !== "" ? titulo_geral_linhas : "linha";
 
@@ -92,7 +171,7 @@ const CampoDinamico = ({ campo, initialValues = {}, onFieldChange = null}) => {
             }
         }
 
-        
+        // Cria a malha inicial usando apenas títulos e colunas; o comportamento vem de config_linhas.
         return titulo_linhas.map((linha) => {
             // Garante que a chave da linha seja a primeira prop do objeto
             const rowObj = { [rowKey]: linha };
@@ -255,9 +334,8 @@ const CampoDinamico = ({ campo, initialValues = {}, onFieldChange = null}) => {
                     titulo_colunas = [],
                     titulo_geral_colunas = "",
                     titulo_geral_linhas = "",
-                    celulas = {},
-                    config_linhas = {}
-                } = meta_dados || {};
+                    config_linhas = []
+                } = matrizMeta ?? {};
 
                 return (
                     <div className="w-full overflow-x-auto rounded-xl border border-zinc-300 bg-white shadow-sm p-3">
@@ -292,8 +370,8 @@ const CampoDinamico = ({ campo, initialValues = {}, onFieldChange = null}) => {
                             </thead>
                             <tbody>
                                 {titulo_linhas.map((linha, rowIndex) => {
-                                    // Verifica se há configuração específica para a linha atual (índice baseado em 1)
-                                    const rowConfig = config_linhas[String(rowIndex + 1)];
+                                    // Cada linha lê sua configuração diretamente pelo índice correspondente.
+                                    const rowConfig = config_linhas[rowIndex] ?? createDefaultMatrizRowConfig();
 
                                     return (
                                         <tr key={rowIndex} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50/50 transition-colors">
@@ -304,32 +382,11 @@ const CampoDinamico = ({ campo, initialValues = {}, onFieldChange = null}) => {
                                             
                                             {/* Células de Input Dinâmicas */}
                                             {titulo_colunas.map((col, colIndex) => {
-                                                const cellKey = `${rowIndex + 1}x${colIndex + 1}`;
                                                 const value = matrizData[rowIndex]?.[col] ?? "";
                                                 
-                                                let currentType = "texto";
-                                                let options = [];
-
-                                                if (rowConfig && rowConfig.tipo) {
-                                                    // Se houver config_linhas, usa o tipo definido na linha
-                                                    currentType = rowConfig.tipo;
-                                                    
-                                                    // Prepara opções se for do tipo seleção
-                                                    if (currentType === "selecao_unica" || currentType === "selecao_multipla") {
-                                                        options = (rowConfig.opcoes || []).map((opcao) => {
-                                                            if (typeof opcao === "object" && opcao !== null) {
-                                                                const val = opcao.valor ?? opcao.value ?? opcao;
-                                                                const lab = opcao.label ?? String(val);
-                                                                return { value: val, label: lab };
-                                                            }
-                                                            return { value: opcao, label: String(opcao) };
-                                                        });
-                                                    }
-                                                } else {
-                                                    // Fallback para lógica antiga de 'celulas'
-                                                    const allowedTypes = celulas[cellKey] || ["texto"];
-                                                    currentType = allowedTypes.length > 1 ? "texto" : allowedTypes[0];
-                                                }
+                                                const currentType = rowConfig.tipo || "texto";
+                                                // O componente Select do projeto usa { value, label }, então convertemos aqui.
+                                                const options = mapMatrizOptionsToSelect(rowConfig.opcoes);
 
                                                 // Lógica de Renderização por Tipo
                                                 

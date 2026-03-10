@@ -81,6 +81,70 @@ const MATRIZ_CELL_TYPES = [
   { id: "selecao_multipla", label: "Seleção Múltipla" },
 ];
 
+const createDefaultMatrizRowConfig = () => ({ tipo: "texto", opcoes: [] });
+
+const normalizeMatrizOptions = (options = []) => {
+    if (!Array.isArray(options)) return [];
+
+    return options.map((option, index) => {
+        if (typeof option === "object" && option !== null) {
+            const label = String(option.label ?? option.nome ?? option.valor ?? option.value ?? `Opção ${index + 1}`);
+            return {
+                valor: String(option.valor ?? option.value ?? `opcao_${index + 1}`),
+                label,
+            };
+        }
+
+        return {
+            valor: `opcao_${index + 1}`,
+            label: String(option),
+        };
+    });
+};
+
+const normalizeMatrizConfigLinhas = (config, linhas) => {
+    const source = Array.isArray(config)
+        ? config
+        : config && typeof config === "object"
+            ? Object.keys(config)
+                    .sort((a, b) => Number(a) - Number(b))
+                    .map((key) => config[key])
+            : [];
+
+    return Array.from({ length: linhas }, (_, index) => {
+        const current = source[index] ?? createDefaultMatrizRowConfig();
+        const tipo = typeof current?.tipo === "string" ? current.tipo : "texto";
+        const needsOptions = tipo === "selecao_unica" || tipo === "selecao_multipla";
+
+        return {
+            tipo,
+            opcoes: needsOptions ? normalizeMatrizOptions(current?.opcoes) : [],
+        };
+    });
+};
+
+const normalizeMatrizMetadata = (meta = {}) => {
+    const linhas = Math.max(1, Number.parseInt(meta?.linhas, 10) || 1);
+    const colunas = Math.max(1, Number.parseInt(meta?.colunas, 10) || 1);
+    const tituloLinhas = Array.isArray(meta?.titulo_linhas) ? [...meta.titulo_linhas] : [];
+    const tituloColunas = Array.isArray(meta?.titulo_colunas) ? [...meta.titulo_colunas] : [];
+
+    while (tituloLinhas.length < linhas) tituloLinhas.push(`Linha ${tituloLinhas.length + 1}`);
+    while (tituloColunas.length < colunas) tituloColunas.push(`Coluna ${tituloColunas.length + 1}`);
+
+    return {
+        tipo: "matriz",
+        linhas,
+        colunas,
+        titulo_linhas: tituloLinhas.slice(0, linhas),
+        titulo_colunas: tituloColunas.slice(0, colunas),
+        titulo_geral_linhas: String(meta?.titulo_geral_linhas ?? ""),
+        titulo_geral_colunas: String(meta?.titulo_geral_colunas ?? ""),
+        rodape: meta?.rodape === true,
+        config_linhas: normalizeMatrizConfigLinhas(meta?.config_linhas, linhas),
+    };
+};
+
 function EditarFormulario() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -192,14 +256,12 @@ function EditarFormulario() {
     setQuestions((prev) => {
         const arr = [...prev];
         const q = { ...arr[qIndex] };
-        const meta = { ...q.metadados_pergunta };
+        const meta = normalizeMatrizMetadata(q.metadados_pergunta);
         const titleKey = type === "linha" ? "titulo_linhas" : "titulo_colunas";
         
         const newTitles = [...(meta[titleKey] || [])];
         newTitles[index] = value;
-        meta[titleKey] = newTitles;
-        
-        q.metadados_pergunta = meta;
+        q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, [titleKey]: newTitles });
         arr[qIndex] = q;
         return arr.map((q, idx) => ({ ...q, ordem: idx + 1 }));
       });
@@ -209,48 +271,13 @@ function EditarFormulario() {
     setQuestions((prev) => {
         const arr = [...prev];
         const q = { ...arr[qIndex] };
-        const meta = { ...(q.metadados_pergunta ?? {}) };
-
-        if (field === "linhas" || field === "colunas") {
-            const newVal = Math.max(1, parseInt(value) || 1);
-            const oldVal = meta[field] || 1;
-            meta[field] = newVal;
-
-            // Ajusta arrays de títulos
-            const titleKey = field === "linhas" ? "titulo_linhas" : "titulo_colunas";
-            const prefix = field === "linhas" ? "Linha" : "Coluna";
-            
-            // Garantir que existe array
-            let currentTitles = meta[titleKey] || [];
-            if (!Array.isArray(currentTitles)) currentTitles = [];
-
-            const newTitles = [...currentTitles];
-            
-            if (newVal > oldVal) {
-                // Cresceu
-                for (let i = oldVal; i < newVal; i++) {
-                    newTitles.push(`${prefix} ${i + 1}`);
-                }
-            } else if (newVal < oldVal) {
-                // Encolheu
-                newTitles.splice(newVal); 
-            }
-            // Se newVal == oldVal, não faz nada com títulos, só atualiza numero
-            
-            // Caso especial: inicialização (oldVal=1, mas array pode estar vazio se veio de payload incompleto)
-            if (newTitles.length < newVal) {
-                for (let i = newTitles.length; i < newVal; i++) {
-                     newTitles.push(`${prefix} ${i + 1}`);
-                }
-            }
-
-            meta[titleKey] = newTitles;
-        } else {
-            // Outros campos (titulo_geral_linhas, etc)
-            meta[field] = value;
-        }
-
-        q.metadados_pergunta = meta;
+        const meta = normalizeMatrizMetadata(q.metadados_pergunta);
+        q.metadados_pergunta = normalizeMatrizMetadata({
+            ...meta,
+            [field]: field === "linhas" || field === "colunas"
+                ? Math.max(1, Number.parseInt(value, 10) || 1)
+                : value,
+        });
         arr[qIndex] = q;
         return arr.map((q, idx) => ({ ...q, ordem: idx + 1 }));;
     });
@@ -258,25 +285,23 @@ function EditarFormulario() {
 
   const updateMatrizRowType = (qIndex, rowIndex, newType) => {
     setQuestions((prev) => {
-      const arr = [...prev];
-      const q = { ...arr[qIndex] };
-      q.metadados_pergunta = { ...(q.metadados_pergunta ?? {}) };
-      const config = { ...(q.metadados_pergunta.config_linhas ?? {}) };
-      const rowConfig = { ...(config[rowIndex] ?? { tipo: "texto", opcoes: [] }) };
+        const arr = [...prev];
+        const q = { ...arr[qIndex] };
+        const meta = normalizeMatrizMetadata(q.metadados_pergunta);
+        const config = [...meta.config_linhas];
+        const rowConfig = { ...(config[rowIndex] ?? createDefaultMatrizRowConfig()) };
       
-      rowConfig.tipo = newType;
-      // Reset opções se não for select
-      if (newType !== "selecao_unica" && newType !== "selecao_multipla") {
-          rowConfig.opcoes = [];
-      } else if (newType !== config[rowIndex]?.tipo && (!rowConfig.opcoes || rowConfig.opcoes.length === 0)) {
-           // Inicializa com uma opção padrão
-           rowConfig.opcoes = [{ valor: "opcao_1", label: "Opção 1" }];
-      }
+        rowConfig.tipo = newType;
+        if (newType !== "selecao_unica" && newType !== "selecao_multipla") {
+            rowConfig.opcoes = [];
+        } else if (newType !== config[rowIndex]?.tipo && (!rowConfig.opcoes || rowConfig.opcoes.length === 0)) {
+            rowConfig.opcoes = [{ valor: "opcao_1", label: "Opção 1" }];
+        }
 
-      config[rowIndex] = rowConfig;
-      q.metadados_pergunta.config_linhas = config;
-      arr[qIndex] = q;
-      return arr;
+        config[rowIndex] = rowConfig;
+                q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, config_linhas: config });
+        arr[qIndex] = q;
+        return arr;
     });
   };
 
@@ -284,8 +309,8 @@ function EditarFormulario() {
     setQuestions((prev) => {
         const arr = [...prev];
         const q = { ...arr[qIndex] };
-        q.metadados_pergunta = { ...(q.metadados_pergunta ?? {}) };
-        const config = { ...(q.metadados_pergunta.config_linhas ?? {}) };
+        const meta = normalizeMatrizMetadata(q.metadados_pergunta);
+        const config = [...meta.config_linhas];
         const rowConfig = { ...(config[rowIndex] ?? { tipo: "selecao_unica", opcoes: [] }) };
         
         const nextIdx = (rowConfig.opcoes?.length ?? 0) + 1;
@@ -293,7 +318,7 @@ function EditarFormulario() {
         rowConfig.opcoes = [...(rowConfig.opcoes ?? []), newOpt];
         
         config[rowIndex] = rowConfig;
-        q.metadados_pergunta.config_linhas = config;
+        q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, config_linhas: config });
         arr[qIndex] = q;
         return arr;
     });
@@ -303,18 +328,22 @@ function EditarFormulario() {
       setQuestions((prev) => {
           const arr = [...prev];
           const q = { ...arr[qIndex] };
-          q.metadados_pergunta = { ...(q.metadados_pergunta ?? {}) };
-          const config = { ...(q.metadados_pergunta.config_linhas ?? {}) };
+          const meta = normalizeMatrizMetadata(q.metadados_pergunta);
+          const config = [...meta.config_linhas];
           const rowConfig = { ...(config[rowIndex] ?? { tipo: "selecao_unica", opcoes: [] }) };
           
           const newOpts = [...(rowConfig.opcoes ?? [])];
           if (newOpts[optIndex]) {
-              newOpts[optIndex] = { ...newOpts[optIndex], label: value, valor: value }; // Simplificando valor=label por enquanto
+              newOpts[optIndex] = {
+                  ...newOpts[optIndex],
+                  label: value,
+                  valor: newOpts[optIndex]?.valor ?? `opcao_${optIndex + 1}`,
+              };
           }
           
           rowConfig.opcoes = newOpts;
           config[rowIndex] = rowConfig;
-          q.metadados_pergunta.config_linhas = config;
+          q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, config_linhas: config });
           arr[qIndex] = q;
           return arr;
       });
@@ -324,15 +353,15 @@ function EditarFormulario() {
       setQuestions((prev) => {
           const arr = [...prev];
           const q = { ...arr[qIndex] };
-          q.metadados_pergunta = { ...(q.metadados_pergunta ?? {}) };
-          const config = { ...(q.metadados_pergunta.config_linhas ?? {}) };
+          const meta = normalizeMatrizMetadata(q.metadados_pergunta);
+          const config = [...meta.config_linhas];
           const rowConfig = { ...(config[rowIndex] ?? { tipo: "selecao_unica", opcoes: [] }) };
           
           const newOpts = (rowConfig.opcoes ?? []).filter((_, i) => i !== optIndex);
           
           rowConfig.opcoes = newOpts;
           config[rowIndex] = rowConfig;
-          q.metadados_pergunta.config_linhas = config;
+          q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, config_linhas: config });
           arr[qIndex] = q;
           return arr;
       });
@@ -350,25 +379,13 @@ function EditarFormulario() {
           if (value === 'TEXTO_TOPICO' || value === 'TEXTO_SUBTOPICO') {
              current.obrigatoria = false;
           }
-          if (value === 'MATRIZ' && (!current.metadados_pergunta)) {
-             current.metadados_pergunta = {
-                tipo: "matriz",
-                linhas: 3,
-                colunas: 3,
-                titulo_linhas: ["Linha 1", "Linha 2", "Linha 3"],
-                titulo_colunas: ["Coluna 1", "Coluna 2", "Coluna 3"],
-                rodape: false,
-                celulas: {},
-                titulo_geral_linhas: "",
-                titulo_geral_colunas: "",
-                config_linhas: {
-                    "1": { tipo: "texto", opcoes: [] },
-                    "2": { tipo: "texto", opcoes: [] },
-                    "3": { tipo: "texto", opcoes: [] }
-                }
-             };
+             if (value === 'MATRIZ') {
+                 current.metadados_pergunta = normalizeMatrizMetadata(current.metadados_pergunta);
           }
       }
+        if (current.tipo === "MATRIZ" || field === "metadados_pergunta") {
+             current.metadados_pergunta = normalizeMatrizMetadata(current.metadados_pergunta);
+        }
       arr[index] = current;
       return arr.map((q, idx) => ({ ...q, ordem: idx + 1 }));
     });
@@ -477,26 +494,36 @@ function EditarFormulario() {
         if (requiresOptions(q.tipo) && (!q.opcoes || q.opcoes.length === 0)) errors.push(`Pergunta ${idx+1}: Requer opções.`);
         
         if (q.tipo === "MATRIZ") {
-            const m = q.metadados_pergunta;
-            if (!m) {
-                errors.push(`Pergunta ${idx+1}: Configuração da Matriz incompleta.`);
-            } else {
-                if ((m.linhas || 0) < 1) errors.push(`Pergunta ${idx+1}: Matriz deve ter linhas.`);
-                if ((m.colunas || 0) < 1) errors.push(`Pergunta ${idx+1}: Matriz deve ter colunas.`);
-                
-                // Validar títulos das linhas
-                for(let r=0; r < (m.linhas||0); r++) {
-                    if (!m.titulo_linhas?.[r]?.trim()) {
-                         errors.push(`Pergunta ${idx+1}: Título da Linha ${r+1} é obrigatório.`);
-                    }
-                }
-                // Validar títulos das colunas
-                for(let c=0; c < (m.colunas||0); c++) {
-                    if (!m.titulo_colunas?.[c]?.trim()) {
-                         errors.push(`Pergunta ${idx+1}: Título da Coluna ${c+1} é obrigatório.`);
-                    }
+            const m = normalizeMatrizMetadata(q.metadados_pergunta);
+            if ((m.linhas || 0) < 1) errors.push(`Pergunta ${idx+1}: Matriz deve ter linhas.`);
+            if ((m.colunas || 0) < 1) errors.push(`Pergunta ${idx+1}: Matriz deve ter colunas.`);
+            if (!Array.isArray(m.config_linhas) || m.config_linhas.length !== m.linhas) {
+                errors.push(`Pergunta ${idx+1}: config_linhas deve ter exatamente ${m.linhas} itens.`);
+            }
+
+            for(let r=0; r < (m.linhas||0); r++) {
+                if (!m.titulo_linhas?.[r]?.trim()) {
+                     errors.push(`Pergunta ${idx+1}: Título da Linha ${r+1} é obrigatório.`);
                 }
             }
+            for(let c=0; c < (m.colunas||0); c++) {
+                if (!m.titulo_colunas?.[c]?.trim()) {
+                     errors.push(`Pergunta ${idx+1}: Título da Coluna ${c+1} é obrigatório.`);
+                }
+            }
+
+            m.config_linhas.forEach((configLinha, rowIndex) => {
+                if (!configLinha?.tipo) {
+                    errors.push(`Pergunta ${idx+1}: A linha ${rowIndex + 1} precisa ter um tipo.`);
+                }
+
+                if (
+                    (configLinha?.tipo === "selecao_unica" || configLinha?.tipo === "selecao_multipla") &&
+                    (!Array.isArray(configLinha?.opcoes) || configLinha.opcoes.length === 0)
+                ) {
+                    errors.push(`Pergunta ${idx+1}: A linha ${rowIndex + 1} precisa ter ao menos uma opção.`);
+                }
+            });
         }
     });
     if (errors.length > 0) return Swal.fire('Erro nas Perguntas', errors.join('<br>'), 'error');
@@ -513,7 +540,9 @@ function EditarFormulario() {
             ordem_pergunta: index + 1,
             obrigatoria: q.obrigatoria,
             opcoes_resposta: q.opcoes.map(o => ({ label: o.label, valor: o.valor })),
-            metadados_pergunta: q.metadados_pergunta
+            metadados_pergunta: q.tipo === "MATRIZ"
+                ? normalizeMatrizMetadata(q.metadados_pergunta)
+                : q.metadados_pergunta
         }))
     };
 
@@ -903,7 +932,7 @@ function EditarFormulario() {
                                                     </thead>
                                                     <tbody>
                                                         {Array.from({ length: q?.metadados_pergunta?.linhas || 1 }).map((_, r) => {
-                                                            const rowConfig = q?.metadados_pergunta?.config_linhas?.[r + 1] ?? { tipo: "texto" };
+                                                            const rowConfig = q?.metadados_pergunta?.config_linhas?.[r] ?? { tipo: "texto" };
                                                             const typeLabel = MATRIZ_CELL_TYPES.find(t => t.id === rowConfig.tipo)?.label || "Texto";
 
                                                             return (
@@ -937,7 +966,7 @@ function EditarFormulario() {
                                             <div className="mt-8 flex flex-col gap-6">
                                                 <h3 className="font-bold text-gray-800 text-lg border-b pb-2">⚙️ Configuração das Linhas</h3>
                                                 {Array.from({ length: q?.metadados_pergunta?.linhas || 1 }).map((_, r) => {
-                                                    const rowConfig = q?.metadados_pergunta?.config_linhas?.[r + 1] ?? { tipo: "texto", opcoes: [] };
+                                                    const rowConfig = q?.metadados_pergunta?.config_linhas?.[r] ?? { tipo: "texto", opcoes: [] };
                                                     const currentTypeOption = MATRIZ_CELL_TYPES.map(t => ({ value: t.id, label: t.label })).find(o => o.value === rowConfig.tipo) ?? { value: "texto", label: "Texto" };
                                                     const needsOptions = rowConfig.tipo === "selecao_unica" || rowConfig.tipo === "selecao_multipla";
 
@@ -955,7 +984,7 @@ function EditarFormulario() {
                                                                         <SingleSelect
                                                                             options={MATRIZ_CELL_TYPES.map(t => ({ value: t.id, label: t.label }))}
                                                                             value={currentTypeOption}
-                                                                            onChange={(opt) => updateMatrizRowType(i, r + 1, opt?.value)}
+                                                                            onChange={(opt) => updateMatrizRowType(i, r, opt?.value)}
                                                                             placeholder="Selecione o tipo..."
                                                                             isClearable={false}
                                                                         />
@@ -969,7 +998,7 @@ function EditarFormulario() {
                                                                         <label className="text-sm font-semibold">Opções de Resposta</label>
                                                                         <button
                                                                             className="py-1 px-2 rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-xs font-medium"
-                                                                            onClick={() => addMatrizRowOption(i, r + 1)}
+                                                                            onClick={() => addMatrizRowOption(i, r)}
                                                                         >
                                                                             + Adicionar opção
                                                                         </button>
@@ -980,7 +1009,7 @@ function EditarFormulario() {
                                                                                     <button
                                                                                         type="button"
                                                                                         className="h-8 w-8 flex items-center justify-center rounded-full bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm shrink-0"
-                                                                                        onClick={() => removeMatrizRowOption(i, r + 1, optIndex)}
+                                                                                        onClick={() => removeMatrizRowOption(i, r, optIndex)}
                                                                                     >
                                                                                         ×
                                                                                     </button>
@@ -988,7 +1017,7 @@ function EditarFormulario() {
                                                                                         className="flex-1 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-gray-800 text-sm placeholder-gray-400 shadow-sm outline-none transition-all duration-200 focus:border-apollo-200 focus:ring-2 focus:ring-apollo-200/30 hover:border-apollo-200"
                                                                                         placeholder={`Opção ${optIndex + 1}`}
                                                                                         value={opt.label || ""}
-                                                                                        onChange={(val) => updateMatrizRowOption(i, r + 1, optIndex, val)}
+                                                                                        onChange={(val) => updateMatrizRowOption(i, r, optIndex, val)}
                                                                                         ariaLabel={`Opção ${optIndex + 1}`}
                                                                                         maxChars={60}
                                                                                     />
