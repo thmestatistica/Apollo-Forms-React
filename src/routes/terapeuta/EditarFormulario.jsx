@@ -28,6 +28,17 @@ import PaginationControl from "../../components/pagination/PaginationControl.jsx
 // API Utils
 import { listar_formularios, criar_formulario_completo } from "../../api/forms/forms_utils";
 
+// Utils
+import {
+    CONDITIONAL_CONSTANTS,
+    collectConditionalBadges,
+    getEffectiveQuestionType,
+    getQuestionReference,
+    normalizeConditionalMetadata,
+    syncConditionedQuestions,
+    validateConditionalRules,
+} from "../../utils/form/conditionalQuestions.js";
+
 // --- CONSTANTES (Mantidas iguais) ---
 const OPCOES_ESPECIALIDADES = [
     { value: 'Fisioterapia', label: 'Fisioterapia' },
@@ -36,7 +47,8 @@ const OPCOES_ESPECIALIDADES = [
     { value: 'Psicologia', label: 'Psicologia' },
     { value: 'Enfermagem', label: 'Enfermagem' },
     { value: 'Nutrição', label: 'Nutrição' },
-    { value: 'Condicionamento Físico', label: 'Condicionamento Físico' }
+    { value: 'Condicionamento Físico', label: 'Condicionamento Físico' },
+    { value: 'Teste', label: 'Teste' }
 ];
 
 const OPCOES_DIAGNOSTICOS = [
@@ -69,6 +81,7 @@ const TIPO_PERGUNTA_OPTIONS = [
     { value: "NUMERO_FLOAT", label: "Número decimal" },
     { value: "SELECAO_UNICA", label: "Seleção única" },
     { value: "SELECAO_MULTIPLA", label: "Seleção múltipla" },
+    { value: "CONDICIONAL", label: "Condicional" },
     { value: "TEXTO_TOPICO", label: "Tópico de texto" },
     { value: "TEXTO_SUBTOPICO", label: "Subtópico de texto" },
     { value: "MATRIZ", label: "Matriz (Tabela)" }
@@ -142,6 +155,51 @@ const normalizeMatrizMetadata = (meta = {}) => {
         titulo_geral_colunas: String(meta?.titulo_geral_colunas ?? ""),
         rodape: meta?.rodape === true,
         config_linhas: normalizeMatrizConfigLinhas(meta?.config_linhas, linhas),
+    };
+};
+
+const slugifyOptionLabel = (value) => {
+    const base = String(value ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+
+    return base || "opcao";
+};
+
+const buildOptionValue = (label, index) => `${index + 1}_${slugifyOptionLabel(label)}`;
+
+const normalizeOptionsForSave = (options = []) => {
+    if (!Array.isArray(options)) return [];
+
+    return options.map((option, index) => {
+        const label = typeof option === "object" && option !== null
+            ? String(option.label ?? option.nome ?? option.valor ?? option.value ?? `Opção ${index + 1}`)
+            : String(option ?? `Opção ${index + 1}`);
+
+        return {
+            label,
+            valor: buildOptionValue(label, index),
+        };
+    });
+};
+
+const normalizeMatrizMetadataForSave = (meta = {}) => {
+    const normalized = normalizeMatrizMetadata(meta);
+
+    return {
+        ...normalized,
+        config_linhas: (normalized.config_linhas ?? []).map((row) => {
+            const tipo = row?.tipo;
+            const needsOptions = tipo === "selecao_unica" || tipo === "selecao_multipla";
+
+            return {
+                ...row,
+                opcoes: needsOptions ? normalizeOptionsForSave(row?.opcoes ?? []) : [],
+            };
+        }),
     };
 };
 
@@ -237,6 +295,7 @@ function EditarFormulario() {
   
   const [questions, setQuestions] = useState([{ 
       id: undefined, 
+      chave_pergunta: `tmp_${Date.now()}_1`,
       texto: "Pergunta 1", 
       tipo: "TEXTO_LIVRE", 
       ordem: 1, 
@@ -250,7 +309,58 @@ function EditarFormulario() {
   const [loadingSalvar, setLoadingSalvar] = useState(false);
   const scrollRef = useRef(null);
 
-  const requiresOptions = (tipo) => tipo === "SELECAO_UNICA" || tipo === "SELECAO_MULTIPLA";
+    const requiresOptions = (tipo) => tipo === "SELECAO_UNICA" || tipo === "SELECAO_MULTIPLA";
+    const getQuestionRef = (question, index) => getQuestionReference(question, `tmp_${index + 1}`);
+
+    const conditionalTargetOptions = useMemo(() => {
+        return questions.map((question, index) => ({
+            value: getQuestionRef(question, index),
+            label: `${question?.texto ?? "Pergunta"} (#${index + 1})`,
+        }));
+    }, [questions]);
+
+    const conditionalBadgesByRef = useMemo(() => collectConditionalBadges(questions), [questions]);
+
+    const applyConditionalSync = (list = []) => {
+        const synced = syncConditionedQuestions(list);
+        return synced.map((q, idx) => ({ ...q, ordem: idx + 1 }));
+    };
+
+    const normalizeQuestionConditionalMeta = (question) => {
+        if (question?.tipo !== CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE) return question;
+        return {
+            ...question,
+            metadados_pergunta: normalizeConditionalMetadata(question?.metadados_pergunta ?? {}, question?.opcoes ?? []),
+        };
+    };
+
+    const updateConditionalAssociations = (qIndex, optionLabel, selectedOptions) => {
+        setQuestions((prev) => {
+            const arr = [...prev];
+            const question = { ...arr[qIndex] };
+            const normalizedMeta = normalizeConditionalMetadata(question?.metadados_pergunta ?? {}, question?.opcoes ?? []);
+            const condicoes = { ...(normalizedMeta?.condicoes ?? {}) };
+            condicoes[optionLabel] = (selectedOptions ?? []).map((option) => String(option?.value ?? "")).filter(Boolean);
+
+            question.metadados_pergunta = {
+                ...normalizedMeta,
+                condicoes,
+            };
+
+            arr[qIndex] = question;
+            return applyConditionalSync(arr);
+        });
+    };
+
+    const normalizeMatrizMetaForQuestion = (question, meta) => {
+        const normalizedMeta = normalizeMatrizMetadata(meta);
+
+        if (question?.tipo === CONDITIONAL_CONSTANTS.CONDITIONED_TYPE) {
+            return { ...normalizedMeta, tipo_real: "MATRIZ" };
+        }
+
+        return normalizedMeta;
+    };
 
   const updateMatrizTitle = (qIndex, type, index, value) => {
     setQuestions((prev) => {
@@ -261,7 +371,7 @@ function EditarFormulario() {
         
         const newTitles = [...(meta[titleKey] || [])];
         newTitles[index] = value;
-        q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, [titleKey]: newTitles });
+                q.metadados_pergunta = normalizeMatrizMetaForQuestion(q, { ...meta, [titleKey]: newTitles });
         arr[qIndex] = q;
         return arr.map((q, idx) => ({ ...q, ordem: idx + 1 }));
       });
@@ -272,7 +382,7 @@ function EditarFormulario() {
         const arr = [...prev];
         const q = { ...arr[qIndex] };
         const meta = normalizeMatrizMetadata(q.metadados_pergunta);
-        q.metadados_pergunta = normalizeMatrizMetadata({
+        q.metadados_pergunta = normalizeMatrizMetaForQuestion(q, {
             ...meta,
             [field]: field === "linhas" || field === "colunas"
                 ? Math.max(1, Number.parseInt(value, 10) || 1)
@@ -299,7 +409,7 @@ function EditarFormulario() {
         }
 
         config[rowIndex] = rowConfig;
-                q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, config_linhas: config });
+    q.metadados_pergunta = normalizeMatrizMetaForQuestion(q, { ...meta, config_linhas: config });
         arr[qIndex] = q;
         return arr;
     });
@@ -318,7 +428,7 @@ function EditarFormulario() {
         rowConfig.opcoes = [...(rowConfig.opcoes ?? []), newOpt];
         
         config[rowIndex] = rowConfig;
-        q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, config_linhas: config });
+                q.metadados_pergunta = normalizeMatrizMetaForQuestion(q, { ...meta, config_linhas: config });
         arr[qIndex] = q;
         return arr;
     });
@@ -343,7 +453,7 @@ function EditarFormulario() {
           
           rowConfig.opcoes = newOpts;
           config[rowIndex] = rowConfig;
-          q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, config_linhas: config });
+          q.metadados_pergunta = normalizeMatrizMetaForQuestion(q, { ...meta, config_linhas: config });
           arr[qIndex] = q;
           return arr;
       });
@@ -361,7 +471,7 @@ function EditarFormulario() {
           
           rowConfig.opcoes = newOpts;
           config[rowIndex] = rowConfig;
-          q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, config_linhas: config });
+          q.metadados_pergunta = normalizeMatrizMetaForQuestion(q, { ...meta, config_linhas: config });
           arr[qIndex] = q;
           return arr;
       });
@@ -373,9 +483,17 @@ function EditarFormulario() {
       const current = { ...arr[index], [field]: value };
       
       if (field === 'tipo') {
+             if (value === CONDITIONAL_CONSTANTS.CONDITIONED_TYPE) return prev;
           if (requiresOptions(value) && (!current.opcoes || current.opcoes.length === 0)) {
              current.opcoes = [{ label: 'Opção 1', valor: 'opcao_1' }];
           }
+             if (value === CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE) {
+                 if (!Array.isArray(current.opcoes) || current.opcoes.length === 0) {
+                     current.opcoes = [{ label: 'Opção 1', valor: 'opcao_1' }];
+                 }
+                 current.metadados_pergunta = normalizeConditionalMetadata(current?.metadados_pergunta ?? {}, current.opcoes);
+                 current.obrigatoria = false;
+             }
           if (value === 'TEXTO_TOPICO' || value === 'TEXTO_SUBTOPICO') {
              current.obrigatoria = false;
           }
@@ -383,11 +501,14 @@ function EditarFormulario() {
                  current.metadados_pergunta = normalizeMatrizMetadata(current.metadados_pergunta);
           }
       }
-        if (current.tipo === "MATRIZ" || field === "metadados_pergunta") {
-             current.metadados_pergunta = normalizeMatrizMetadata(current.metadados_pergunta);
+           if (current.tipo === "MATRIZ" || (field === "metadados_pergunta" && getEffectiveQuestionType(current) === "MATRIZ")) {
+               current.metadados_pergunta = normalizeMatrizMetaForQuestion(current, current.metadados_pergunta);
         }
-      arr[index] = current;
-      return arr.map((q, idx) => ({ ...q, ordem: idx + 1 }));
+        if (current.tipo === CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE || field === "opcoes") {
+             current.metadados_pergunta = normalizeConditionalMetadata(current?.metadados_pergunta ?? {}, current?.opcoes ?? []);
+        }
+        arr[index] = normalizeQuestionConditionalMeta(current);
+        return applyConditionalSync(arr);
     });
   };
 
@@ -397,8 +518,9 @@ function EditarFormulario() {
       const q = arr[index];
       const nextIdx = (q?.opcoes?.length ?? 0) + 1;
       const newOpt = { valor: `opcao_${nextIdx}`, label: `Opção ${nextIdx}` };
-      arr[index] = { ...q, opcoes: [...(q?.opcoes ?? []), newOpt] };
-      return arr;
+            const updated = { ...q, opcoes: [...(q?.opcoes ?? []), newOpt] };
+            arr[index] = normalizeQuestionConditionalMeta(updated);
+            return applyConditionalSync(arr);
     });
   };
 
@@ -412,8 +534,9 @@ function EditarFormulario() {
       if (field === 'label' && !ops[optIndex].valor) {
           ops[optIndex].valor = value.toLowerCase().replace(/\s+/g, '_');
       }
-      arr[qIndex] = { ...q, opcoes: ops };
-      return arr;
+            const updated = { ...q, opcoes: ops };
+            arr[qIndex] = normalizeQuestionConditionalMeta(updated);
+            return applyConditionalSync(arr);
     });
   };
 
@@ -422,15 +545,16 @@ function EditarFormulario() {
       const arr = [...prev];
       const q = arr[qIndex];
       const ops = (q?.opcoes ?? []).filter((_, i) => i !== optIndex);
-      arr[qIndex] = { ...q, opcoes: ops };
-      return arr;
+            const updated = { ...q, opcoes: ops };
+            arr[qIndex] = normalizeQuestionConditionalMeta(updated);
+            return applyConditionalSync(arr);
     });
   };
 
   const addQuestion = () => {
     setQuestions((prev) => [
       ...prev,
-      { id: undefined, texto: "Nova pergunta", tipo: "TEXTO_LIVRE", ordem: prev.length + 1, opcoes: [], obrigatoria: false },
+            { id: undefined, chave_pergunta: `tmp_${Date.now()}_${prev.length + 1}`, texto: "Nova pergunta", tipo: "TEXTO_LIVRE", ordem: prev.length + 1, opcoes: [], obrigatoria: false },
     ]);
     setTimeout(() => { if(scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, 50);
   };
@@ -440,16 +564,16 @@ function EditarFormulario() {
     setQuestions(prev => {
         const arr = [...prev];
         arr.splice(index, 1);
-        return arr.map((q, idx) => ({ ...q, ordem: idx + 1 }));
+                return applyConditionalSync(arr);
     });
   };
 
   const insertQuestionAt = (index) => {
     setQuestions((prev) => {
       const arr = [...prev];
-      const newQ = { id: undefined, texto: "Nova pergunta", tipo: "TEXTO_LIVRE", ordem: index + 1, opcoes: [], obrigatoria: false };
+            const newQ = { id: undefined, chave_pergunta: `tmp_${Date.now()}_${index + 1}`, texto: "Nova pergunta", tipo: "TEXTO_LIVRE", ordem: index + 1, opcoes: [], obrigatoria: false };
       arr.splice(index, 0, newQ);
-      return arr.map((q, idx) => ({ ...q, ordem: idx + 1 }));
+            return applyConditionalSync(arr);
     });
   };
 
@@ -490,10 +614,22 @@ function EditarFormulario() {
     
     const errors = [];
     questions.forEach((q, idx) => {
+        const effectiveType = getEffectiveQuestionType(q);
         if (!q.texto.trim()) errors.push(`Pergunta ${idx+1}: Texto obrigatório.`);
-        if (requiresOptions(q.tipo) && (!q.opcoes || q.opcoes.length === 0)) errors.push(`Pergunta ${idx+1}: Requer opções.`);
+        if ((requiresOptions(effectiveType) || q.tipo === CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE) && (!q.opcoes || q.opcoes.length === 0)) errors.push(`Pergunta ${idx+1}: Requer opções.`);
+
+        if (q.tipo === CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE) {
+            const metadata = normalizeConditionalMetadata(q.metadados_pergunta ?? {}, q.opcoes ?? []);
+            const condicoes = metadata?.condicoes ?? {};
+            (q.opcoes ?? []).forEach((opcao, opcaoIndex) => {
+                const label = String(opcao?.label ?? `Opção ${opcaoIndex + 1}`);
+                if (!Array.isArray(condicoes[label])) {
+                    errors.push(`Pergunta ${idx+1}: condicao inválida para a opção "${label}".`);
+                }
+            });
+        }
         
-        if (q.tipo === "MATRIZ") {
+        if (effectiveType === "MATRIZ") {
             const m = normalizeMatrizMetadata(q.metadados_pergunta);
             if ((m.linhas || 0) < 1) errors.push(`Pergunta ${idx+1}: Matriz deve ter linhas.`);
             if ((m.colunas || 0) < 1) errors.push(`Pergunta ${idx+1}: Matriz deve ter colunas.`);
@@ -526,6 +662,7 @@ function EditarFormulario() {
             });
         }
     });
+    errors.push(...validateConditionalRules(questions));
     if (errors.length > 0) return Swal.fire('Erro nas Perguntas', errors.join('<br>'), 'error');
 
     const payload = {
@@ -534,16 +671,24 @@ function EditarFormulario() {
         tipo_formulario: novoForm.tipo?.value, 
         especialidades: novasEspecialidades.map(e => e.value), 
         diagnosticos: novosDiagnosticos.map(d => d.value),
-        perguntas: questions.map((q, index) => ({
-            texto_pergunta: q.texto, 
-            tipo_resposta_esperada: q.tipo,
-            ordem_pergunta: index + 1,
-            obrigatoria: q.obrigatoria,
-            opcoes_resposta: q.opcoes.map(o => ({ label: o.label, valor: o.valor })),
-            metadados_pergunta: q.tipo === "MATRIZ"
-                ? normalizeMatrizMetadata(q.metadados_pergunta)
-                : q.metadados_pergunta
-        }))
+        perguntas: questions.map((q, index) => {
+            const normalizedOptions = normalizeOptionsForSave(q?.opcoes ?? []);
+            const normalizedMatrizMeta = normalizeMatrizMetadataForSave(q?.metadados_pergunta);
+
+            return {
+                chave_pergunta: q.chave_pergunta,
+                texto_pergunta: q.texto,
+                tipo_resposta_esperada: q.tipo,
+                ordem_pergunta: index + 1,
+                obrigatoria: q.obrigatoria,
+                opcoes_resposta: normalizedOptions,
+                metadados_pergunta: getEffectiveQuestionType(q) === "MATRIZ"
+                    ? normalizedMatrizMeta
+                    : q.tipo === CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE
+                      ? normalizeConditionalMetadata(q.metadados_pergunta ?? {}, normalizedOptions)
+                      : q.metadados_pergunta
+            };
+        })
     };
 
     const result = await Swal.fire({
@@ -579,7 +724,7 @@ function EditarFormulario() {
                     setNovoForm({ titulo: '', descricao: '', tipo: null });
                     setNovasEspecialidades([]);
                     setNovosDiagnosticos([]);
-                    setQuestions([{ id: undefined, texto: "Pergunta 1", tipo: "TEXTO_LIVRE", ordem: 1, opcoes: [], obrigatoria: false }]);
+                    setQuestions([{ id: undefined, chave_pergunta: `tmp_${Date.now()}_1`, texto: "Pergunta 1", tipo: "TEXTO_LIVRE", ordem: 1, opcoes: [], obrigatoria: false }]);
                     setActiveTab('lista'); 
                 }
             });
@@ -797,6 +942,10 @@ function EditarFormulario() {
                         </div>
 
                         {questions.map((q, i) => {
+                            const questionRef = getQuestionRef(q, i);
+                            const effectiveType = getEffectiveQuestionType(q);
+                            const isConditioned = q.tipo === CONDITIONAL_CONSTANTS.CONDITIONED_TYPE;
+                            const conditionalBadges = conditionalBadgesByRef.get(questionRef) ?? [];
                             const isTopic = q.tipo === "TEXTO_TOPICO" || q.tipo === "TEXTO_SUBTOPICO";
 
                             return (
@@ -815,6 +964,14 @@ function EditarFormulario() {
                                         <div className="flex items-center gap-3 cursor-grab active:cursor-grabbing text-gray-300 hover:text-apollo-500 p-2 -ml-2 rounded-xl hover:bg-apollo-50 transition-colors">
                                             <Bars3Icon className="w-6 h-6" />
                                             <span className="text-xs font-bold text-gray-400 uppercase tracking-wide group-hover/card:text-apollo-500">Questão {i + 1}</span>
+                                            {isConditioned && (
+                                                <span className="text-[10px] px-2 py-1 rounded-full bg-amber-100 text-amber-700 font-semibold uppercase">CONDICIONADA</span>
+                                            )}
+                                            {conditionalBadges.map((badge, badgeIndex) => (
+                                                <span key={`${questionRef}_${badgeIndex}`} className="text-[10px] px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 font-medium">
+                                                    Condicional: {badge}
+                                                </span>
+                                            ))}
                                         </div>
                                         <div className="flex gap-3 items-center">
                                             <label className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg transition-all border-2 ${isTopic ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400 border-transparent' : q.obrigatoria ? 'bg-apollo-50 text-apollo-600 border-apollo-100 cursor-pointer' : 'bg-white text-gray-400 border-gray-100 hover:border-gray-200 cursor-pointer'}`}>
@@ -843,17 +1000,25 @@ function EditarFormulario() {
                                         </div>
                                         <div>
                                             <label className="block text-[10px] font-extrabold text-gray-400 uppercase mb-2 ml-1 tracking-widest">Tipo de Resposta</label>
-                                            <SingleSelect 
-                                                options={TIPO_PERGUNTA_OPTIONS}
-                                                value={TIPO_PERGUNTA_OPTIONS.find(o => o.value === q.tipo)}
-                                                onChange={(opt) => updateField(i, 'tipo', opt.value)}
-                                                placeholder="Selecione..."
-                                                className="text-sm cursor-pointer"
-                                            />
+                                            {isConditioned ? (
+                                                <div className="w-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+                                                    (CONDICIONADA)
+                                                </div>
+                                            ) : (
+                                                <SingleSelect 
+                                                    options={TIPO_PERGUNTA_OPTIONS}
+                                                    value={TIPO_PERGUNTA_OPTIONS.find(o => o.value === q.tipo)}
+                                                    onChange={(opt) => {
+                                                        updateField(i, 'tipo', opt.value);
+                                                    }}
+                                                    placeholder="Selecione..."
+                                                    className="text-sm cursor-pointer"
+                                                />
+                                            )}
                                         </div>
                                     </div>
 
-                                    {q.tipo === "MATRIZ" && (
+                                    {effectiveType === "MATRIZ" && (
                                         <div className="mt-6 border border-zinc-200 rounded-xl p-5 bg-gray-50/50 shadow-sm animate-fade-in">
                                             <h3 className="font-bold text-gray-800 text-lg border-b pb-2 mb-5">
                                                 <span>⚙️</span> Configuração da Matriz
@@ -1033,10 +1198,12 @@ function EditarFormulario() {
                                         </div>
                                     )}
 
-                                    {requiresOptions(q.tipo) && (
+                                    {(requiresOptions(effectiveType) || q.tipo === CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE) && (
                                         <div className="mt-6 ml-2 pl-6 border-l-4 border-apollo-100 bg-gray-50/50 p-5 rounded-r-2xl">
                                             <div className="flex justify-between items-center mb-4">
-                                                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Lista de Opções</span>
+                                                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                                    {q.tipo === CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE ? "Opções da Condicional" : "Lista de Opções"}
+                                                </span>
                                                 <button onClick={() => addOption(i)} className="text-[10px] bg-white border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg shadow-sm hover:bg-apollo-50 hover:text-apollo-600 hover:border-apollo-200 transition-all font-bold cursor-pointer">+ Opção</button>
                                             </div>
                                             <div className="space-y-3">
@@ -1048,6 +1215,35 @@ function EditarFormulario() {
                                                         <button onClick={() => removeOption(i, j)} className="text-gray-300 hover:text-red-500 px-2 opacity-0 group-hover/opt:opacity-100 transition-all font-bold text-lg cursor-pointer">×</button>
                                                     </div>
                                                 ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {q.tipo === CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE && (
+                                        <div className="mt-6 border border-indigo-100 rounded-xl p-4 bg-indigo-50/40 animate-fade-in">
+                                            <h3 className="font-bold text-indigo-800 text-sm mb-3">Configuração da Condicional</h3>
+                                            <div className="flex flex-col gap-3">
+                                                {(q?.opcoes ?? []).map((opt, optIndex) => {
+                                                    const optionLabel = String(opt?.label ?? `Opção ${optIndex + 1}`);
+                                                    const normalizedMeta = normalizeConditionalMetadata(q?.metadados_pergunta ?? {}, q?.opcoes ?? []);
+                                                    const selectedIds = normalizedMeta?.condicoes?.[optionLabel] ?? [];
+                                                    const availableOptions = conditionalTargetOptions.filter((option) => option.value !== questionRef);
+                                                    const selectedOptions = availableOptions.filter((option) => selectedIds.includes(String(option.value)));
+
+                                                    return (
+                                                        <div key={`${questionRef}_cond_${optIndex}`} className="rounded-lg border border-indigo-100 bg-white p-3">
+                                                            <p className="text-xs font-semibold text-indigo-600">Caso seja "{optionLabel}"</p>
+                                                            <p className="text-[11px] text-gray-500 mb-2">Selecionar perguntas condicionadas</p>
+                                                            <MultiSelect
+                                                                options={availableOptions}
+                                                                value={selectedOptions}
+                                                                onChange={(newSelected) => updateConditionalAssociations(i, optionLabel, newSelected)}
+                                                                placeholder="Selecione perguntas condicionadas..."
+                                                                closeMenuOnSelect={false}
+                                                            />
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     )}

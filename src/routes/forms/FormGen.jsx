@@ -6,7 +6,7 @@
  */
 
 import { Link, useLocation, useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import CampoDinamico from "../../components/form/CampoDinamico.jsx";
 import LoadingGen from "../../components/info/LoadingGen.jsx";
@@ -17,6 +17,7 @@ import { concluir_pendencia_escala } from "../../api/pendencias/pendencias_utils
 import { useAuth } from "../../hooks/useAuth";
 import { useFormContext } from "../../hooks/useFormContext";
 import Swal from "sweetalert2";
+import { CONDITIONAL_CONSTANTS, getConditionalTargetsForAnswer } from "../../utils/form/conditionalQuestions.js";
 
 const CACHE_DURATION = 3 * 24 * 60 * 60 * 1000; // 3 dias em milisegundos
 
@@ -129,7 +130,45 @@ const FormularioGenerico = () => {
         };
 
         fetchFormulario();
-    }, [id_form, user, location]);
+    }, [cacheKey, id_form, location, user]);
+
+    /**
+     * Valores iniciais mapeados da pendência (caso exista).
+     */
+    const initialValues = useMemo(() => ({
+        paciente: pendencia?.["Paciente"] || "",
+        ...cachedValues
+    }), [cachedValues, pendencia]);
+
+    // Resolve perguntas condicionadas visiveis com base nas respostas atuais das perguntas CONDICIONAL.
+    const activeConditionalTargets = useMemo(() => {
+        if (!formulario?.campos) return new Set();
+
+        const targets = new Set();
+        formulario.campos.forEach((campo) => {
+            if (campo?.tipo_resposta_esperada !== CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE) return;
+
+            const selectedValue = cachedValues?.[campo.nome] ?? initialValues?.[campo.nome] ?? "";
+            const perguntasAbrir = getConditionalTargetsForAnswer(campo, selectedValue);
+            perguntasAbrir.forEach((target) => targets.add(String(target)));
+        });
+
+        return targets;
+    }, [cachedValues, formulario?.campos, initialValues]);
+
+    const visibleCampos = useMemo(() => {
+        if (!formulario?.campos) return [];
+
+        return formulario.campos.filter((campo) => {
+            if (campo?.tipo_resposta_esperada !== CONDITIONAL_CONSTANTS.CONDITIONED_TYPE) return true;
+
+            const referenceSet = [campo?.id, campo?.nome]
+                .filter((value) => value !== undefined && value !== null)
+                .map((value) => String(value));
+
+            return referenceSet.some((ref) => activeConditionalTargets.has(ref));
+        });
+    }, [activeConditionalTargets, formulario?.campos]);
 
     // Estado de carregamento ou erro
     if (loading) return <LoadingGen mensagem="Carregando formulário..." primaryColor="#ffffff" secondaryColor="#ffffff" messageColor="text-apollo-100" />;
@@ -152,14 +191,6 @@ const FormularioGenerico = () => {
         );
 
     /**
-     * Valores iniciais mapeados da pendência (caso exista).
-     */
-    const initialValues = {
-        paciente: pendencia?.["Paciente"] || "",
-        ...cachedValues
-    };
-
-    /**
      * Manipula o envio do formulário.
      * Faz a leitura e validação dos campos dinamicamente.
      */
@@ -175,7 +206,7 @@ const FormularioGenerico = () => {
         const respostasForm = {};
         const obrigatoriosFaltando = [];
 
-        for (const campo of formulario.campos) {
+        for (const campo of visibleCampos) {
             const { nome, label, tipo_resposta_esperada, meta_dados } = campo;
             const isOptional = (meta_dados?.required === false) || tipo_resposta_esperada === "TEXTO_LIVRE" || /observac/i.test(nome);
 
@@ -481,7 +512,7 @@ const FormularioGenerico = () => {
                     className="flex flex-col gap-6 w-full"
                     noValidate
                 >
-                    {formulario.campos.map((campo) => (
+                    {visibleCampos.map((campo) => (
                         <CampoDinamico
                             key={campo.id}
                             campo={campo}

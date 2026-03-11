@@ -19,6 +19,15 @@ import { carregar_info_form, carregar_perguntas_form, upsert_perguntas_form, atu
 import ErroGen from "../../components/info/ErroGen.jsx";
 import SucessGen from "../../components/info/SucessGen.jsx";
 import Swal from "sweetalert2";
+import {
+  CONDITIONAL_CONSTANTS,
+  collectConditionalBadges,
+  getEffectiveQuestionType,
+  getQuestionReference,
+  normalizeConditionalMetadata,
+  syncConditionedQuestions,
+  validateConditionalRules,
+} from "../../utils/form/conditionalQuestions.js";
 
 // Tipos permitidos em células da Matriz
 const MATRIZ_CELL_TYPES = [
@@ -92,6 +101,51 @@ const normalizeMatrizMetadata = (meta = {}) => {
   };
 };
 
+const slugifyOptionLabel = (value) => {
+  const base = String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return base || "opcao";
+};
+
+const buildOptionValue = (label, index) => `${index + 1}_${slugifyOptionLabel(label)}`;
+
+const normalizeOptionsForSave = (options = []) => {
+  if (!Array.isArray(options)) return [];
+
+  return options.map((option, index) => {
+    const label = typeof option === "object" && option !== null
+      ? String(option.label ?? option.nome ?? option.valor ?? option.value ?? `Opção ${index + 1}`)
+      : String(option ?? `Opção ${index + 1}`);
+
+    return {
+      label,
+      valor: buildOptionValue(label, index),
+    };
+  });
+};
+
+const normalizeMatrizMetadataForSave = (meta = {}) => {
+  const normalized = normalizeMatrizMetadata(meta);
+
+  return {
+    ...normalized,
+    config_linhas: (normalized.config_linhas ?? []).map((row) => {
+      const tipo = row?.tipo;
+      const needsOptions = tipo === "selecao_unica" || tipo === "selecao_multipla";
+
+      return {
+        ...row,
+        opcoes: needsOptions ? normalizeOptionsForSave(row?.opcoes ?? []) : [],
+      };
+    }),
+  };
+};
+
 /**
  * Componente de edição de formulário.
  *
@@ -161,6 +215,7 @@ function EditTela() {
       const normalized = Array.isArray(perguntasData)
         ? perguntasData.map((p, idx) => ({
             id: p?.pergunta_id ?? p?.id ?? undefined,
+            chave_pergunta: p?.chave_pergunta ?? `tmp_${idx + 1}`,
             texto: p?.texto_pergunta ?? "Pergunta",
             tipo: p?.tipo_resposta_esperada ?? "TEXTO_LIVRE",
             ordem: p?.ordem_pergunta ?? idx + 1,
@@ -169,6 +224,8 @@ function EditTela() {
             metadados_pergunta:
               p?.tipo_resposta_esperada === "MATRIZ"
                 ? normalizeMatrizMetadata(p?.metadados_pergunta)
+                : p?.tipo_resposta_esperada === CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE
+                  ? normalizeConditionalMetadata(p?.metadados_pergunta ?? {}, p?.opcoes_resposta ?? [])
                 : p?.metadados_pergunta ?? {},
             opcoes: Array.isArray(p?.opcoes_resposta)
               ? p.opcoes_resposta.map((o) => {
@@ -207,6 +264,7 @@ function EditTela() {
       { value: "NUMERO_FLOAT", label: "Número decimal" },
       { value: "SELECAO_UNICA", label: "Seleção única" },
       { value: "SELECAO_MULTIPLA", label: "Seleção múltipla" },
+      { value: "CONDICIONAL", label: "Condicional" },
       { value: "TEXTO_TOPICO", label: "Tópico de texto" },
       { value: "TEXTO_SUBTOPICO", label: "Subtópico de texto" },
       { value: "MATRIZ", label: "Matriz (Tabela)" },
@@ -214,8 +272,24 @@ function EditTela() {
     []
   );
 
+  const conditionedRealTypeOptions = useMemo(
+    () => tipoOptions.filter((option) => option.value !== CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE),
+    [tipoOptions]
+  );
+
   // Helper: tipos que exigem opções
   const requiresOptions = (tipo) => tipo === "SELECAO_UNICA" || tipo === "SELECAO_MULTIPLA";
+
+  const getQuestionRef = (question, index) => getQuestionReference(question, `tmp_${index + 1}`);
+
+  const conditionalTargetOptions = useMemo(() => {
+    return questions.map((question, index) => ({
+      value: getQuestionRef(question, index),
+      label: `${question?.texto ?? "Pergunta"} (#${index + 1})`,
+    }));
+  }, [questions]);
+
+  const conditionalBadgesByRef = useMemo(() => collectConditionalBadges(questions), [questions]);
 
   // Entradas exibíveis/editáveis do formulário (exclui ids e datas)
   const infoEntries = useMemo(() => {
@@ -237,6 +311,78 @@ function EditTela() {
 
   const handleInfoChange = (key, value) => {
     setFormInfoEdit((prev) => ({ ...(prev ?? {}), [key]: value }));
+  };
+
+  const applyConditionalSync = (list = []) => {
+    const synced = syncConditionedQuestions(list);
+    return synced.map((q, idx) => ({ ...q, ordem: idx + 1 }));
+  };
+
+  const normalizeQuestionConditionalMeta = (question) => {
+    if (question?.tipo !== CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE) return question;
+
+    return {
+      ...question,
+      metadados_pergunta: normalizeConditionalMetadata(question?.metadados_pergunta ?? {}, question?.opcoes ?? []),
+    };
+  };
+
+  const updateConditionalAssociations = (qIndex, optionLabel, selectedOptions) => {
+    setQuestions((prev) => {
+      const arr = [...prev];
+      const question = { ...arr[qIndex] };
+      const normalizedMeta = normalizeConditionalMetadata(question?.metadados_pergunta ?? {}, question?.opcoes ?? []);
+      const condicoes = { ...(normalizedMeta?.condicoes ?? {}) };
+      condicoes[optionLabel] = (selectedOptions ?? []).map((option) => String(option?.value ?? "")).filter(Boolean);
+
+      question.metadados_pergunta = {
+        ...normalizedMeta,
+        condicoes,
+      };
+
+      arr[qIndex] = question;
+      return applyConditionalSync(arr);
+    });
+  };
+
+  const updateConditionedRealType = (index, newTipo) => {
+    setQuestions((prev) => {
+      const arr = [...prev];
+      const current = { ...arr[index] };
+
+      if (current?.tipo !== CONDITIONAL_CONSTANTS.CONDITIONED_TYPE) return prev;
+
+      const nextMeta = { ...(current?.metadados_pergunta ?? {}), tipo_real: newTipo };
+
+      if (newTipo === "MATRIZ") {
+        current.metadados_pergunta = { ...normalizeMatrizMetadata(nextMeta), tipo_real: newTipo };
+      } else {
+        current.metadados_pergunta = nextMeta;
+      }
+
+      if (!requiresOptions(newTipo)) {
+        current.opcoes = [];
+      } else if (!Array.isArray(current.opcoes) || current.opcoes.length === 0) {
+        current.opcoes = [{ valor: "opcao_1", label: "Opção 1" }];
+      }
+
+      if (newTipo === "TEXTO_TOPICO" || newTipo === "TEXTO_SUBTOPICO") {
+        current.obrigatoria = false;
+      }
+
+      arr[index] = current;
+      return applyConditionalSync(arr);
+    });
+  };
+
+  const normalizeMatrizMetaForQuestion = (question, meta) => {
+    const normalizedMeta = normalizeMatrizMetadata(meta);
+
+    if (question?.tipo === CONDITIONAL_CONSTANTS.CONDITIONED_TYPE) {
+      return { ...normalizedMeta, tipo_real: "MATRIZ" };
+    }
+
+    return normalizedMeta;
   };
 
   const tipoFormularioOptions = useMemo(
@@ -314,16 +460,36 @@ function EditTela() {
     setQuestions((prev) => {
       let arr = [...prev];
       const current = { ...arr[index], [field]: value };
-      if (current.tipo === "MATRIZ" || field === "metadados_pergunta") {
-        current.metadados_pergunta = normalizeMatrizMetadata(current.metadados_pergunta);
+
+      if (field === "tipo") {
+        if (value === CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE) {
+          if (!Array.isArray(current.opcoes) || current.opcoes.length === 0) {
+            current.opcoes = [{ valor: "opcao_1", label: "Opção 1" }];
+          }
+          current.metadados_pergunta = normalizeConditionalMetadata(current?.metadados_pergunta ?? {}, current.opcoes);
+          current.obrigatoria = false;
+        }
+
+        if (value === CONDITIONAL_CONSTANTS.CONDITIONED_TYPE) {
+          return prev;
+        }
       }
+
+      if (current.tipo === "MATRIZ" || (field === "metadados_pergunta" && getEffectiveQuestionType(current) === "MATRIZ")) {
+        current.metadados_pergunta = normalizeMatrizMetaForQuestion(current, current.metadados_pergunta);
+      }
+
+      if (current.tipo === CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE || field === "opcoes") {
+        current.metadados_pergunta = normalizeConditionalMetadata(current?.metadados_pergunta ?? {}, current?.opcoes ?? []);
+      }
+
       if (field === "inativa" && value === true) {
         arr.splice(index, 1);
         arr = [...arr, current];
       } else {
-        arr[index] = current;
+        arr[index] = normalizeQuestionConditionalMeta(current);
       }
-      return arr.map((q, idx) => ({ ...q, ordem: idx + 1 }));
+      return applyConditionalSync(arr);
     });
   };
 
@@ -333,7 +499,7 @@ function EditTela() {
       const arr = [...prev];
       const q = { ...arr[qIndex] };
       const meta = normalizeMatrizMetadata(q.metadados_pergunta);
-      q.metadados_pergunta = normalizeMatrizMetadata({
+      q.metadados_pergunta = normalizeMatrizMetaForQuestion(q, {
         ...meta,
         [field]: field === "linhas" || field === "colunas"
           ? Math.max(1, Number.parseInt(value, 10) || 1)
@@ -353,7 +519,7 @@ function EditTela() {
       
       const newTitles = [...(meta[titleKey] || [])];
       newTitles[index] = value;
-      q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, [titleKey]: newTitles });
+      q.metadados_pergunta = normalizeMatrizMetaForQuestion(q, { ...meta, [titleKey]: newTitles });
       arr[qIndex] = q;
       return arr;
     });
@@ -375,7 +541,7 @@ function EditTela() {
       }
 
       config[rowIndex] = rowConfig;
-      q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, config_linhas: config });
+      q.metadados_pergunta = normalizeMatrizMetaForQuestion(q, { ...meta, config_linhas: config });
       arr[qIndex] = q;
       return arr;
     });
@@ -394,7 +560,7 @@ function EditTela() {
         rowConfig.opcoes = [...(rowConfig.opcoes ?? []), newOpt];
         
         config[rowIndex] = rowConfig;
-        q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, config_linhas: config });
+        q.metadados_pergunta = normalizeMatrizMetaForQuestion(q, { ...meta, config_linhas: config });
         arr[qIndex] = q;
         return arr;
     });
@@ -419,7 +585,7 @@ function EditTela() {
           
           rowConfig.opcoes = newOpts;
           config[rowIndex] = rowConfig;
-        q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, config_linhas: config });
+        q.metadados_pergunta = normalizeMatrizMetaForQuestion(q, { ...meta, config_linhas: config });
           arr[qIndex] = q;
           return arr;
       });
@@ -437,7 +603,7 @@ function EditTela() {
           
           rowConfig.opcoes = newOpts;
           config[rowIndex] = rowConfig;
-        q.metadados_pergunta = normalizeMatrizMetadata({ ...meta, config_linhas: config });
+        q.metadados_pergunta = normalizeMatrizMetaForQuestion(q, { ...meta, config_linhas: config });
           arr[qIndex] = q;
           return arr;
       });
@@ -547,13 +713,14 @@ function EditTela() {
       ...prev,
       {
         id: undefined,
+        chave_pergunta: `tmp_${Date.now()}_${prev.length + 1}`,
         texto: "Nova pergunta",
         tipo: "TEXTO_LIVRE",
         ordem: prev.length + 1,
         opcoes: [],
         metadados_pergunta: {},
       },
-    ]);
+    ].map((q, idx) => ({ ...q, ordem: idx + 1 })));
     try {
       if (typeof requestAnimationFrame === "function") {
         requestAnimationFrame(() => requestAnimationFrame(() => scrollToBottom()));
@@ -570,6 +737,7 @@ function EditTela() {
       const arr = [...prev];
       const newQ = {
         id: undefined,
+        chave_pergunta: `tmp_${Date.now()}_${index + 1}`,
         texto: "Nova pergunta",
         tipo: "TEXTO_LIVRE",
         ordem: index + 1,
@@ -579,7 +747,7 @@ function EditTela() {
       if (index < 0) index = 0;
       if (index > arr.length) index = arr.length;
       arr.splice(index, 0, newQ);
-      return arr.map((q, idx) => ({ ...q, ordem: idx + 1 }));
+      return applyConditionalSync(arr);
     });
     setPendingFocusIndex(index);
     const scrollToInserted = () => {
@@ -638,8 +806,9 @@ function EditTela() {
       const q = arr[index];
       const nextIdx = (q?.opcoes?.length ?? 0) + 1;
       const newOpt = { valor: `opcao_${nextIdx}`, label: `Opção ${nextIdx}` };
-      arr[index] = { ...q, opcoes: [...(q?.opcoes ?? []), newOpt] };
-      return arr;
+      const updated = { ...q, opcoes: [...(q?.opcoes ?? []), newOpt] };
+      arr[index] = normalizeQuestionConditionalMeta(updated);
+      return applyConditionalSync(arr);
     });
   };
 
@@ -649,8 +818,9 @@ function EditTela() {
       const q = arr[qIndex];
       const ops = [...(q?.opcoes ?? [])];
       ops[optIndex] = { ...ops[optIndex], [field]: value };
-      arr[qIndex] = { ...q, opcoes: ops };
-      return arr;
+      const updated = { ...q, opcoes: ops };
+      arr[qIndex] = normalizeQuestionConditionalMeta(updated);
+      return applyConditionalSync(arr);
     });
   };
 
@@ -659,8 +829,9 @@ function EditTela() {
       const arr = [...prev];
       const q = arr[qIndex];
       const ops = (q?.opcoes ?? []).filter((_, i) => i !== optIndex);
-      arr[qIndex] = { ...q, opcoes: ops };
-      return arr;
+      const updated = { ...q, opcoes: ops };
+      arr[qIndex] = normalizeQuestionConditionalMeta(updated);
+      return applyConditionalSync(arr);
     });
   };
 
@@ -668,13 +839,14 @@ function EditTela() {
     const errors = [];
     questions.forEach((q, idx) => {
       if (q?.inativa === true) return;
+      const tipoEfetivo = getEffectiveQuestionType(q);
       if (!q?.texto || String(q?.texto).trim() === "") {
         errors.push(`Pergunta ${idx + 1}: texto é obrigatório.`);
       }
       if (!q?.tipo) {
         errors.push(`Pergunta ${idx + 1}: tipo é obrigatório.`);
       }
-      if (requiresOptions(q?.tipo)) {
+      if (requiresOptions(tipoEfetivo) || q?.tipo === CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE) {
         if (!Array.isArray(q?.opcoes) || q.opcoes.length === 0) {
           errors.push(`Pergunta ${idx + 1}: precisa ter ao menos uma opção.`);
         } else {
@@ -688,7 +860,18 @@ function EditTela() {
           });
         }
       }
-      if (q?.tipo === "MATRIZ") {
+      if (q?.tipo === CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE) {
+        const normalizedMeta = normalizeConditionalMetadata(q?.metadados_pergunta ?? {}, q?.opcoes ?? []);
+        const condicoes = normalizedMeta?.condicoes ?? {};
+        (q?.opcoes ?? []).forEach((opcao, opcaoIndex) => {
+          const label = String(opcao?.label ?? `Opção ${opcaoIndex + 1}`);
+          if (!Array.isArray(condicoes[label])) {
+            errors.push(`Pergunta ${idx + 1}: condição da opção "${label}" está inválida.`);
+          }
+        });
+      }
+
+      if (tipoEfetivo === "MATRIZ") {
         const m = normalizeMatrizMetadata(q.metadados_pergunta);
         if (!m?.linhas || m.linhas < 1) errors.push(`Pergunta ${idx + 1}: a matriz precisa de pelo menos 1 linha.`);
         if (!m?.colunas || m.colunas < 1) errors.push(`Pergunta ${idx + 1}: a matriz precisa de pelo menos 1 coluna.`);
@@ -727,6 +910,9 @@ function EditTela() {
         });
       }
     });
+
+    errors.push(...validateConditionalRules(questions));
+
     return errors;
   };
 
@@ -742,19 +928,30 @@ function EditTela() {
     
     setSaving(true);
 
-    const payload = questions.map((q, idx) => ({
+    const payload = questions.map((q, idx) => {
+      const effectiveType = getEffectiveQuestionType(q);
+      const normalizedOptions = normalizeOptionsForSave(q?.opcoes ?? []);
+      const normalizedMatrizMeta = normalizeMatrizMetadataForSave(q?.metadados_pergunta);
+
+      return ({
       id: q?.id,
+      chave_pergunta: q?.chave_pergunta,
       texto_pergunta: q?.texto,
       tipo_resposta_esperada: q?.tipo,
       ordem_pergunta: q?.ordem ?? idx + 1,
-      opcoes_resposta: q?.opcoes ?? [],
+      opcoes_resposta: normalizedOptions,
       inativa: q?.inativa === true,
       obrigatoria: q?.obrigatoria === true,
       metadados_pergunta:
-        q?.tipo === "MATRIZ"
-          ? normalizeMatrizMetadata(q?.metadados_pergunta)
+        effectiveType === "MATRIZ"
+          ? q?.tipo === CONDITIONAL_CONSTANTS.CONDITIONED_TYPE
+            ? { ...normalizedMatrizMeta, tipo_real: q?.metadados_pergunta?.tipo_real ?? "MATRIZ" }
+            : normalizedMatrizMeta
+          : q?.tipo === CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE
+            ? normalizeConditionalMetadata(q?.metadados_pergunta ?? {}, normalizedOptions)
           : q?.metadados_pergunta ?? {}
-    }));
+    });
+    });
 
     let detailsRes = { ok: true };
     try {
@@ -900,8 +1097,14 @@ function EditTela() {
                 </button>
               </div>
 
-              {questions.map((q, i) => (
-                <React.Fragment key={q?.id ?? i}>
+              {questions.map((q, i) => {
+                const questionRef = getQuestionRef(q, i);
+                const effectiveType = getEffectiveQuestionType(q);
+                const isConditioned = q?.tipo === CONDITIONAL_CONSTANTS.CONDITIONED_TYPE;
+                const conditionalBadges = conditionalBadgesByRef.get(questionRef) ?? [];
+
+                return (
+                <React.Fragment key={q?.id ?? q?.chave_pergunta ?? i}>
                   {/* Indicador de inserção ANTES do card */}
                   {dragOverIndex === i && dragOverEdge === "top" && (
                     <div className="h-2 -my-1">
@@ -928,6 +1131,19 @@ function EditTela() {
                           ⋮⋮
                         </button>
                         <span className="text-sm text-gray-500">Pergunta #{i + 1}</span>
+                        {isConditioned && (
+                          <span className="text-[10px] px-2 py-1 rounded-full bg-amber-100 text-amber-800 font-semibold uppercase">
+                            CONDICIONADA
+                          </span>
+                        )}
+                        {conditionalBadges.map((badge, badgeIndex) => (
+                          <span
+                            key={`${questionRef}_${badgeIndex}`}
+                            className="text-[10px] px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 font-medium"
+                          >
+                            Condicional: {badge}
+                          </span>
+                        ))}
                       </div>
                       <div className="flex gap-4 items-center">
                       {q?.tipo !== "TEXTO_TOPICO" && q?.tipo !== "TEXTO_SUBTOPICO" && (
@@ -970,37 +1186,56 @@ function EditTela() {
 
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-semibold">Tipo</label>
-                      <SingleSelect
-                        options={tipoOptions}
-                        value={tipoOptions.find((o) => o.value === q?.tipo) ?? null}
-                        onChange={(opt) => {
-                          const newTipo = opt?.value ?? "TEXTO_LIVRE";
-                          updateField(i, "tipo", newTipo);
-                          if (newTipo === "TEXTO_TOPICO" || newTipo === "TEXTO_SUBTOPICO") {
-                              updateField(i, "obrigatoria", false);
-                          }
-                          
-                          // Template inicial caso Matriz seja selecionado
-                          if (newTipo === "MATRIZ" && (!q?.metadados_pergunta || !q.metadados_pergunta.tipo)) {
-                              updateField(i, "metadados_pergunta", normalizeMatrizMetadata(q?.metadados_pergunta));
-                          }
+                      {isConditioned ? (
+                        <SingleSelect
+                          options={conditionedRealTypeOptions}
+                          value={conditionedRealTypeOptions.find((o) => o.value === effectiveType) ?? null}
+                          onChange={(opt) => {
+                            const newTipo = opt?.value ?? "TEXTO_LIVRE";
+                            updateConditionedRealType(i, newTipo);
+                          }}
+                          placeholder="Selecione o tipo real"
+                          isClearable={false}
+                          closeMenuOnSelect
+                          isDisabled={q?.inativa === true}
+                        />
+                      ) : (
+                        <SingleSelect
+                          options={tipoOptions}
+                          value={tipoOptions.find((o) => o.value === q?.tipo) ?? null}
+                          onChange={(opt) => {
+                            const newTipo = opt?.value ?? "TEXTO_LIVRE";
+                            updateField(i, "tipo", newTipo);
+                            if (newTipo === "TEXTO_TOPICO" || newTipo === "TEXTO_SUBTOPICO") {
+                                updateField(i, "obrigatoria", false);
+                            }
+                            
+                            // Template inicial caso Matriz seja selecionado
+                            if (newTipo === "MATRIZ" && (!q?.metadados_pergunta || !q.metadados_pergunta.tipo)) {
+                                updateField(i, "metadados_pergunta", normalizeMatrizMetadata(q?.metadados_pergunta));
+                            }
 
-                          if (!requiresOptions(newTipo)) {
-                            updateField(i, "opcoes", []);
-                          } else if (requiresOptions(newTipo) && (!q?.opcoes || q.opcoes.length === 0)) {
-                            updateField(i, "opcoes", [{ valor: "opcao_1", label: "Opção 1" }]);
-                          }
-                        }}
-                        placeholder="Selecione o tipo"
-                        isClearable={false}
-                        closeMenuOnSelect
-                        isDisabled={q?.inativa === true}
-                      />
+                            if (!requiresOptions(newTipo)) {
+                              updateField(i, "opcoes", []);
+                            } else if (requiresOptions(newTipo) && (!q?.opcoes || q.opcoes.length === 0)) {
+                              updateField(i, "opcoes", [{ valor: "opcao_1", label: "Opção 1" }]);
+                            }
+
+                            if (newTipo === CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE) {
+                              updateField(i, "metadados_pergunta", normalizeConditionalMetadata(q?.metadados_pergunta ?? {}, q?.opcoes ?? [{ valor: "opcao_1", label: "Opção 1" }]));
+                            }
+                          }}
+                          placeholder="Selecione o tipo"
+                          isClearable={false}
+                          closeMenuOnSelect
+                          isDisabled={q?.inativa === true}
+                        />
+                      )}
                     </div>
                   </div>
 
                   {/* MAtriZ/Tabela */}
-                  {q?.tipo === "MATRIZ" && (
+                  {effectiveType === "MATRIZ" && (
                     <div className="mt-6 border border-zinc-200 rounded-xl p-5 bg-gray-50/50 shadow-sm">
                        <h3 className="font-bold text-gray-800 text-lg border-b pb-2 mb-5">⚙️ Configuração da Matriz</h3>
                        
@@ -1196,11 +1431,13 @@ function EditTela() {
                     </div>
                   )}
 
-                  {/* Opções Convencionais (quando o tipo não é matriz mas exige opções) */}
-                  {requiresOptions(q?.tipo) && (
+                  {/* Opções Convencionais */}
+                  {(requiresOptions(effectiveType) || q?.tipo === CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE) && (
                     <div className="mt-4 flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-sm font-semibold">Opções de resposta</label>
+                        <label className="text-sm font-semibold">
+                          {q?.tipo === CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE ? "Opções da condicional" : "Opções de resposta"}
+                        </label>
                         <button
                           className="py-1 px-2 rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
                           onClick={() => addOption(i)}
@@ -1234,6 +1471,34 @@ function EditTela() {
                       </div>
                     </div>
                   )}
+
+                  {q?.tipo === CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE && (
+                    <div className="mt-4 flex flex-col gap-3 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
+                      <h4 className="text-sm font-semibold text-indigo-800">Configuração da Condicional</h4>
+                      {(q?.opcoes ?? []).map((opt, optIndex) => {
+                        const optionLabel = String(opt?.label ?? `Opção ${optIndex + 1}`);
+                        const normalizedMeta = normalizeConditionalMetadata(q?.metadados_pergunta ?? {}, q?.opcoes ?? []);
+                        const selectedIds = normalizedMeta?.condicoes?.[optionLabel] ?? [];
+                        const availableOptions = conditionalTargetOptions.filter((option) => option.value !== questionRef);
+                        const selectedOptions = availableOptions.filter((option) => selectedIds.includes(String(option.value)));
+
+                        return (
+                          <div key={`${questionRef}_opt_${optIndex}`} className="rounded-lg border border-indigo-100 bg-white p-3">
+                            <p className="text-xs font-semibold text-indigo-600">Caso seja "{optionLabel}"</p>
+                            <p className="text-[11px] text-gray-500 mb-2">Selecionar perguntas condicionadas</p>
+                            <MultiSelect
+                              options={availableOptions}
+                              value={selectedOptions}
+                              onChange={(newSelected) => updateConditionalAssociations(i, optionLabel, newSelected)}
+                              placeholder="Selecione perguntas condicionadas..."
+                              closeMenuOnSelect={false}
+                              isDisabled={q?.inativa === true}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                   </div>
                   {/* Indicador de inserção DEPOIS do card */}
                   {dragOverIndex === i && dragOverEdge === "bottom" && (
@@ -1259,7 +1524,7 @@ function EditTela() {
                     </button>
                   </div>
                 </React.Fragment>
-              ))}
+              )})}
 
               {/* Barra de inserção APÓS a última pergunta (fallback extra) */}
               {questions.length === 0 && (

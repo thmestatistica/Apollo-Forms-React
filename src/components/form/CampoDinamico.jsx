@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 
 import SingleSelect from "../input/SingleSelect.jsx";
 import MultiSelect from "../input/MultiSelect.jsx";
+import { CONDITIONAL_CONSTANTS, getConditionalTargetsForAnswer, getEffectiveQuestionType } from "../../utils/form/conditionalQuestions.js";
 
 const createDefaultMatrizRowConfig = () => ({ tipo: "texto", opcoes: [] });
 
@@ -105,10 +106,16 @@ const CampoDinamico = ({ campo, initialValues = {}, onFieldChange = null}) => {
         meta_dados = {},
     } = campo;
 
+    // Perguntas CONDICIONADA reutilizam a renderização do tipo real salvo no metadado.
+    const tipoReal = useMemo(
+        () => getEffectiveQuestionType(campo),
+        [campo]
+    );
+
     // Normaliza a matriz para o contrato novo: estrutura fixa + config_linhas como array por linha.
     const matrizMeta = useMemo(
-        () => (tipo_resposta_esperada === "MATRIZ" ? normalizeMatrizMetadata(meta_dados) : null),
-        [meta_dados, tipo_resposta_esperada]
+        () => (tipoReal === "MATRIZ" ? normalizeMatrizMetadata(meta_dados) : null),
+        [meta_dados, tipoReal]
     );
 
     // Define valor inicial com fallback para string vazia
@@ -145,19 +152,19 @@ const CampoDinamico = ({ campo, initialValues = {}, onFieldChange = null}) => {
      * Isso evita perda de reatividade nos componentes controlados (Single/MultiSelect).
      */
     const [singleValue, setSingleValue] = useState(() => {
-        if (tipo_resposta_esperada !== "SELECAO_UNICA") return null;
+        if (tipoReal !== "SELECAO_UNICA" && tipo_resposta_esperada !== CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE) return null;
         const found = selectOptions.find((o) => o.value === valorInicial || o.label === valorInicial);
         return found ?? null;
     });
 
     const [multiValue, setMultiValue] = useState(() => {
-        if (tipo_resposta_esperada !== "SELECAO_MULTIPLA") return [];
+        if (tipoReal !== "SELECAO_MULTIPLA") return [];
         const initialArray = Array.isArray(valorInicial) ? valorInicial : [];
         return selectOptions.filter((o) => initialArray.includes(o.value) || initialArray.includes(o.label));
     });
 
     const [matrizData, setMatrizData] = useState(() => {
-        if (tipo_resposta_esperada !== "MATRIZ") return [];
+        if (tipoReal !== "MATRIZ") return [];
         
         // Tenta carregar do cache ou dos initialValues se já existir
         if (valorInicial && typeof valorInicial === "string") {
@@ -221,7 +228,7 @@ const CampoDinamico = ({ campo, initialValues = {}, onFieldChange = null}) => {
      * Cada caso aplica estilização consistente com Tailwind e segue o padrão visual.
      */
     const renderCampo = () => {
-        switch (tipo_resposta_esperada) {
+        switch (tipo_resposta_esperada === CONDITIONAL_CONSTANTS.CONDITIONED_TYPE ? tipoReal : tipo_resposta_esperada) {
             /** Campo de texto livre (textarea) */
             case "TEXTO_LIVRE":
                 return (
@@ -278,6 +285,38 @@ const CampoDinamico = ({ campo, initialValues = {}, onFieldChange = null}) => {
                         isClearable={meta_dados.isClearable ?? true}
                     />
                     {/* Campo oculto para submissão tradicional (HTML form) */}
+                    <input
+                        type="hidden"
+                        id={nome}
+                        name={nome}
+                        value={singleValue?.label ?? ""}
+                    />
+                    </>
+                );
+
+            /** Campo condicional (seleção única + notificação de perguntas condicionadas) */
+            case "CONDICIONAL":
+                return (
+                    <>
+                    <SingleSelect
+                        options={selectOptions}
+                        value={singleValue}
+                        onChange={(opt) => {
+                            setSingleValue(opt);
+
+                            if (onFieldChange) {
+                                const valorSelecionado = opt?.label ?? "";
+                                const perguntasAbrir = getConditionalTargetsForAnswer(campo, valorSelecionado);
+                                onFieldChange(nome, valorSelecionado, {
+                                    tipo: "CONDICIONAL",
+                                    valorSelecionado,
+                                    perguntasAbrir,
+                                });
+                            }
+                        }}
+                        placeholder={meta_dados.placeholder ?? "Selecione..."}
+                        isClearable={meta_dados.isClearable ?? true}
+                    />
                     <input
                         type="hidden"
                         id={nome}

@@ -252,6 +252,59 @@ export const upsert_perguntas_form = async (formId, perguntas = []) => {
   if (!formId) return { ok: false, error: new Error("formId inválido") };
   const payload = Array.isArray(perguntas) ? perguntas : [];
 
+  const remapConditionalMetadataToIds = (sourceQuestions = [], persistedQuestions = []) => {
+    const refToId = new Map();
+
+    persistedQuestions.forEach((question) => {
+      const id = question?.pergunta_id ?? question?.id;
+      const chave = question?.chave_pergunta;
+
+      if (id !== undefined && id !== null) {
+        refToId.set(String(id), Number(id));
+      }
+      if (chave) {
+        refToId.set(String(chave), Number(id));
+      }
+    });
+
+    let changed = false;
+    const remapped = sourceQuestions.map((question) => {
+      if (question?.tipo_resposta_esperada !== "CONDICIONAL") return question;
+
+      const metadata = { ...(question?.metadados_pergunta ?? {}) };
+      const condicoes = { ...(metadata?.condicoes ?? {}) };
+
+      Object.entries(condicoes).forEach(([optionLabel, targets]) => {
+        if (!Array.isArray(targets)) {
+          condicoes[optionLabel] = [];
+          changed = true;
+          return;
+        }
+
+        const mapped = targets
+          .map((target) => {
+            const key = String(target);
+            if (refToId.has(key)) return refToId.get(key);
+            return key;
+          })
+          .filter((target) => target !== undefined && target !== null && String(target).trim() !== "");
+
+        if (JSON.stringify(mapped) !== JSON.stringify(targets)) changed = true;
+        condicoes[optionLabel] = mapped;
+      });
+
+      return {
+        ...question,
+        metadados_pergunta: {
+          ...metadata,
+          condicoes,
+        },
+      };
+    });
+
+    return { changed, remapped };
+  };
+
   // Sanitiza: remove chaves internas e normaliza options
   const normalize = (p, idx) => {
     const tipo = p?.tipo_resposta_esperada ?? "TEXTO_LIVRE";
@@ -321,6 +374,50 @@ export const upsert_perguntas_form = async (formId, perguntas = []) => {
   const requestBody = { updates, new_questions };
   try {
     const { data } = await axiosInstanceForms.put(`/forms/${formId}/questions`, requestBody);
+
+    const hasConditional = bodyArray.some((question) => question?.tipo_resposta_esperada === "CONDICIONAL");
+    if (hasConditional) {
+      const persisted = await carregar_perguntas_form(formId);
+      const { changed, remapped } = remapConditionalMetadataToIds(bodyArray, persisted);
+
+      if (changed) {
+        const persistedByKey = new Map();
+        persisted.forEach((question) => {
+          const key = question?.chave_pergunta;
+          const id = question?.pergunta_id ?? question?.id;
+          if (key) persistedByKey.set(String(key), question);
+          if (id != null) persistedByKey.set(String(id), question);
+        });
+
+        const updatesPassTwo = remapped
+          .map((question, index) => {
+            const resolved =
+              persistedByKey.get(String(question?.chave_pergunta ?? "")) ||
+              persisted.find((item) => (item?.ordem_pergunta ?? 0) === (question?.ordem_pergunta ?? index + 1));
+
+            const pergunta_id = resolved?.pergunta_id ?? resolved?.id;
+            if (!pergunta_id) return null;
+
+            return {
+              pergunta_id,
+              chave_pergunta: resolved?.chave_pergunta ?? question?.chave_pergunta,
+              texto_pergunta: question?.texto_pergunta,
+              tipo_resposta_esperada: question?.tipo_resposta_esperada,
+              ordem_pergunta: question?.ordem_pergunta ?? index + 1,
+              opcoes_resposta: question?.opcoes_resposta ?? [],
+              metadados_pergunta: question?.metadados_pergunta,
+              inativa: question?.inativa === true,
+              obrigatoria: question?.obrigatoria === true,
+            };
+          })
+          .filter(Boolean);
+
+        if (updatesPassTwo.length > 0) {
+          await axiosInstanceForms.put(`/forms/${formId}/questions`, { updates: updatesPassTwo, new_questions: [] });
+        }
+      }
+    }
+
     return { ok: true, data };
   } catch (err) {
     console.error("Erro ao upsert perguntas do formulário (schema esperado updates/new_questions):", {
@@ -361,22 +458,17 @@ export const criar_formulario_completo = async (payload) => {
     // 2. PYTHON: Salvar as Perguntas (Vinculadas ao ID)
     // ---------------------------------------------------------
     if (payload.perguntas && payload.perguntas.length > 0) {
-        const perguntasPayload = {
-            updates: [],
-            new_questions: payload.perguntas.map((p, index) => ({
-                formulario_id: novoId,
-                chave_pergunta: `p_${novoId}_${index + 1}`, // Chave única
-                texto_pergunta: p.texto_pergunta,
-                tipo_resposta_esperada: p.tipo_resposta_esperada,
-                opcoes_resposta: p.opcoes_resposta, // Array JSON
-                metadados_pergunta: p.metadados_pergunta,
-                obrigatoria: p.obrigatoria,
-                ordem_pergunta: index + 1,
-                inativa: false
-            }))
-        };
-        // PUT /forms/{id}/questions (FastAPI - Upsert)
-        await axiosInstanceForms.put(`/forms/${novoId}/questions`, perguntasPayload);
+        const preparedQuestions = payload.perguntas.map((p, index) => ({
+          ...p,
+          ordem_pergunta: p?.ordem_pergunta ?? index + 1,
+          chave_pergunta: p?.chave_pergunta ?? `p_${novoId}_${index + 1}`,
+          inativa: p?.inativa === true,
+        }));
+
+        const upsertResult = await upsert_perguntas_form(novoId, preparedQuestions);
+        if (!upsertResult?.ok) {
+          throw upsertResult?.error ?? new Error("Falha ao salvar perguntas do formulário.");
+        }
     }
 
     // ---------------------------------------------------------

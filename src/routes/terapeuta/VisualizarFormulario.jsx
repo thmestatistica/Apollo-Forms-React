@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Swal from 'sweetalert2'; 
 
 import CampoDinamico from "../../components/form/CampoDinamico.jsx";
@@ -9,6 +9,7 @@ import ErroGen from "../../components/info/ErroGen.jsx";
 import { formularios } from "../../data/formulario.jsx";
 import { carregar_perguntas_form, montarFormularioGenerico, carregar_info_form } from "../../api/forms/forms_utils";
 import { useAuth } from "../../hooks/useAuth";
+import { CONDITIONAL_CONSTANTS, getConditionalTargetsForAnswer } from "../../utils/form/conditionalQuestions.js";
 
 const VisualizarFormulario = () => {
     const { id } = useParams();
@@ -22,8 +23,43 @@ const VisualizarFormulario = () => {
     const [formulario, setFormulario] = useState(null);
     const [loading, setLoading] = useState(true);
     const [erro, setErro] = useState(null);
+    const [fieldValues, setFieldValues] = useState({});
 
-    const dummyInitialValues = { paciente: "Paciente Teste (Visualização)" };
+    const dummyInitialValues = useMemo(() => ({ paciente: "Paciente Teste (Visualização)" }), []);
+
+    const initialValues = useMemo(
+        () => ({ ...dummyInitialValues, ...fieldValues }),
+        [dummyInitialValues, fieldValues]
+    );
+
+    const activeConditionalTargets = useMemo(() => {
+        if (!formulario?.campos) return new Set();
+
+        const targets = new Set();
+        formulario.campos.forEach((campo) => {
+            if (campo?.tipo_resposta_esperada !== CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE) return;
+
+            const selectedValue = initialValues?.[campo.nome] ?? "";
+            const perguntasAbrir = getConditionalTargetsForAnswer(campo, selectedValue);
+            perguntasAbrir.forEach((target) => targets.add(String(target)));
+        });
+
+        return targets;
+    }, [formulario?.campos, initialValues]);
+
+    const visibleCampos = useMemo(() => {
+        if (!formulario?.campos) return [];
+
+        return formulario.campos.filter((campo) => {
+            if (campo?.tipo_resposta_esperada !== CONDITIONAL_CONSTANTS.CONDITIONED_TYPE) return true;
+
+            const references = [campo?.id, campo?.nome]
+                .filter((value) => value !== undefined && value !== null)
+                .map((value) => String(value));
+
+            return references.some((ref) => activeConditionalTargets.has(ref));
+        });
+    }, [activeConditionalTargets, formulario?.campos]);
 
     useEffect(() => {
         const fetchFormulario = async () => {
@@ -134,8 +170,15 @@ const VisualizarFormulario = () => {
                     </div>
 
                     <form onSubmit={handleSandboxSubmit} className="flex flex-col gap-6 w-full mt-2" noValidate>
-                        {formulario.campos.map((campo) => (
-                            <CampoDinamico key={campo.id} campo={campo} initialValues={dummyInitialValues} />
+                        {visibleCampos.map((campo) => (
+                            <CampoDinamico
+                                key={campo.id}
+                                campo={campo}
+                                initialValues={initialValues}
+                                onFieldChange={(name, value) => {
+                                    setFieldValues((prev) => ({ ...prev, [name]: value }));
+                                }}
+                            />
                         ))}
                         <div className="flex flex-col gap-4 justify-between mt-8 pt-6 border-t border-gray-100">
                             <button type="submit" className="bg-green-600 text-white font-bold rounded-lg px-6 py-3 transition-colors hover:bg-green-700 shadow-sm cursor-pointer w-full md:w-auto md:self-end flex items-center justify-center gap-2">
