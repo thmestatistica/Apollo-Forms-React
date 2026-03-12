@@ -57,7 +57,7 @@ const [formularioSelecionado, setFormularioSelecionado] = useState(null);
     // Carregar lista de pacientes (via agendamentos) e formulários ao montar
     useEffect(() => {
     const carregarDadosIniciais = async () => {
-    const usuarioId = user?.usuarioId ?? user?.id; // Usar usuarioId para agendamentos
+    const usuarioId = user?.id; // Usar usuarioId para agendamentos
     const profissionalId = user?.profissionalId; // Apenas check
 
     if (!profissionalId && !usuarioId) {
@@ -75,9 +75,11 @@ const [formularioSelecionado, setFormularioSelecionado] = useState(null);
         const filtros = userEspecialidade !== "Não identificada" ? { especialidade: userEspecialidade } : {};
 
         const [agendamentosData, forms] = await Promise.all([
-            listar_agendamentos({ usuarioId: Number(usuarioId) }),
+            listar_agendamentos({ usuarioId: Number(usuarioId), pageSize: 1000 }), // Tenta pegar muitos agendamentos para extrair pacientes
             listar_escalas(filtros)
         ]);
+        
+        // console.log("Agendamentos recebidos:", agendamentosData);
 
         // Processar formulários (escalas)
         if (Array.isArray(forms)) {
@@ -100,8 +102,10 @@ const [formularioSelecionado, setFormularioSelecionado] = useState(null);
             ? agendamentosData 
             : (agendamentosData?.agendamentos || []);
 
+        const listaAgendamentosFiltrada = listaBrutaAgendamentos.filter(ag => ag.paciente.nome && !['FÉRIAS', 'AUSÊNCIA', 'Teste', 'ADM/TEMP', 'VAGO/TEMP', 'RESERVADO'].includes(ag.paciente.nome)); 
+
         const mapPacientes = new Map();
-        listaBrutaAgendamentos.forEach((ag) => {
+        listaAgendamentosFiltrada.forEach((ag) => {
             if (ag.paciente && ag.paciente.id) {
                 mapPacientes.set(ag.paciente.id, ag.paciente);
             }
