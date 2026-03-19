@@ -75,7 +75,7 @@ const [formularioSelecionado, setFormularioSelecionado] = useState(null);
         const filtros = userEspecialidade !== "Não identificada" ? { especialidade: userEspecialidade } : {};
 
         const [agendamentosData, forms] = await Promise.all([
-            listar_agendamentos({ usuarioId: Number(usuarioId), pageSize: 1000 }), // Tenta pegar muitos agendamentos para extrair pacientes
+            listar_agendamentos({ usuarioId: Number(usuarioId), pageSize: 10000 }), // Tenta pegar muitos agendamentos para extrair pacientes
             listar_escalas(filtros)
         ]);
         
