@@ -12,6 +12,7 @@ import {
   getEscalaNome,
   uniqueEscalasByNomeClosestDate,
 } from "../../utils/pendencias/escala_utils";
+import { filterEscalasByRange } from "../../utils/pendencias/filterEscalasByProximidade";
 import EscalaTags from "../escalas/EscalaTags";
 
 /**
@@ -79,16 +80,17 @@ const EvoCard = ({ paginaAtual = [] }) => {
         const lista = await carregar_escalas_pendentes(pacienteId, profissionalEspecialidade);
         if (!ativo) return;
         
-            const normalizadas = Array.isArray(lista)
-              ? uniqueEscalasByNomeClosestDate(
-                  lista.map((item) => ({
-                    id: item?.formularioId ?? null,
-                    nome: getEscalaNome(item),
-                    data_referencia: item?.data_referencia || null,
-                    status: item?.status || null,
-                  }))
-                )
-              : [];
+        const proximas = filterEscalasByRange(lista || [], 15);
+        const normalizadas = Array.isArray(proximas)
+          ? uniqueEscalasByNomeClosestDate(
+              proximas.map((item) => ({
+                id: item?.formularioId ?? null,
+                nome: getEscalaNome(item),
+                data_referencia: item?.data_referencia || null,
+                status: item?.status || null,
+              }))
+            )
+          : [];
         setEscalasPorAgendamento((prev) => ({ ...prev, [agendamentoId]: normalizadas }));
       } catch {
         if (!ativo) return;

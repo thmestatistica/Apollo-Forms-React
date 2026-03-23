@@ -14,6 +14,7 @@ import { listar_formularios } from "../../api/forms/forms_utils.js";
 
 import { formatarData } from "../../utils/format/formatar_utils.js";
 import { formatDataVisual } from "../../utils/pendencias/escala_utils";
+import { filterEscalasByRange } from "../../utils/pendencias/filterEscalasByProximidade";
 
 import { EQUIPAMENTO_SLOT } from "../../config/variaveisGlobais.js";
 import SkeletonGen from "../info/SkeletonGen.jsx";
@@ -139,8 +140,10 @@ const PenModal = ({ penData }) => {
     };
   }, [penData]);
   
-  // Clona as escalas garantindo que seja um array
-  const rawOptions = Array.isArray(escalasDisponiveis) ? [...escalasDisponiveis] : [];
+  // Clona as escalas garantindo que seja um array e filtra para mostrar apenas as do raio de 15 dias para frente
+  const rawOptions = Array.isArray(escalasDisponiveis)
+    ? filterEscalasByRange(escalasDisponiveis, 15)
+    : [];
   
   /**
    * Normaliza as opções para padronizar labels e valores, facilitando a renderização na UI.

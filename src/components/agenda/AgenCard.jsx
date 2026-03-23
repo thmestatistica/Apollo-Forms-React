@@ -10,6 +10,7 @@ import {
   getEscalaNome,
   uniqueEscalasByNomeClosestDate,
 } from "../../utils/pendencias/escala_utils";
+import { filterEscalasByRange } from "../../utils/pendencias/filterEscalasByProximidade";
 import EscalaTags from "../escalas/EscalaTags";
 
 function AgenCard({ agendamentosPaginados = [] }) {
@@ -61,7 +62,9 @@ function AgenCard({ agendamentosPaginados = [] }) {
 
           if (typeof pacienteId === "number" && typeof especialideProf === "string" && especialideProf) {
             const escalas = await carregar_escalas_pendentes(pacienteId, especialideProf);
-            const normalizadas = uniqueEscalasByNomeClosestDate(escalas || []);
+            // Filtra escalas para mostrar apenas as do raio de 15 dias para frente
+            const proximas = filterEscalasByRange(escalas || [], 15);
+            const normalizadas = uniqueEscalasByNomeClosestDate(proximas);
             return { id: agendamento.id, escalas: normalizadas };
           }
           return { id: agendamento.id, escalas: [] };
