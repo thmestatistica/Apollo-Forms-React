@@ -17,7 +17,7 @@ const VisualizarFormulario = () => {
     const { user } = useAuth();
 
     // Lógica de Permissão
-    const EDITORES_PERMITIDOS = [8, 43, 17, 13, 15, 40];
+    const EDITORES_PERMITIDOS = [8, 43, 17, 13, 15, 40, 9, 14];
     const podeEditar = EDITORES_PERMITIDOS.includes(Number(user?.profissionalId));
 
     const [formulario, setFormulario] = useState(null);

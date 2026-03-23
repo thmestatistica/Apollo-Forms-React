@@ -39,7 +39,7 @@ const Navbar = () => {
     };
 
     // --- Permissões ---
-    const EDITORES_PERMITIDOS = [8, 43, 17, 13, 15, 40, 38, 5, 12, 2];
+    const EDITORES_PERMITIDOS = [8, 43, 17, 13, 15, 40, 38, 5, 12, 2, 9, 14];
     const podeEditar = EDITORES_PERMITIDOS.includes(Number(user?.profissionalId));
 
     const GESTAO_PERMITIDOS = [8, 17, 13, 15, 40, 43, 41, 5]; 
