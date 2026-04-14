@@ -14,7 +14,7 @@ import { formatarData, formatarHora } from "../../utils/format/formatar_utils";
 // API
 import { criar_pendencia_manual } from "../../api/pendencias/pendencias_utils";
 import { listar_agendamentos } from "../../api/agenda/agenda_utils";
-import { listar_escalas } from "../../api/forms/forms_utils";
+import { listar_formularios, listar_escalas, salvar_associacao_escala } from "../../api/forms/forms_utils";
 
 export default function CriarPendenciaAba() {
 const { user } = useAuth();
@@ -24,7 +24,9 @@ const navigate = useNavigate();
 const [listaPacientes, setListaPacientes] = useState([]);
 const [listaAgendamentos, setListaAgendamentos] = useState([]);
 const [listaFormularios, setListaFormularios] = useState([]);
+const [listaEscalasAssociadas, setListaEscalasAssociadas] = useState([]);
 const [diagnosticoMacro, setDiagnosticoMacro] = useState(null);
+const [diagnosticosMacroPaciente, setDiagnosticosMacroPaciente] = useState([]);
 const [dataReferencia, setDataReferencia] = useState(new Date().toISOString().split('T')[0]);
 
 // Estados de Seleção
@@ -54,6 +56,64 @@ const [formularioSelecionado, setFormularioSelecionado] = useState(null);
     // Mensagem de erro global
     const [erro, setErro] = useState(null);
 
+    // Calcula a especialidade do usuário para garantir envio correto no payload
+    const userEspecialidade = useMemo(() => {
+        return Array.isArray(user?.especialidade)
+          ? user.especialidade[0]
+          : (user?.especialidade || user?.profissional?.especialidade || "Não identificada");
+    }, [user]);
+
+        const normalizarFormulario = useCallback((form) => {
+            const base = form?.formulario ?? form?.form ?? form;
+            const id = base?.formulario_id ?? base?.id ?? base?.formularioId ?? base?.formId;
+            return {
+                ...base,
+                id: Number(id),
+                nomeEscala:
+                    base?.nome_formulario ??
+                    base?.nomeEscala ??
+                    base?.nomeFormulario ??
+                    base?.formulario_nome ??
+                    base?.titulo ??
+                    base?.name,
+                tipoFormulario: base?.tipo_formulario ?? base?.tipoFormulario ?? base?.tipo,
+                descricaoFormulario: base?.descricao_formulario ?? base?.significado ?? null,
+                ativo: base?.ativo ?? base?.ativoFormulario ?? true,
+            };
+        }, []);
+
+        const garantirAssociacaoFormulario = useCallback(async (formObj, formId) => {
+            const escalaExistente = (listaEscalasAssociadas || []).find(
+                (esc) => Number(esc?.formularioId) === Number(formId)
+            );
+
+            if (escalaExistente) {
+                return escalaExistente;
+            }
+
+            const especialidadesPadrao =
+                userEspecialidade && userEspecialidade !== "Não identificada" ? [userEspecialidade] : [];
+
+            const payloadAssociacao = {
+                formularioId: Number(formId),
+                nomeEscala: formObj?.nomeEscala ?? formObj?.nome_formulario ?? `Formulário ${formId}`,
+                tipoFormulario: formObj?.tipoFormulario ?? formObj?.tipo_formulario ?? formObj?.tipo ?? null,
+                especialidade: especialidadesPadrao,
+                listaDiagnosticos: diagnosticosMacroPaciente,
+                significado: formObj?.descricaoFormulario ?? formObj?.descricao_formulario ?? formObj?.significado ?? null,
+            };
+
+            const resultadoAssociacao = await salvar_associacao_escala(payloadAssociacao);
+            if (!resultadoAssociacao?.ok) {
+                throw resultadoAssociacao?.error ?? new Error("Falha ao criar associação do formulário.");
+            }
+
+            const escalasAtualizadas = await listar_escalas();
+            setListaEscalasAssociadas(Array.isArray(escalasAtualizadas) ? escalasAtualizadas : []);
+
+            return resultadoAssociacao?.data ?? null;
+        }, [listaEscalasAssociadas, userEspecialidade, diagnosticosMacroPaciente]);
+
     // Carregar lista de pacientes (via rota por profissional) e formulários ao montar
     useEffect(() => {
     const carregarDadosIniciais = async () => {
@@ -66,33 +126,35 @@ const [formularioSelecionado, setFormularioSelecionado] = useState(null);
 
     setLoading(true);
     try {
-        // Obter especialidade para filtrar formulários (escalas)
-        const userEspecialidade = Array.isArray(user?.especialidade) 
-          ? user.especialidade[0] 
-          : (user?.especialidade || user?.profissional?.especialidade || "Não identificada");
-
-        const filtros = userEspecialidade !== "Não identificada" ? { especialidade: userEspecialidade } : {};
-
-        const [pacientesData, forms] = await Promise.all([
+        const [pacientesData, forms, escalas] = await Promise.all([
             listar_pacientes_por_profissional(Number(profissionalId)),
-            listar_escalas(filtros)
+            listar_formularios(),
+            listar_escalas()
         ]);
 
-        // Processar formulários (escalas)
+        // Processar formulários
         if (Array.isArray(forms)) {
-            // Filtra escalas que tenham ID de formulário válido
-            const validas = forms.filter(s => s.formularioId);
+            const normalizados = forms
+                .map(normalizarFormulario)
+                .filter((f) => Number.isFinite(f?.id) && Boolean(f?.nomeEscala));
+
+            const ativosComAssociacao = normalizados.filter((f) => {
+                const ativo = f?.ativo == null ? true : Boolean(f.ativo);
+                return ativo;
+            });
 
             // Ordena a lista alfabeticamente
-            validas.sort((a, b) => {
-                const nomeA = (a.nomeEscala || a.titulo || "").toLowerCase();
-                const nomeB = (b.nomeEscala || b.titulo || "").toLowerCase();
+            ativosComAssociacao.sort((a, b) => {
+                const nomeA = (a.nomeEscala || "").toLowerCase();
+                const nomeB = (b.nomeEscala || "").toLowerCase();
                 return nomeA.localeCompare(nomeB);
             });
-            setListaFormularios(validas);
+            setListaFormularios(ativosComAssociacao);
         } else {
              setListaFormularios([]);
         }
+
+        setListaEscalasAssociadas(Array.isArray(escalas) ? escalas : []);
 
         // Processar pacientes retornados pela nova rota
         const pacientesFiltrados = (Array.isArray(pacientesData) ? pacientesData : []).filter(
@@ -125,13 +187,14 @@ const [formularioSelecionado, setFormularioSelecionado] = useState(null);
     };
 
     carregarDadosIniciais();
-}, [user]);
+}, [user, normalizarFormulario]);
 
 // Buscar agendamentos quando o paciente muda (ou datas)
 const buscarAgendamentos = useCallback(async () => {
     if (!pacienteSelecionado) {
         setListaAgendamentos([]);
         setDiagnosticoMacro(null);
+        setDiagnosticosMacroPaciente([]);
         return;
     }
 
@@ -150,9 +213,13 @@ const buscarAgendamentos = useCallback(async () => {
     // Busca Diagnóstico Macro do Paciente
     const p = await buscar_paciente_por_id(Number(pacienteSelecionado.value));
     if (p && p.diagnosticoMacro) {
-        const dm = p.diagnosticoMacro;
-        setDiagnosticoMacro(Array.isArray(dm) ? dm[0] : dm);
+        const lista = Array.isArray(p.diagnosticoMacro)
+            ? p.diagnosticoMacro.map((item) => String(item).trim()).filter(Boolean)
+            : [String(p.diagnosticoMacro).trim()].filter(Boolean);
+        setDiagnosticosMacroPaciente(lista);
+        setDiagnosticoMacro(lista[0] || null);
     } else {
+        setDiagnosticosMacroPaciente([]);
         setDiagnosticoMacro(null);
     }
 
@@ -204,17 +271,10 @@ const buscarAgendamentos = useCallback(async () => {
 };
 const opcoesFormularios = useMemo(() => {
         return listaFormularios.map(form => ({
-            value: form.formularioId,
-            label: form.nomeEscala || `Escala ${form.formularioId}`
+            value: form.id,
+            label: form.nomeEscala || `Formulário ${form.id}`
         }));
     }, [listaFormularios]);
-
-    // Calcula a especialidade do usuário para garantir envio correto no payload
-    const userEspecialidade = useMemo(() => {
-        return Array.isArray(user?.especialidade) 
-          ? user.especialidade[0] 
-          : (user?.especialidade || user?.profissional?.especialidade || "Não identificada");
-    }, [user]);
 
     const handleCriarPendencia = async () => {
     if (!agendamentoSelecionado || !formularioSelecionado) {
@@ -226,7 +286,11 @@ const opcoesFormularios = useMemo(() => {
         // Encontra objeto completo do formulário para exibir nome se necessário
         // Com SingleSelect, formularioSelecionado é o objeto {value, label}
         const formId = Number(formularioSelecionado.value);
-        const formObj = listaFormularios.find(f => f.formularioId === formId);
+        const formObj = listaFormularios.find(f => Number(f.id) === formId);
+
+        // Garante que o formulário tenha associação antes de criar a pendência.
+        // Se já existir, mantém como está; se não existir, cria com defaults de especialidade e diagnósticos do paciente.
+        await garantirAssociacaoFormulario(formObj, formId);
         
         // Payload alinhado com o backend esperado
         const payload = {
