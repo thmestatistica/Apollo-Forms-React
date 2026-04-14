@@ -8,7 +8,7 @@ import ErroGen from "../info/ErroGen";
 import InfoGen from "../info/InfoGen";
 import SingleSelect from "../input/SingleSelect";
 
-import { buscar_paciente_por_id } from "../../api/pacientes/pacientes_utils";
+import { buscar_paciente_por_id, listar_pacientes_por_profissional } from "../../api/pacientes/pacientes_utils";
 import { formatarData, formatarHora } from "../../utils/format/formatar_utils";
 
 // API
@@ -54,13 +54,12 @@ const [formularioSelecionado, setFormularioSelecionado] = useState(null);
     // Mensagem de erro global
     const [erro, setErro] = useState(null);
 
-    // Carregar lista de pacientes (via agendamentos) e formulários ao montar
+    // Carregar lista de pacientes (via rota por profissional) e formulários ao montar
     useEffect(() => {
     const carregarDadosIniciais = async () => {
-    const usuarioId = user?.id; // Usar usuarioId para agendamentos
-    const profissionalId = user?.profissionalId; // Apenas check
+    const profissionalId = user?.profissionalId ?? user?.profissional?.id;
 
-    if (!profissionalId && !usuarioId) {
+    if (!profissionalId) {
         setErro("Identificação do profissional não encontrada.");
         return;
     }
@@ -74,12 +73,10 @@ const [formularioSelecionado, setFormularioSelecionado] = useState(null);
 
         const filtros = userEspecialidade !== "Não identificada" ? { especialidade: userEspecialidade } : {};
 
-        const [agendamentosData, forms] = await Promise.all([
-            listar_agendamentos({ usuarioId: Number(usuarioId), pageSize: 10000 }), // Tenta pegar muitos agendamentos para extrair pacientes
+        const [pacientesData, forms] = await Promise.all([
+            listar_pacientes_por_profissional(Number(profissionalId)),
             listar_escalas(filtros)
         ]);
-        
-        // console.log("Agendamentos recebidos:", agendamentosData);
 
         // Processar formulários (escalas)
         if (Array.isArray(forms)) {
@@ -97,17 +94,15 @@ const [formularioSelecionado, setFormularioSelecionado] = useState(null);
              setListaFormularios([]);
         }
 
-        // Processar pacientes únicos dos agendamentos
-        const listaBrutaAgendamentos = Array.isArray(agendamentosData) 
-            ? agendamentosData 
-            : (agendamentosData?.agendamentos || []);
-
-        const listaAgendamentosFiltrada = listaBrutaAgendamentos.filter(ag => ag.paciente.nome && !['FÉRIAS', 'AUSÊNCIA', 'Teste', 'ADM/TEMP', 'VAGO/TEMP', 'RESERVADO'].includes(ag.paciente.nome)); 
+        // Processar pacientes retornados pela nova rota
+        const pacientesFiltrados = (Array.isArray(pacientesData) ? pacientesData : []).filter(
+            (p) => p?.nome && !['FÉRIAS', 'AUSÊNCIA', 'Teste', 'ADM/TEMP', 'VAGO/TEMP', 'RESERVADO'].includes(p.nome)
+        );
 
         const mapPacientes = new Map();
-        listaAgendamentosFiltrada.forEach((ag) => {
-            if (ag.paciente && ag.paciente.id) {
-                mapPacientes.set(ag.paciente.id, ag.paciente);
+        pacientesFiltrados.forEach((p) => {
+            if (p?.id) {
+                mapPacientes.set(p.id, p);
             }
         });
 

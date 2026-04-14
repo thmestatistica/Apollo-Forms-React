@@ -44,3 +44,24 @@ export const listar_pacientes_geral = async () => {
     return [];
   }
 };
+
+/**
+ * Lista pacientes vinculados a agendamentos de um profissional.
+ * GET /pacientes/profissionais/:id_profissional/listar-pacientes
+ */
+export const listar_pacientes_por_profissional = async (profissionalId) => {
+  if (!profissionalId) return [];
+
+  try {
+    const { data } = await axiosInstance.get(
+      `/pacientes/profissionais/${Number(profissionalId)}/listar-pacientes`
+    );
+
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.pacientes)) return data.pacientes;
+    return [];
+  } catch (err) {
+    console.error(`Erro ao listar pacientes do profissional ${profissionalId}:`, err);
+    return [];
+  }
+};
