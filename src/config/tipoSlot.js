@@ -8,6 +8,7 @@ export const tipoForms = {
         46: ['CML'],
         14: ['ARM'],
         48: ['TMS'],
+        96: ['AVAL.MEDICA'],
     },
 
     "Avaliações": {
@@ -20,6 +21,7 @@ export const tipoForms = {
         32: ['ARM'],
         47: ['CML'],
         49: ['TMS'],
+        96: ['AVAL.MEDICA'],
     }
 };
 
