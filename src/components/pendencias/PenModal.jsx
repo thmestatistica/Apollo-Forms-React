@@ -140,7 +140,7 @@ const PenModal = ({ penData }) => {
     };
   }, [penData]);
   
-  // Clona as escalas garantindo que seja um array e filtra para mostrar apenas as do raio de 15 dias para frente
+  // Clona as escalas garantindo que seja um array e filtra no range (15 dias para trás e 7 para frente)
   const rawOptions = Array.isArray(escalasDisponiveis)
     ? filterEscalasByRange(escalasDisponiveis, 15)
     : [];

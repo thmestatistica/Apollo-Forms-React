@@ -62,7 +62,7 @@ function AgenCard({ agendamentosPaginados = [] }) {
 
           if (typeof pacienteId === "number" && typeof especialideProf === "string" && especialideProf) {
             const escalas = await carregar_escalas_pendentes(pacienteId, especialideProf);
-            // Filtra escalas para mostrar apenas as do raio de 15 dias para frente
+            // Filtra escalas no range (15 dias para trás e 7 para frente)
             const proximas = filterEscalasByRange(escalas || [], 15);
             const normalizadas = uniqueEscalasByNomeClosestDate(proximas);
             return { id: agendamento.id, escalas: normalizadas };
