@@ -4,7 +4,7 @@ import AdminTab from './AdminTab';
 import GerarTab from './GerarTab';
 
 const GerenciarTab = ({ accessMode, allowedPatientIds, dataManual, setDataManual }) => {
-  const [abaAtiva, setAbaAtiva] = useState('emissao');
+  const [abaAtiva, setAbaAtiva] = useState('pesquisa');
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in w-full">
