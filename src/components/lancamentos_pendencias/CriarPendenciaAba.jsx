@@ -207,7 +207,8 @@ const buscarAgendamentos = useCallback(async () => {
     const filtros = {
         pacienteId: Number(pacienteSelecionado.value), // Extrai ID do objeto SingleSelect
         usuarioId: Number(usuarioId),
-        order: 'desc' // Mais recentes primeiro
+        order: 'desc', // Mais recentes primeiro
+        pageSize: 1000, // Limite alto para pegar todos e filtrar no frontend
     };
 
     // Busca Diagnóstico Macro do Paciente
@@ -234,8 +235,16 @@ const buscarAgendamentos = useCallback(async () => {
         : Array.isArray(resultado?.agendamentos) 
             ? resultado.agendamentos 
             : [];
-            
-    setListaAgendamentos(agendamentos);
+
+    const agora = new Date();
+    const agendamentosPassados = agendamentos.filter((ag) => {
+        if (!ag?.inicio) return false;
+        const inicio = new Date(ag.inicio);
+        if (Number.isNaN(inicio.getTime())) return false;
+        return inicio < agora;
+    });
+
+    setListaAgendamentos(agendamentosPassados);
     } catch (err) {
     console.error("Erro ao buscar agendamentos:", err);
     mostrarErroToast("Erro ao buscar histórico de agendamentos.");
