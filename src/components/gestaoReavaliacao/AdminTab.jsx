@@ -6,7 +6,7 @@ import {
   buscar_todas_pendencias,
   deletar_pendencia_admin
 } from '../../api/pendencias/pendencias_utils';
-import { atualizar_diagnostico_paciente } from '../../api/pacientes/pacientes_utils';
+import { atualizar_diagnostico_paciente, atualizar_protocolo_paciente } from '../../api/pacientes/pacientes_utils';
 import { listar_pacientes } from '../../api/jornada/jornada_utils';
 import { INCLUIR_TESTES_GESTAO, isNomeIgnorado } from '../../utils/gestao/gestaoReavaliacaoUtils';
 import GestaoSectionCard from './shared/GestaoSectionCard';
@@ -31,6 +31,39 @@ const formatDateValue = (date) => {
   if (!date) return '';
   return String(date).slice(0, 10);
 };
+
+const parseWeeksValue = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.trunc(parsed);
+};
+
+const parseDateOnly = (value) => {
+  const dateValue = formatDateValue(value);
+  if (!dateValue) return null;
+  const parsed = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  parsed.setHours(0, 0, 0, 0);
+  return parsed;
+};
+
+const isFutureDate = (value, baseDate) => {
+  const parsed = parseDateOnly(value);
+  if (!parsed) return false;
+  return parsed.getTime() > baseDate.getTime();
+};
+
+const addDaysToDateValue = (value, daysToAdd) => {
+  const parsed = parseDateOnly(value);
+  if (!parsed) return value;
+  parsed.setDate(parsed.getDate() + daysToAdd);
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getItemPacienteId = (item) => item?.paciente?.id ?? item?.pacienteId;
 
 const AdminRow = React.memo(
   ({ row, estaEditado, onSave, onDelete, onChange }) => {
@@ -114,6 +147,7 @@ const AdminTab = ({ accessMode, allowedPatientIds }) => {
   const [selectedPacienteId, setSelectedPacienteId] = useState('');
   const [grupoEdicoes, setGrupoEdicoes] = useState({});
   const [diagnosticoPacienteEdicao, setDiagnosticoPacienteEdicao] = useState(null);
+  const [protocoloPacienteEdicao, setProtocoloPacienteEdicao] = useState('');
 
   const carregarDadosAdmin = useCallback(async (forceRefresh = false, pacienteId = '') => {
     if (!pacienteId) {
@@ -294,6 +328,7 @@ const AdminTab = ({ accessMode, allowedPatientIds }) => {
 
   useEffect(() => {
     setDiagnosticoPacienteEdicao(null);
+    setProtocoloPacienteEdicao('');
   }, [selectedPacienteId]);
 
   const diagnosticoPacienteInfo = useMemo(() => {
@@ -312,6 +347,14 @@ const AdminTab = ({ accessMode, allowedPatientIds }) => {
     }
     const selectValue = diagValues.size === 1 ? Array.from(diagValues)[0] : '';
     return { label, selectValue };
+  }, [pacienteSelecionadoInfo]);
+
+  const protocoloPacienteInfo = useMemo(() => {
+    const semanas = parseWeeksValue(pacienteSelecionadoInfo?.periodoAvaliacaoSemanas);
+    return {
+      value: semanas,
+      label: semanas ? `${semanas} semanas` : 'Sem protocolo'
+    };
   }, [pacienteSelecionadoInfo]);
 
   const dadosFiltrados = useMemo(() => {
@@ -471,6 +514,175 @@ const AdminTab = ({ accessMode, allowedPatientIds }) => {
     }
   }, [selectedPacienteId, diagnosticoPacienteEdicao]);
 
+  const aplicarProtocoloPaciente = useCallback(async () => {
+    if (!selectedPacienteId) return;
+
+    if (protocoloPacienteEdicao === '') {
+      Swal.fire({
+        icon: 'info',
+        title: 'Sem ajustes',
+        text: 'Informe o protocolo em semanas para aplicar ao paciente.',
+        timer: 1800,
+        showConfirmButton: false
+      });
+      return;
+    }
+
+    const novoProtocolo = parseWeeksValue(protocoloPacienteEdicao);
+    if (!novoProtocolo) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Protocolo invalido',
+        text: 'Use um numero inteiro maior que zero.',
+        timer: 1800,
+        showConfirmButton: false
+      });
+      return;
+    }
+
+    const protocoloAtual = parseWeeksValue(pacienteSelecionadoInfo?.periodoAvaliacaoSemanas);
+    if (!protocoloAtual) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Protocolo atual ausente',
+        text: 'Nao foi possivel calcular o delta porque o protocolo atual do paciente nao esta definido.'
+      });
+      return;
+    }
+
+    if (novoProtocolo === protocoloAtual) {
+      Swal.fire({
+        icon: 'info',
+        title: 'Sem mudancas',
+        text: 'O protocolo informado ja e o atual.',
+        timer: 1800,
+        showConfirmButton: false
+      });
+      return;
+    }
+
+    const deltaSemanas = novoProtocolo - protocoloAtual;
+    const deltaDias = deltaSemanas * 7;
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    const idsPendenciasFuturas = new Set(
+      dadosAdmin
+        .filter((item) => String(getItemPacienteId(item)) === String(selectedPacienteId))
+        .filter((item) => isFutureDate(item.data_referencia, hoje))
+        .map((item) => item.id)
+    );
+
+    const result = await Swal.fire({
+      title: 'Aplicar novo protocolo?',
+      html: `
+        <div class="text-left text-sm text-slate-600 space-y-2">
+          <p><b>Atual:</b> ${protocoloAtual} semanas</p>
+          <p><b>Novo:</b> ${novoProtocolo} semanas</p>
+          <p><b>Ajuste:</b> ${deltaSemanas > 0 ? '+' : ''}${deltaSemanas} semanas (${deltaDias > 0 ? '+' : ''}${deltaDias} dias)</p>
+          <p><b>Pendencias futuras afetadas:</b> ${idsPendenciasFuturas.size}</p>
+        </div>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#2563eb',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Sim, aplicar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      setLoadingAdmin(true);
+      await atualizar_protocolo_paciente(selectedPacienteId, novoProtocolo);
+
+      setPacientesAdmin((prev) =>
+        prev.map((pac) =>
+          String(pac?.id) === String(selectedPacienteId)
+            ? { ...pac, periodoAvaliacaoSemanas: novoProtocolo }
+            : pac
+        )
+      );
+
+      if (idsPendenciasFuturas.size > 0) {
+        const pendenciasFuturasAtualizadas = dadosAdmin
+          .filter((item) => idsPendenciasFuturas.has(item.id))
+          .map((item) => ({
+            ...item,
+            data_referencia: addDaysToDateValue(item.data_referencia, deltaDias)
+          }));
+
+        setDadosAdmin((prev) => {
+          const atualizados = prev.map((item) => {
+            if (!idsPendenciasFuturas.has(item.id)) return item;
+            return {
+              ...item,
+              data_referencia: addDaysToDateValue(item.data_referencia, deltaDias)
+            };
+          });
+          adminDataCache.current = atualizados;
+          return atualizados;
+        });
+
+        const resultados = await Promise.allSettled(
+          pendenciasFuturasAtualizadas.map((item) =>
+            atualizar_pendencia_admin(item.id, {
+              status: item.status,
+              data_referencia: item.data_referencia,
+              especialidade: item.especialidade,
+              diagnosticoMacro: item.diagnosticoMacro
+            })
+          )
+        );
+
+        const idsComErro = resultados
+          .map((resultado, index) => (resultado.status === 'rejected' ? pendenciasFuturasAtualizadas[index].id : null))
+          .filter((id) => id != null);
+
+        if (idsComErro.length > 0) {
+          setEditados((prev) => {
+            const novo = new Set(prev);
+            idsComErro.forEach((id) => novo.add(id));
+            return novo;
+          });
+
+          Swal.fire({
+            icon: 'warning',
+            title: 'Protocolo atualizado com ressalvas',
+            text: `${idsComErro.length} pendencias futuras nao puderam ser salvas automaticamente. Elas ficaram marcadas para salvar manualmente.`,
+            timer: 3200,
+            showConfirmButton: false
+          });
+          setProtocoloPacienteEdicao('');
+          return;
+        }
+      }
+
+      setProtocoloPacienteEdicao('');
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Protocolo atualizado',
+        text:
+          idsPendenciasFuturas.size > 0
+            ? `${idsPendenciasFuturas.size} pendencias futuras foram ajustadas e salvas automaticamente.`
+            : 'Protocolo atualizado. Nao havia pendencias futuras para ajustar.',
+        timer: 2600,
+        showConfirmButton: false
+      });
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Erro ao atualizar',
+        text: 'Nao foi possivel atualizar o protocolo do paciente.'
+      });
+      console.error('Erro ao atualizar protocolo do paciente:', error);
+    } finally {
+      setLoadingAdmin(false);
+    }
+  }, [selectedPacienteId, protocoloPacienteEdicao, pacienteSelecionadoInfo, dadosAdmin]);
+
   const handleSalvarTudoAdmin = async () => {
     if (editados.size === 0) return Swal.fire({ icon: 'info', title: 'Sem alterações', timer: 2000, showConfirmButton: false });
     const itensAlterados = dadosAdmin.filter((item) => editados.has(item.id));
@@ -552,6 +764,7 @@ const AdminTab = ({ accessMode, allowedPatientIds }) => {
         setEditados={setEditados}
         setGrupoEdicoes={setGrupoEdicoes}
         setDiagnosticoPacienteEdicao={setDiagnosticoPacienteEdicao}
+        setProtocoloPacienteEdicao={setProtocoloPacienteEdicao}
         carregarDadosAdmin={carregarDadosAdmin}
         loadingAdmin={loadingAdmin}
         loadingPacientes={loadingPacientes}
@@ -592,30 +805,57 @@ const AdminTab = ({ accessMode, allowedPatientIds }) => {
                     <div className="mt-1 inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-indigo-700">
                       {diagnosticoPacienteInfo.label}
                     </div>
-                  </div>
-                  <div className="grid w-full gap-3 sm:grid-cols-[1.4fr_1fr] lg:w-auto">
-                    <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Diagnostico macro</label>
-                      <select
-                        value={diagnosticoPacienteEdicao ?? diagnosticoPacienteInfo.selectValue}
-                        onChange={(e) => setDiagnosticoPacienteEdicao(e.target.value)}
-                        className="mt-2 h-10 w-full rounded-xl border border-indigo-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
-                      >
-                        <option value="">Selecione...</option>
-                        {DIAGNOSTICO_OPCOES.map((opt) => (
-                          <option key={opt} value={opt}>
-                            {opt}
-                          </option>
-                        ))}
-                      </select>
+                    <div className="mt-3 text-xs text-slate-500">Protocolo atual</div>
+                    <div className="mt-1 inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700">
+                      {protocoloPacienteInfo.label}
                     </div>
-                    <div className="flex items-end">
-                      <button
-                        onClick={aplicarDiagnosticoPaciente}
-                        className="h-10 w-full rounded-xl bg-indigo-600 text-white text-xs font-bold uppercase tracking-wide shadow-md transition-all hover:-translate-y-0.5 hover:bg-indigo-700 active:translate-y-0"
-                      >
-                        Aplicar no paciente
-                      </button>
+                  </div>
+                  <div className="w-full lg:w-auto space-y-3">
+                    <div className="grid w-full gap-3 sm:grid-cols-[1.4fr_1fr]">
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Diagnostico macro</label>
+                        <select
+                          value={diagnosticoPacienteEdicao ?? diagnosticoPacienteInfo.selectValue}
+                          onChange={(e) => setDiagnosticoPacienteEdicao(e.target.value)}
+                          className="mt-2 h-10 w-full rounded-xl border border-indigo-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                        >
+                          <option value="">Selecione...</option>
+                          {DIAGNOSTICO_OPCOES.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex items-end">
+                        <button
+                          onClick={aplicarDiagnosticoPaciente}
+                          className="h-10 w-full rounded-xl bg-indigo-600 text-white text-xs font-bold uppercase tracking-wide shadow-md transition-all hover:-translate-y-0.5 hover:bg-indigo-700 active:translate-y-0"
+                        >
+                          Aplicar diagnostico
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid w-full gap-3 sm:grid-cols-[1fr_1fr]">
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-sky-600">Protocolo (semanas)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={protocoloPacienteEdicao !== '' ? protocoloPacienteEdicao : (protocoloPacienteInfo.value ?? '')}
+                          onChange={(e) => setProtocoloPacienteEdicao(e.target.value)}
+                          className="mt-2 h-10 w-full rounded-xl border border-sky-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none"
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <button
+                          onClick={aplicarProtocoloPaciente}
+                          className="h-10 w-full rounded-xl bg-sky-600 text-white text-xs font-bold uppercase tracking-wide shadow-md transition-all hover:-translate-y-0.5 hover:bg-sky-700 active:translate-y-0"
+                        >
+                          Aplicar protocolo
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

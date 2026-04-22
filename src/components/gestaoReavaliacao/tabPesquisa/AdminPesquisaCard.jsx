@@ -14,6 +14,7 @@ const AdminPesquisaCard = ({
   setEditados,
   setGrupoEdicoes,
   setDiagnosticoPacienteEdicao,
+  setProtocoloPacienteEdicao,
   carregarDadosAdmin,
   loadingAdmin,
   loadingPacientes,
@@ -37,6 +38,7 @@ const AdminPesquisaCard = ({
     }
     setGrupoEdicoes({});
     setDiagnosticoPacienteEdicao(null);
+    setProtocoloPacienteEdicao('');
     setSelectedPacienteId(novoPacienteId);
     carregarDadosAdmin(true, novoPacienteId);
   };

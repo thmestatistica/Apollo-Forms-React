@@ -27,6 +27,22 @@ export const atualizar_diagnostico_paciente = async (pacienteId, diagnosticoMacr
   return data;
 };
 
+export const atualizar_protocolo_paciente = async (pacienteId, periodoAvaliacaoSemanas) => {
+  if (!pacienteId) throw new Error('ID do paciente nao informado');
+
+  const protocolo = Number(periodoAvaliacaoSemanas);
+  if (!Number.isFinite(protocolo) || protocolo <= 0) {
+    throw new Error('Protocolo invalido');
+  }
+
+  const payload = {
+    periodoAvaliacaoSemanas: Math.trunc(protocolo)
+  };
+
+  const { data } = await axiosInstance.put(`/pacientes/${Number(pacienteId)}`, payload);
+  return data;
+};
+
 /**
  * Lista todos os pacientes via GET /pacientes
  * Retorna array de pacientes.
