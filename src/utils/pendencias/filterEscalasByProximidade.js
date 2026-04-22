@@ -21,10 +21,12 @@ export function filterEscalasByRange(escalas, diasAtras = 15, hoje = new Date(),
 
   // Define o limite inferior (15 dias para trás, por padrão)
   const inicio = new Date(base);
+  inicio.setHours(0, 0, 0, 0);
   inicio.setDate(inicio.getDate() - diasAtras);
 
   // Define o limite superior (7 dias para frente, por padrão)
   const fim = new Date(base);
+  fim.setHours(23, 59, 59, 999);
   fim.setDate(fim.getDate() + diasFrente);
 
   // Filtra as escalas dentro do intervalo

@@ -131,9 +131,6 @@ const CriarPendenciaModal = ({ isOpen, onClose, pacienteId, pacienteNome }) => {
             const ultimaPendencia = sorted[0];
             const dataUltima = new Date(ultimaPendencia.data_referencia || ultimaPendencia.criadaEm);
             
-            // Subtrai 5 dias da data sugerida
-            dataUltima.setDate(dataUltima.getDate() - 5);
-            
             const hoje = new Date();
             
             // Zera horas para comparação de datas apenas
@@ -230,9 +227,8 @@ const CriarPendenciaModal = ({ isOpen, onClose, pacienteId, pacienteNome }) => {
     setError(null);
 
     try {
-      // Ajusta data referência para meio-dia UTC e adiciona 5 dias na data selecionada
+      // Ajusta data referência para meio-dia UTC
       const dateRefObj = new Date(dataReferencia + "T12:00:00.000Z");
-      dateRefObj.setDate(dateRefObj.getDate() + 5);
       const dataRefIso = dateRefObj.toISOString();
 
       const agora = new Date().toISOString();

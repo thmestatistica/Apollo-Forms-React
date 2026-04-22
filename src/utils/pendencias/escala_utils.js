@@ -1,11 +1,9 @@
-const DEFAULT_OFFSET_DAYS = 5;
-
 const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
 export const getEscalaNome = (item) =>
   item?.formulario?.nomeEscala || item?.label || item?.nome || item?.titulo || "Escala";
 
-export const getDataVisualDate = (dataIso, offsetDays = DEFAULT_OFFSET_DAYS) => {
+export const getDataVisualDate = (dataIso) => {
   if (!dataIso) return null;
 
   // Tenta normalizar para evitar problemas de fuso horário (UTC -> Local -3h virando dia anterior)
@@ -19,17 +17,16 @@ export const getDataVisualDate = (dataIso, offsetDays = DEFAULT_OFFSET_DAYS) => 
       d = new Date(dataIso);
   }
 
-  d.setDate(d.getDate() - offsetDays);
   return d;
 };
 
-export const formatDataVisual = (dataIso, locale = "pt-BR", offsetDays = DEFAULT_OFFSET_DAYS) => {
-  const d = getDataVisualDate(dataIso, offsetDays);
+export const formatDataVisual = (dataIso, locale = "pt-BR") => {
+  const d = getDataVisualDate(dataIso);
   return d ? d.toLocaleDateString(locale) : null;
 };
 
-export const isEscalaOverdue = (dataIso, offsetDays = DEFAULT_OFFSET_DAYS, now = new Date()) => {
-  const d = getDataVisualDate(dataIso, offsetDays);
+export const isEscalaOverdue = (dataIso, now = new Date()) => {
+  const d = getDataVisualDate(dataIso);
   if (!d) return false;
   return startOfDay(now) > startOfDay(d);
 };
