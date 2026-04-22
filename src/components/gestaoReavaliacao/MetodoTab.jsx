@@ -1,5 +1,5 @@
 // Importação dos hooks e bibliotecas necessárias
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Swal from 'sweetalert2';
 // Importação de ícones para UI
 import {
@@ -88,8 +88,18 @@ const MetodoTab = () => {
   const [associacaoDiagnosticos, setAssociacaoDiagnosticos] = useState([]); // Diagnósticos selecionados no modal
   const [salvandoAssociacao, setSalvandoAssociacao] = useState(false); // Loading para salvar associação
 
-  // Estado geral de carregamento do método (qualquer loading das principais operações)
-  const metodoCarregando = loadingSemAvaliacao || loadingPendenciasEscala || loadingAnaliseSemPendencia;
+  // Flags de cache em memória para evitar recargas desnecessárias por troca de aba
+  const semAvaliacaoCarregadaRef = useRef(false);
+  const pendenciasEscalaCarregadasRef = useRef(false);
+  const associacoesCarregadasRef = useRef(false);
+
+  // Loading geral apenas para a aba ativa, evitando bloquear a página inteira
+  const metodoCarregando = useMemo(() => {
+    if (activeMetodoTab === 'sem-avaliacao') return loadingSemAvaliacao;
+    if (activeMetodoTab === 'sem-pendencia-escala') return loadingPendenciasEscala;
+    if (activeMetodoTab === 'associacao') return loadingAssociacao;
+    return false;
+  }, [activeMetodoTab, loadingSemAvaliacao, loadingPendenciasEscala, loadingAssociacao]);
 
   /**
    * Normaliza nomes para comparação e uso como chave (ex: nomes de pacientes)
@@ -140,7 +150,10 @@ const MetodoTab = () => {
    * - Filtra pendências que já possuem avaliação respondida para a especialidade do profissional
    * - Atualiza estado com lista filtrada
    */
-  const carregarPendenciasSemAvaliacao = useCallback(async () => {
+  const carregarPendenciasSemAvaliacao = useCallback(async ({ force = false } = {}) => {
+    if (semAvaliacaoCarregadaRef.current && !force) return;
+    if (loadingSemAvaliacao && !force) return;
+
     setLoadingSemAvaliacao(true);
     setErroSemAvaliacao('');
     try {
@@ -240,39 +253,47 @@ const MetodoTab = () => {
           total: filtrados.length
         });
       }
+      semAvaliacaoCarregadaRef.current = true;
     } catch (err) {
       console.error(err);
       setErroSemAvaliacao('Não foi possível carregar as pendências.');
     } finally {
       setLoadingSemAvaliacao(false);
     }
-  }, [mapProfissionaisEspecialidades, normalizarEspecialidades, normalizeNome]);
+  }, [loadingSemAvaliacao, mapProfissionaisEspecialidades, normalizarEspecialidades, normalizeNome]);
 
 
   /**
    * Carrega todas as pendências de escala (abertas, concluídas, etc.)
    * Atualiza estado com a lista vinda da API
    */
-  const carregarPendenciasEscala = useCallback(async () => {
+  const carregarPendenciasEscala = useCallback(async ({ force = false } = {}) => {
+    if (pendenciasEscalaCarregadasRef.current && !force) return;
+    if (loadingPendenciasEscala && !force) return;
+
     setLoadingPendenciasEscala(true);
     setErroPendenciasEscala('');
     try {
       const resposta = await buscar_todas_pendencias({});
       setPendenciasEscala(resposta || []);
+      pendenciasEscalaCarregadasRef.current = true;
     } catch (err) {
       console.error(err);
       setErroPendenciasEscala('Não foi possível carregar pendências de escala.');
     } finally {
       setLoadingPendenciasEscala(false);
     }
-  }, []);
+  }, [loadingPendenciasEscala]);
 
 
   /**
    * Carrega formulários e escalas do sistema para associação
    * Normaliza os dados para facilitar o uso na tela
    */
-  const carregarAssociacoes = useCallback(async () => {
+  const carregarAssociacoes = useCallback(async ({ force = false } = {}) => {
+    if (associacoesCarregadasRef.current && !force) return;
+    if (loadingAssociacao && !force) return;
+
     setLoadingAssociacao(true);
     setErroAssociacao('');
     try {
@@ -300,24 +321,15 @@ const MetodoTab = () => {
       const listaForms = Array.isArray(forms) ? forms.map(normalizarFormulario) : [];
       setFormulariosSistema(listaForms);
       setEscalasAssociadas(Array.isArray(escalas) ? escalas : []);
+      associacoesCarregadasRef.current = true;
     } catch (err) {
       console.error(err);
       setErroAssociacao('Não foi possível carregar formulários/escalas.');
     } finally {
       setLoadingAssociacao(false);
     }
-  }, []);
+  }, [loadingAssociacao]);
 
-
-  // Carrega pendências de escala ao montar o componente
-  useEffect(() => {
-    carregarPendenciasEscala();
-  }, [carregarPendenciasEscala]);
-
-  // Carrega associações ao montar o componente
-  useEffect(() => {
-    carregarAssociacoes();
-  }, [carregarAssociacoes]);
 
   // Carrega pendências sem avaliação ao trocar para a aba correspondente
   useEffect(() => {
@@ -332,6 +344,13 @@ const MetodoTab = () => {
       carregarAssociacoes();
     }
   }, [activeMetodoTab, carregarAssociacoes]);
+
+  // Carrega pendências de escala apenas quando a aba for aberta
+  useEffect(() => {
+    if (activeMetodoTab === 'sem-pendencia-escala') {
+      carregarPendenciasEscala();
+    }
+  }, [activeMetodoTab, carregarPendenciasEscala]);
 
   const abrirModalAssociacao = useCallback((form, escala) => {
     const listaDiag = Array.isArray(escala?.listaDiagnosticos)
@@ -398,7 +417,7 @@ const MetodoTab = () => {
 
       await Swal.fire({ icon: 'success', title: 'Associação salva!', timer: 1600, showConfirmButton: false });
       fecharModalAssociacao();
-      carregarAssociacoes();
+      carregarAssociacoes({ force: true });
     } catch (err) {
       console.error(err);
       Swal.fire('Erro', 'Não foi possível salvar a associação.', 'error');
@@ -512,11 +531,17 @@ const MetodoTab = () => {
   }, [pacientes, normalizeNome]);
 
   const analisarSemPendenciaEscala = useCallback(async () => {
+    const pendentes = pacientesSemPendenciaEscala.filter((nome) => {
+      const key = normalizeNome(nome);
+      return !analiseSemPendencia[key];
+    });
+    if (pendentes.length === 0) return;
+
     setLoadingAnaliseSemPendencia(true);
     const resultados = {};
 
     await Promise.all(
-      pacientesSemPendenciaEscala.map(async (nome) => {
+      pendentes.map(async (nome) => {
         const key = normalizeNome(nome);
         const paciente = mapaPacientePorNome.get(key);
         if (!paciente?.id) {
@@ -529,20 +554,33 @@ const MetodoTab = () => {
       })
     );
 
-    setAnaliseSemPendencia(resultados);
+    setAnaliseSemPendencia((prev) => ({ ...prev, ...resultados }));
     setLoadingAnaliseSemPendencia(false);
-  }, [pacientesSemPendenciaEscala, mapaPacientePorNome, avaliarPossiveisSugestoesPaciente, normalizeNome]);
+  }, [pacientesSemPendenciaEscala, analiseSemPendencia, mapaPacientePorNome, avaliarPossiveisSugestoesPaciente, normalizeNome]);
+
+  const pacientesSemPendenciaHash = useMemo(() => {
+    return pacientesSemPendenciaEscala.map((nome) => normalizeNome(nome)).sort().join('|');
+  }, [pacientesSemPendenciaEscala, normalizeNome]);
 
   useEffect(() => {
     setAnaliseSemPendencia({});
-  }, [pacientesSemPendenciaEscala.length]);
+  }, [pacientesSemPendenciaHash]);
+
   useEffect(() => {
+    if (activeMetodoTab !== 'sem-pendencia-escala') return;
     if (pacientesSemPendenciaEscala.length === 0) return;
     if (loadingAnaliseSemPendencia) return;
-    const totalAnalisados = Object.keys(analiseSemPendencia).length;
-    if (totalAnalisados === pacientesSemPendenciaEscala.length) return;
+    const faltantes = pacientesSemPendenciaEscala.some((nome) => !analiseSemPendencia[normalizeNome(nome)]);
+    if (!faltantes) return;
     analisarSemPendenciaEscala();
-  }, [pacientesSemPendenciaEscala.length, loadingAnaliseSemPendencia, analiseSemPendencia, analisarSemPendenciaEscala]);
+  }, [
+    activeMetodoTab,
+    pacientesSemPendenciaEscala,
+    loadingAnaliseSemPendencia,
+    analiseSemPendencia,
+    analisarSemPendenciaEscala,
+    normalizeNome
+  ]);
 
   const pacientesSemPendenciaOrdenados = useMemo(() => {
     const prioridadeStatus = {
@@ -607,6 +645,12 @@ const MetodoTab = () => {
     });
   }, [formulariosAtivos, escalasAssociadas]);
 
+  const idsFormulariosSemAssociacao = useMemo(() => {
+    return new Set(
+      (formulariosSemAssociacao || []).map((form) => Number(form?.id ?? form?.formularioId ?? form?.formId))
+    );
+  }, [formulariosSemAssociacao]);
+
   const formulariosAssociacaoOrdenados = useMemo(() => {
     const termo = String(buscaAssociacao || '').toLowerCase().trim();
     return [...formulariosAtivos]
@@ -624,14 +668,14 @@ const MetodoTab = () => {
         return nome.includes(termo);
       })
       .sort((a, b) => {
-        const aSem = formulariosSemAssociacao.some((item) => Number(item?.id) === Number(a?.id));
-        const bSem = formulariosSemAssociacao.some((item) => Number(item?.id) === Number(b?.id));
+        const aSem = idsFormulariosSemAssociacao.has(Number(a?.id ?? a?.formularioId ?? a?.formId));
+        const bSem = idsFormulariosSemAssociacao.has(Number(b?.id ?? b?.formularioId ?? b?.formId));
         if (aSem !== bSem) return aSem ? -1 : 1;
         const nomeA = String(a?.nomeEscala ?? a?.nome_formulario ?? a?.nomeFormulario ?? a?.formulario_nome ?? a?.titulo ?? a?.nome ?? '');
         const nomeB = String(b?.nomeEscala ?? b?.nome_formulario ?? b?.nomeFormulario ?? b?.formulario_nome ?? b?.titulo ?? b?.nome ?? '');
         return nomeA.localeCompare(nomeB, 'pt-BR', { sensitivity: 'base' });
       });
-  }, [formulariosAtivos, formulariosSemAssociacao, buscaAssociacao]);
+  }, [formulariosAtivos, idsFormulariosSemAssociacao, buscaAssociacao]);
 
   const totalPaginasComPendencia = Math.max(1, Math.ceil(pendenciasComResumo.length / ITENS_POR_PAGINA_PENDENCIA));
   const totalPaginasSemPendencia = Math.max(1, Math.ceil(pacientesSemPendenciaOrdenados.length / ITENS_POR_PAGINA_PENDENCIA));
@@ -764,7 +808,7 @@ const MetodoTab = () => {
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
                   <button
-                    onClick={carregarPendenciasSemAvaliacao}
+                    onClick={() => carregarPendenciasSemAvaliacao({ force: true })}
                     className="px-4 py-2 rounded-xl bg-rose-600 text-white font-bold text-sm hover:bg-rose-700 transition-all shadow-md flex items-center gap-2 justify-center"
                   >
                     <ArrowPathIcon className={`w-5 h-5 ${loadingSemAvaliacao ? 'animate-spin' : ''}`} /> Atualizar
@@ -1031,7 +1075,7 @@ const MetodoTab = () => {
                   <p className="text-indigo-600 text-sm mt-1">Cruzado entre pacientes com e sem pendência.</p>
                 </div>
                 <button
-                  onClick={carregarPendenciasEscala}
+                  onClick={() => carregarPendenciasEscala({ force: true })}
                   className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 transition-all shadow-md flex items-center gap-2 justify-center"
                 >
                   <ArrowPathIcon className={`w-5 h-5 ${loadingPendenciasEscala ? 'animate-spin' : ''}`} /> Atualizar
