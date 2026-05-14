@@ -207,3 +207,19 @@ export const carregar_escalas_pendentes = async (pacienteId, especialidade) => {
     return [];
   }
 };
+
+
+export const carregar_agendamento_por_id = async (agendamentoId) => {
+  if (!agendamentoId || typeof agendamentoId !== "number") {
+    console.error("ID do agendamento inválido ou não fornecido.");
+    return null;
+  }
+
+  try {
+    const response = await axiosInstance.get(`/agendamentos/${agendamentoId}`)
+    return response?.data;
+  } catch (err) {
+    console.error(`Erro ao carregar agendamento com o id ${agendamentoId}:`, err);
+    return [];
+  }
+}

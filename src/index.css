@@ -3,6 +3,7 @@
 
 /* Importando Tailwind */
 @import "tailwindcss";
+@import 'katex/dist/katex.min.css';
 
 /* Apollo Theme */
 @theme {
