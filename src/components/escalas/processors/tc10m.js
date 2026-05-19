@@ -1,124 +1,34 @@
 export const processarTC10m = (respostas) => {
-    const [pos, pre] = coletarTC10m(respostas);
 
-    if (pos == null || pre == null) {
-        return null;
-    }
+    const pontuacao = coletarTC10m(respostas);
+    console.log(pontuacao);
 
     return {
-        valores: [pos, pre],
-        normalizado: {
-            pos: normalizarTC10m(pos),
-            pre: normalizarTC10m(pre),
-        },
+        "resultado": pontuacao,
+        "descricao": "Teste de Caminhada de 10 Metros (TC-10m)",
+        "doi": "10.1590/S1413-35552011000200006",
+        "nome_curto": "TC10m",
+        "calculo": "Escore = max(p2, p3, p4)",
+        "calculo_processado": "Padronização Radar = ((base - 0.8) / (1.3 - 0.8)) * 10",
+        "interpretacao": "O escore bruto é o maior valor dentre os três informados no formulário. Valor mínimo = 0.8; Valor máximo = 1.3; Valores fora do intervalo viram 0 (se menor que 0.8 m/s) ou 10 (se maior que 1.3 m/s). O escore padronizado lineariza a relação de tal que forma que uma resposta máxima (1.3 no escore bruto) seja um valor no radar igual a 10. O valor mínimo fica com 0 e qualquer outra pontuação está interpolada linearmente"
     };
 };
 
-export const normalizarTC10m = (tempoSegundos, distanciaMetros = 10.0) => {
-    /**
-     * Normaliza o Teste de Caminhada de 10 metros para escala 0–10
-     * Calcula a velocidade (m/s) e considera 0,8 m/s como ideal
-     *
-     * @param {number} tempoSegundos - Tempo para percorrer a distância (em segundos)
-     * @param {number} distanciaMetros - Distância percorrida (padrão: 10 metros)
-     * @returns {Object} Objeto com escore bruto, padronizado e metadados
-     */
+export const coletarTC10m = (form) => {
+    let result = null;
 
-    const tempo = Number(tempoSegundos);
+    for (let id = 625; id <= 627; id++) {
 
-    // Velocidade = distância / tempo (m/s)
-    const velocidade = distanciaMetros / tempo;
-    /*console.log(`Velocidade calculada: ${velocidade} m/s`);*/
-
-    // Normalização:
-    // ≥ 0,8 m/s → 10 pontos
-    // < 0,8 m/s → proporcional
-    let escorePadronizado = (velocidade / 0.8) * 10;
-
-    // Garante limites entre 0 e 10
-    escorePadronizado = Math.min(10, Math.max(0, Number(escorePadronizado.toFixed(2))));
-
-    return {
-        escore_bruto: velocidade,
-        unidade: 'm/s',
-        escore_padronizado: escorePadronizado,
-        nome: 'Teste de Caminhada de 10 Metros',
-        descricao: 'Avalia a velocidade de marcha em metros por segundo',
-        interpretacao: 'Maior velocidade = melhor capacidade de deambulação',
-        faixa_referencia: 'Ideal: >0,8 m/s | <0,4 m/s = limitação severa',
-        referencia:
-            'Salbach, N. M., Mayo, N. E., Higgins, J., Ahmed, S., Finch, L. E., & Richards, C. L. (2001). Responsiveness and predictability of gait speed and other disability measures in acute stroke. Archives of Physical Medicine and Rehabilitation, 82(9), 1204-1212.',
-        categoria: 'TC-10m<br>Velocidade'
-    };
-};
-
-export const coletarTC10m = (dfForm) => {
-    // Sessões únicas
-    const uniqueSessions = [
-        ...new Set(dfForm.map(item => item.sessao_resposta_id))
-    ];
-
-    let count = 0;
-
-    // Começa, Fim
-    const ids = [625, 627];
-
-    // Buckets
-    const pre = [];
-    const pos = [];
-
-    // Ordena sessões em ordem decrescente
-    const sortedSessions = uniqueSessions.sort((a, b) => b - a);
-
-    for (const session of sortedSessions) {
-        if (count >= 2) break;
-
-        // Filtra sessão atual e ordena
-        const dfSession = dfForm
-            .filter(item => item.sessao_resposta_id === session)
-            .sort((a, b) => a.pergunta_id - b.pergunta_id);
-
-        // Filtra perguntas no intervalo
-        const questoesNormais = dfSession.filter(
-            item => item.pergunta_id >= ids[0] && item.pergunta_id <= ids[1]
+        const item = form.find(
+            (resposta) => Number(resposta.perguntaId) === id
         );
 
-        for (const item of questoesNormais) {
-            let tentativa = Number(item.valor_resposta);
+        const valor = Number(item?.resposta);
 
-            if (!tentativa || tentativa <= 0 || isNaN(tentativa)) {
-                continue;
-            }
-
-            if (tentativa > 0 && tentativa < 1) {
-                tentativa = tentativa * 10;
-            }
-
-            if (count === 0) {
-                pos.push(tentativa);
-            } else if (count === 1) {
-                pre.push(tentativa);
-            }
-        }
-
-        count += 1;
-    }
-
-    if (pre.length === 0 || pos.length === 0) {
-        console.warn(
-            "Atenção: Apenas uma sessão encontrada para TC-10m. É necessário pelo menos duas para pré e pós."
-        );
-        if (pre.length === 0) {
-            return ["", pos.reduce((acc, v) => acc + v, 0)]
-        }
-        if (pos.length === 0) {
-            return [pre.reduce((acc, v) => acc + v, 0), ""]
+        if (result === null || valor > result) {
+            result = valor;
         }
     }
 
-    // Menor tempo = melhor desempenho
-    return [
-        Math.min(...pos),
-        Math.min(...pre)
-    ];
+    return result;
 };

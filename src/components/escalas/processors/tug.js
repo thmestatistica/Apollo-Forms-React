@@ -1,149 +1,34 @@
-export const processarTUG = (respostas, interpretacao) => {
-  const [pos, pre] = coletarTUG(respostas);
+export const processarTUG = (respostas) => {
 
-  if (pos == null || pre == null) {
-    return null;
-  }
+    const pontuacao = coletarTUG(respostas);
+    console.log(pontuacao);
 
-  return {
-    valores: [pos, pre],
-    normalizado: {
-      pos: normalizarTUG(pos, interpretacao),
-      pre: normalizarTUG(pre, interpretacao),
-    },
-  };
+    return {
+        "resultado": pontuacao,
+        "descricao": "Timed Up & Go (TUG)",
+        "doi": "10.1111/j.1532-5415.1991.tb01616.x",
+        "nome_curto": "TUG",
+        "calculo": "Escore = min(p2, p3, p4)",
+        "calculo_processado": "Padronização Radar = ((base - ?) / (? - ?)) * 10",
+        "interpretacao": "O escore bruto é o menor valor dentre os três informados no formulário. Valor mínimo = 0.8; Valor máximo = 1.3; Valores fora do intervalo viram 0 (se menor que 0.8 m/s) ou 10 (se maior que 1.3 m/s). O escore padronizado lineariza a relação de tal que forma que uma resposta máxima (1.3 no escore bruto) seja um valor no radar igual a 10. O valor mínimo fica com 0 e qualquer outra pontuação está interpolada linearmente"
+    };
 };
 
-export const normalizarTUG = (menorTempo, interpretacao) => {
-  const tempo = Number(menorTempo);
+export const coletarTUG = (form) => {
+    let result = null;
 
-  let escorePadronizado = null;
+    for (let id = 2; id <= 4; id++) {
 
-  if (!Array.isArray(interpretacao) || interpretacao.length === 0) {
-    if (tempo <= 14) {
-      escorePadronizado = 10;
-    } else if (tempo >= 20) {
-      escorePadronizado = 0;
-    } else {
-      escorePadronizado =
-        Math.round((((20 - tempo) / 6) * 10) * 100) / 100;
-    }
-  } else {
-    for (const regra of interpretacao) {
-      const valor = Number(String(regra.valor).replaceAll(",", "."));
-      const nota = Number(regra.nota);
+        const item = form.find(
+            (resposta) => Number(resposta.perguntaId) === id
+        );
 
-      switch (regra.operador) {
-        case '<=':
-          if (tempo <= valor) {
-            escorePadronizado = nota;
-            break;
-          }
-          else continue;
+        const valor = Number(item?.resposta);
 
-        case '>=':
-          if (tempo >= valor) {
-            escorePadronizado = nota;
-            break;
-          }
-          else continue;
-
-        case '<':
-          if (tempo < valor) {
-            escorePadronizado = nota;
-            break;
-          }
-          else continue;
-
-        case '>':
-          if (tempo > valor) {
-            escorePadronizado = nota;
-            break;
-          }
-          else continue;
-
-        case '=':
-          if (tempo == valor) {
-            escorePadronizado = nota;
-            break;
-          }
-          else continue;
-        default:
-          escorePadronizado =
-            Math.round((((20 - tempo) / 6) * 10) * 100) / 100;
-      }
-
-      if (escorePadronizado !== null) break;
+        if (result === null || valor < result) {
+            result = valor;
+        }
     }
 
-    if (escorePadronizado == null) {
-      escorePadronizado =
-        Math.round((((20 - tempo) / 6) * 10) * 100) / 100;
-    }
-
-  }
-
-  return {
-    escore_bruto: tempo,
-    unidade: 's',
-    escore_padronizado: escorePadronizado,
-    nome: 'Teste de Levantar e Andar (TUG)',
-    descricao: 'Mede o tempo para levantar de uma cadeira, andar 3 metros e retornar',
-    interpretacao: 'Menor tempo = melhor mobilidade e menor risco de quedas',
-    faixa_referencia: 'Ideal: <14 segundos | >20s = risco aumentado',
-    referencia:
-      'Podsiadlo, D., & Richardson, S. (1991). The timed "Up & Go".',
-    categoria: 'TUG<br>Tempo',
-  };
+    return result;
 };
-
-export const coletarTUG = (dfForm) => {
-  const uniqueSessions = [
-    ...new Set(dfForm.map(item => item.sessao_resposta_id))
-  ];
-
-  let count = 0;
-  const id = 5;
-
-  const pre = [];
-  const pos = [];
-
-  const sortedSessions = uniqueSessions.sort((a, b) => b - a);
-
-  for (const session of sortedSessions) {
-    if (count >= 2) break;
-
-    const tempos = dfForm
-      .filter(
-        item =>
-          item.sessao_resposta_id === session &&
-          item.pergunta_id === id
-      )
-      .map(item => Number(item.valor_resposta))
-      .filter(v => !isNaN(v));
-
-    if (!tempos.length) continue;
-
-    const melhorTempo = Math.min(...tempos);
-
-    if (count === 0) pos.push(melhorTempo);
-    else pre.push(melhorTempo);
-
-    count++;
-  }
-
-  if (!pre.length || !pos.length) {
-    console.warn(
-      'Atenção: Apenas uma sessão encontrada para TUG.'
-    );
-    if (pre.length === 0) {
-      return ["", pos.reduce((acc, v) => acc + v, 0)]
-    }
-    if (pos.length === 0) {
-      return [pre.reduce((acc, v) => acc + v, 0), ""]
-    }
-  }
-
-  return [pos[0], pre[0]];
-};
-
