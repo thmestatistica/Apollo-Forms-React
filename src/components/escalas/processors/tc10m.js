@@ -50,6 +50,10 @@ export const coletarTC10m = (form) => {
 
             const valor = 10 / Number(item?.resposta);
 
+            if (!isFinite(valor)){
+                continue;
+            } 
+
             if (result === null || valor > result) {
                 result = valor;
             }
