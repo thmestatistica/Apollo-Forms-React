@@ -1,5 +1,7 @@
 export const processarTC10m = (respostas) => {
 
+    console.log(respostas);
+
     const pontuacao = coletarTC10m(respostas);
     console.log(pontuacao);
 
@@ -15,20 +17,46 @@ export const processarTC10m = (respostas) => {
 };
 
 export const coletarTC10m = (form) => {
+    // 2043 - condicional (tempo segundos)
+    // 625 a 627 - s
+
+    // 2043 - condicional (velocidade)
+    // 2044 a 2046
+
+    const item = form.find((resposta) => Number(resposta.perguntaId) == 2043)
+
     let result = null;
 
-    for (let id = 625; id <= 627; id++) {
+    if (item?.resposta === "Velocidade (m/s),em metros por segundo" || form.find((resposta) => Number(resposta.perguntaId) === 2044)) {
+        for (let id = 2044; id <= 2046; id++) {
 
-        const item = form.find(
-            (resposta) => Number(resposta.perguntaId) === id
-        );
+            const item = form.find(
+                (resposta) => Number(resposta.perguntaId) === id
+            );
 
-        const valor = Number(item?.resposta);
+            const valor = Number(item?.resposta);
 
-        if (result === null || valor > result) {
-            result = valor;
+            if (result === null || valor > result) {
+                result = valor;
+            }
         }
+
+    } else if (item?.resposta === "Tempo (s), em segundos" || form.find((resposta) => Number(resposta.perguntaId) === 625)) {
+        for (let id = 625; id <= 627; id++) {
+
+            const item = form.find(
+                (resposta) => Number(resposta.perguntaId) === id
+            );
+
+            const valor = 10 / Number(item?.resposta);
+
+            if (result === null || valor > result) {
+                result = valor;
+            }
+        }
+
     }
 
     return result;
+
 };

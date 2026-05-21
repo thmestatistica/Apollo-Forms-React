@@ -378,7 +378,7 @@ const FormularioGenerico = () => {
                 }
             }
         }
-        
+        //
         // Concluir pendência de escala (se aplicável)
         if (!houveErro && pendEscala?.id) {
             resultados.concluirPendencia = await concluir_pendencia_escala({
@@ -503,7 +503,7 @@ const FormularioGenerico = () => {
                 reopenModal: !cameFromEscalaTag && !(isEvolucao || isAvaliacao)
             }
         });
-
+        //
     };
 
     if (!cacheLoaded) return <LoadingGen mensagem="Carregando..." />;
