@@ -36,6 +36,8 @@ import LacamentosPendencias from './routes/terapeuta/LacamentosPendencias.jsx'
 import AgendaSemanalTerapeuta from './routes/terapeuta/AgendaSemanalTerapeuta.jsx'
 import AgendaSemanalPaciente from './routes/terapeuta/AgendaSemanalPaciente.jsx'
 
+import PDFPreview from './routes/scales/PDFPreview.jsx'
+
 // --- Configuração simples das Rotas com createBrowserRouter ---
 const router = createBrowserRouter([
   {
@@ -103,6 +105,10 @@ const router = createBrowserRouter([
                         {
                             element: <AgendaSemanalPaciente/>,
                             path: 'agenda-semanal-paciente'
+                        },
+                        {
+                            element: <PDFPreview/>,
+                            path: 'formulario/scales/:id_form'
                         }
                     ]
                 }

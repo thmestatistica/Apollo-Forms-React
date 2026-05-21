@@ -18,6 +18,8 @@ import { useAuth } from "../../hooks/useAuth";
 import { useFormContext } from "../../hooks/useFormContext";
 import Swal from "sweetalert2";
 import { CONDITIONAL_CONSTANTS, getConditionalTargetsForAnswer } from "../../utils/form/conditionalQuestions.js";
+import { scaleProcessors } from "../../components/escalas/ProcessScales.jsx";
+import { createPayloadForScore, createScore } from "../../api/scores/scores_utils.js";
 
 const CACHE_DURATION = 3 * 24 * 60 * 60 * 1000; // 3 dias em milisegundos
 
@@ -113,7 +115,7 @@ const FormularioGenerico = () => {
 
 
                     return;
-                } else{
+                } else {
                     console.warn(`API de formulários retornou vazio para ID ${id_form}.`);
 
                     setCacheLoaded(true);
@@ -204,6 +206,7 @@ const FormularioGenerico = () => {
         // =====================
         const fd = new FormData(e.currentTarget);
         const respostasForm = {};
+        const respostasToScales = {};
         const obrigatoriosFaltando = [];
 
         for (const campo of visibleCampos) {
@@ -214,6 +217,7 @@ const FormularioGenerico = () => {
                 const values = fd.getAll(nome).filter(Boolean);
                 if (!isOptional && values.length === 0) obrigatoriosFaltando.push(label || nome);
                 respostasForm[nome] = values;
+                respostasToScales[campo?.id] = values;
                 continue;
             }
 
@@ -245,7 +249,7 @@ const FormularioGenerico = () => {
                         // Validação extra: verificar se todas as células obrigatórias estão preenchidas
                         const { titulo_colunas = [] } = meta_dados || {};
                         let allFilled = true;
-                        
+
                         for (const row of dataRows) {
                             const metadataCols = titulo_colunas || [];
                             for (const col of metadataCols) {
@@ -263,6 +267,7 @@ const FormularioGenerico = () => {
                 }
 
                 respostasForm[nome] = parsed; // Envia o objeto JSON parseado (seja Array ou Object com columns/data)
+                respostasToScales[campo?.id] = parsed;
                 continue;
             }
 
@@ -271,6 +276,7 @@ const FormularioGenerico = () => {
             const isEmpty = !value;
             if (!isOptional && isEmpty) obrigatoriosFaltando.push(label || nome);
             respostasForm[nome] = (tipo_resposta_esperada === "NUMERO_FLOAT" && !isEmpty) ? Number.parseFloat(value) : (value || "");
+            respostasToScales[campo?.id] = value;
         }
 
         if (obrigatoriosFaltando.length > 0) {
@@ -322,7 +328,7 @@ const FormularioGenerico = () => {
         //     (Array.isArray(user?.especialidade) ? user.especialidade[0] : user?.especialidade) ??
         //     (Array.isArray(user?.profissional?.especialidade) ? user.profissional.especialidade[0] : user?.profissional?.especialidade) ??
         //     null;
-        
+
         // console.warn("Dados de contexto para regras de negócio:",especialidadeAgendamento, tipoAtendimento, slotSigla, { isAvaliacaoInicial, isSlotEquipamento });
 
         const cameFromEscalaTag = location.state?.fromEscalaTag === true;
@@ -331,6 +337,10 @@ const FormularioGenerico = () => {
         let houveErro = false;
         let mensagensErro = [];
 
+        // =====================
+        // TESTE DE PROCESSAMENTO
+        // =====================
+
         // Envia respostas
         resultados.enviar = await enviar_respostas_form(Number(id_form), payloadRespostas);
         if (!resultados.enviar?.ok) {
@@ -338,6 +348,37 @@ const FormularioGenerico = () => {
             mensagensErro.push("Falha ao salvar respostas.");
         }
 
+        if (resultados.enviar?.ok) {
+            const processor = scaleProcessors[pendEscala?.formularioId];
+
+            if (processor) {
+                const respostasFormatadas = Object.entries(respostasToScales).map(([perguntaId, resposta]) => ({
+                    perguntaId,
+                    resposta
+                }));
+
+                const resultado = processor(respostasFormatadas);
+
+                /*Swal.fire({
+                    icon: "success",
+                    title: "Teste executado",
+                    html: `
+                        <pre style="text-align:left;max-height:300px;overflow:auto;">
+                            ${JSON.stringify(resultado, null, 2)}
+                        </pre>
+                    `
+                });*/
+
+                setSubmitting(false);
+
+                const scorePayload = await createPayloadForScore(pendEscala, payloadRespostas, resultado);
+                const result = await createScore(scorePayload);
+                if(result.ok){
+                    console.log("Score criado")
+                }
+            }
+        }
+        //
         // Concluir pendência de escala (se aplicável)
         if (!houveErro && pendEscala?.id) {
             resultados.concluirPendencia = await concluir_pendencia_escala({
@@ -443,6 +484,13 @@ const FormularioGenerico = () => {
             closeModal();
         }
 
+        if (scaleProcessors[pendEscala?.id]) {
+            const resultado = scaleProcessors[pendEscala.id](respostasForm);
+
+            console.log("Respostas:", respostasForm);
+            console.log("Resultado processado:", resultado);
+        }
+
         clearFormCache(cacheKey);
 
         navigate(returnTo || "/forms-terapeuta/tela-inicial", {
@@ -455,6 +503,7 @@ const FormularioGenerico = () => {
                 reopenModal: !cameFromEscalaTag && !(isEvolucao || isAvaliacao)
             }
         });
+        //
     };
 
     if (!cacheLoaded) return <LoadingGen mensagem="Carregando..." />;
@@ -466,7 +515,6 @@ const FormularioGenerico = () => {
                 <h1 className="text-2xl font-semibold text-center text-gray-800">
                     {formulario.titulo}
                 </h1>
-
 
                 {/* Bloco com informações da pendência */}
                 {pendencia && (
