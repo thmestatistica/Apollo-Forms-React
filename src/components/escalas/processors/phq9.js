@@ -1,111 +1,43 @@
 export const processarPHQ9 = (respostas) => {
-  const [pos, pre] = coletarPHQ9(respostas);
 
-  if (pos == null || pre == null) {
-    return null;
-  }
-
-  return {
-    valores: [pos, pre],
-    normalizado: {
-      pos: normalizarPHQ9(pos),
-      pre: normalizarPHQ9(pre),
-    },
-  };
-};
-
-export const normalizarPHQ9 = (pontuacao) => {
-    /**
-     * Normaliza PHQ-9 (0–27) para escala 0–10 (invertida)
-     * Quanto menor a depressão, maior a pontuação
-     *
-     * @param {number} pontuacao - Pontuação bruta do PHQ-9 (0 a 27)
-     * @returns {Object} Objeto com escore bruto, padronizado e metadados
-     */
-
-    const escoreBruto = Number(pontuacao);
-
-    // Escala invertida: 10 - (escoreBruto / 27) * 10
-    let escorePadronizado =
-        Math.round((10 - (escoreBruto / 27) * 10) * 100) / 100;
-
-    // Garante que fique entre 0 e 10
-    escorePadronizado = Math.max(0, Math.min(escorePadronizado, 10));
+    const pontuacao = coletarPHQ9(respostas);
+    console.log(pontuacao);
 
     return {
-        escore_bruto: escoreBruto,
-        unidade: 'pontos',
-        escore_padronizado: escorePadronizado,
-        nome: 'PHQ-9 – Questionário de Depressão',
-        descricao: 'Avalia a depressão/tristeza do paciente',
-        interpretacao: 'Menor pontuação = menor intensidade de depressão',
-        faixa_referencia: '0-4: mínima | 5-9: leve | 10-14: moderada | 15-19: moderadamente grave | 20-27: grave',
-        referencia:
-            'Kroenke, K., Spitzer, R. L., & Williams, J. B. W. (2001). The PHQ-9: Validity of a brief depression severity measure. Journal of General Internal Medicine, 16(9), 606–613.',
-        categoria: 'PHQ9<br>Depressão'
+        "resultado": pontuacao,
+        "descricao": "PHQ-9 – Questionário de Depressão",
+        "doi": "10.1046/j.1525-1497.2001.016009606.x",
+        "nome_curto": "PHQ9",
+        "calculo": "Escore = p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9",
+        "calculo_processado": "Padronização Radar = (base / 27) × 10",
+        "interpretacao": "O escore bruto é a soma da pontuação individual de cada pergunta. Valor mínimo = 0; Valor máximo = 27. O escore padronizado lineariza a relação de tal que forma que uma resposta máxima (27 no escore bruto) seja um valor no radar igual a 10. O valor mínimo fica com 0 e qualquer outra pontuação está interpolada linearmente"
     };
 };
 
-export const coletarPHQ9 = (dfForm) => {
-    // Sessões únicas
-    const uniqueSessions = [
-        ...new Set(dfForm.map(item => item.sessao_resposta_id))
-    ];
-
+export const coletarPHQ9 = (form) => {
     let count = 0;
 
-    // Começa, Fim
-    const ids = [670, 678];
+	for (let id = 670; id <= 678; id++) {
 
-    // Buckets
-    const pre = [];
-    const pos = [];
+		const item = form.find(
+			(resposta) => Number(resposta.perguntaId) === id
+		);
 
-    // Ordena sessões em ordem decrescente
-    const sortedSessions = uniqueSessions.sort((a, b) => b - a);
+		const valor = item?.resposta;
 
-    for (const session of sortedSessions) {
-        if (count >= 2) break;
+		if (valor) {
+			const numero = parseInt(valor.split(" - ")[0], 10);
 
-        // Filtra sessão atual e ordena
-        const dfSession = dfForm
-            .filter(item => item.sessao_resposta_id === session)
-            .sort((a, b) => a.pergunta_id - b.pergunta_id);
+			if (!isNaN(numero)) {
+				count += numero;
+			}
+		}
+	}
 
-        // Filtra perguntas no intervalo
-        const questoesNormais = dfSession.filter(
-            item => item.pergunta_id >= ids[0] && item.pergunta_id <= ids[1]
-        );
-
-        for (const item of questoesNormais) {
-            const num = String(item.valor_resposta[0]).trim();
-
-            if (count === 0) {
-                pos.push(Number(num));
-            } else if (count === 1) {
-                pre.push(Number(num));
-            } else {
-                break;
-            }
-        }
-
-        count += 1;
+    if (count >= 27){
+        count = 27;
     }
 
-    if (pre.length === 0 || pos.length === 0) {
-        console.warn(
-            "Atenção: Apenas uma sessão encontrada para PHQ-9. É necessário pelo menos duas para pré e pós."
-        );
-        if(pre.length === 0){
-          return ["", pos.reduce((acc, v) => acc + v, 0)]
-        }
-        if(pos.length === 0){
-          return [pre.reduce((acc, v) => acc + v, 0), ""]
-        }
-    }
-
-    return [
-        pos.reduce((acc, v) => acc + v, 0),
-        pre.reduce((acc, v) => acc + v, 0)
-    ];
+	return count;
+    
 };

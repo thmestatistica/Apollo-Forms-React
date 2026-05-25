@@ -156,8 +156,9 @@ const styles = StyleSheet.create({
   },
 
   badge: {
-    backgroundColor: "#e2e8f0",
-    borderRadius: 6,
+    backgroundColor: "#c883f2",
+    textAlign: "center",
+    borderRadius: 2,
     paddingHorizontal: 6,
     paddingVertical: 2,
     fontSize: 8,
@@ -165,6 +166,7 @@ const styles = StyleSheet.create({
 
   optionBadge: {
     backgroundColor: "#fff",
+    width: "100%",
     borderWidth: 1,
     borderColor: "#cbd5e1",
     borderRadius: 6,
@@ -212,7 +214,22 @@ const styles = StyleSheet.create({
   link: {
     color: 'black',
     textDecoration: 'underline',
-  }
+  },
+
+  checkbox: {
+    width: 10,
+    height: 10,
+    borderWidth: 1,
+    borderColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  checkboxChecked: {
+    width: 6,
+    height: 6,
+    backgroundColor: "#000",
+  },
 });
 
 const hoje = new Date().toLocaleDateString("pt-BR");
@@ -228,7 +245,9 @@ const labels = {
 export default function EscalaPDF({ perguntas = [], info = [], calculoFake = [] }) {
   const dataCriacao = new Date(info.data_criacao);
   const dataFormatada = dataCriacao.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
-  const qtdePerguntas = perguntas.length;
+  const qtdePerguntas = perguntas.length - 1;
+
+  const respostasTipo = ["TEXTO_LIVRE", "DATA", "TEXTO_TOPICO", "CONDICIONAL"];
 
   return (
     <Document title={`${calculoFake.nome_curto}_Ref`}>
@@ -294,16 +313,17 @@ export default function EscalaPDF({ perguntas = [], info = [], calculoFake = [] 
                   <Text style={[styles.th, { flex: 2 }]}>Texto</Text>
                   <Text style={[styles.th, { flex: 1.5 }]}>Tipo</Text>
                   <Text style={[styles.th, { flex: 2 }]}>Opções</Text>
+                  <Text style={[styles.th, { flex: 0.7 }]}>Usado no escore</Text>
                 </View>
 
                 {/* BODY */}
                 {perguntas.map((campo, index) => (
                   <View key={campo.pergunta_id} wrap={false} style={[styles.row]}>
-                    <Text style={[styles.td, { flex: 0.7 }]}>
+                    <Text style={[styles.td, { flex: 0.7, textAlign: "center" }]}>
                       {campo.ordem_pergunta}
                     </Text>
 
-                    <Text style={styles.td}>
+                    <Text style={[styles.td, { textAlign: "center" }]}>
                       {campo.pergunta_id}
                     </Text>
 
@@ -322,12 +342,37 @@ export default function EscalaPDF({ perguntas = [], info = [], calculoFake = [] 
                         {campo.opcoes_resposta?.length > 0 ? (
                           campo.opcoes_resposta.map((opcao, idx) => (
                             <Text key={idx} style={styles.optionBadge}>
-                              {opcao.label}
+                              {typeof opcao === "string" ? opcao : opcao.label}
                             </Text>
                           ))
                         ) : (
                           <Text>Sem opções</Text>
                         )}
+                      </View>
+                    </View>
+
+                    <View style={[styles.td, { flex: 0.7, alignItems: "center", justifyContent: "center" }]}>
+                      <View style={styles.checkbox}>
+                        {
+                          !respostasTipo.includes(campo.tipo_resposta_esperada) &&
+                          (
+                            campo.tipo_resposta_esperada !== "SELECAO_UNICA" &&
+                              campo.tipo_resposta_esperada !== "SELECAO_MULTIPLA"
+                              ? <View style={styles.checkboxChecked} />
+                              : campo.opcoes_resposta?.some(opcao => {
+                                const texto =
+                                  typeof opcao === "string"
+                                    ? opcao
+                                    : opcao?.label || "";
+
+                                return (
+                                  /^(\d+)/.test(texto) || /^nível\s*\d+/i.test(texto) || /^tipo\s*\d+/i.test(texto)// Pega se a resposta tem tipo "Nivel X - ou 1 - Resposta"
+                                );
+                              })
+                                ? <View style={styles.checkboxChecked} />
+                                : null
+                          )
+                        }
                       </View>
                     </View>
                   </View>

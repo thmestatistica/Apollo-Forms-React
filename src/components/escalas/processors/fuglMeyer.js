@@ -1,239 +1,110 @@
 export const processarFuglMeyerSuperior = (respostas) => {
-  const [pos, pre] = coletarFuglMeyerSuperior(respostas);
 
-  if (pos == null || pre == null) {
-    return null;
-  }
-
-  return {
-    valores: [pos, pre],
-    normalizado: {
-      pos: normalizarFuglMeyerSuperior(pos),
-      pre: normalizarFuglMeyerSuperior(pre),
-    },
-  };
-};
-
-export const normalizarFuglMeyerSuperior = (pontuacao, pontuacaoTotal = 104) => {
-    /**
-     * Normaliza o Fugl-Meyer – Membros Superiores (0–104) para escala 0–10
-     *
-     * @param {number} pontuacao - Pontuação bruta do teste (0 a 104)
-     * @param {number} pontuacaoTotal - Pontuação total do teste (padrão: 104)
-     * @returns {Object} Objeto com escore bruto, padronizado e metadados
-     */
-
-    const escoreBruto = Number(pontuacao);
-
-    // Normalização linear: (escoreBruto / pontuacaoTotal) * 10
-    let escorePadronizado =
-        Math.round(((escoreBruto / pontuacaoTotal) * 10) * 100) / 100;
-
-    // Garante que o valor fique entre 0 e 10
-    escorePadronizado = Math.max(0, Math.min(escorePadronizado, 10));
+    const pontuacao = coletarFuglMeyerSuperior(respostas);
+    console.log(pontuacao);
 
     return {
-        escore_bruto: escoreBruto,
-        unidade: 'pontos',
-        escore_padronizado: escorePadronizado,
-        nome: 'Fugl-Meyer - Membros Superiores',
-        descricao: 'Avalia a função motora dos membros superiores após AVC',
-        interpretacao: 'Maior pontuação = melhor função motora',
-        faixa_referencia: 'Máximo: 104 pontos (Pode ter Adaptações)',
-        referencia:
-            'Fugl-Meyer, A. R., Jääskö, L., Leyman, I., Olsson, S., & Steglind, S. (1975). The post-stroke hemiplegic patient. 1. a method for evaluation of physical performance. Scandinavian Journal of Rehabilitation Medicine, 7(1), 13-31.',
-        categoria: 'Fugl-Meyer<br>Superior'
+        "resultado": pontuacao,
+        "descricao": "Escala Fugl Meyer (AVC) - Extremidades Superiores",
+        "doi": "10.1016/j.apmr.2012.06.017",
+        "nome_curto": "Fugl-Meyer - Superiores",
+        "calculo": "Escore = soma das perguntas marcadas na tabela",
+        "calculo_processado": "Padronização Radar = (base / 104) × 10",
+        "interpretacao": "O escore bruto é a soma da pontuação individual de cada pergunta. Valor mínimo = 0; Valor máximo = 104. O escore padronizado lineariza a relação de tal que forma que uma resposta máxima (104 no escore bruto) seja um valor no radar igual a 10. O valor mínimo fica com 0 e qualquer outra pontuação está interpolada linearmente"
     };
 };
 
-export const coletarFuglMeyerSuperior = (dfForm) => {
-    // Sessões únicas
-    const uniqueSessions = [
-        ...new Set(dfForm.map(item => item.sessao_resposta_id))
-    ];
-
+export const coletarFuglMeyerSuperior = (form) => {
     let count = 0;
 
-    // Começa, Fim, Anormais
-    const ids = [741, 780, 792];
-
-    // Buckets
-    const pre = [];
-    const pos = [];
-
-    // Ordena sessões em ordem decrescente
-    const sortedSessions = uniqueSessions.sort((a, b) => b - a);
-
-    for (const session of sortedSessions) {
-        if (count >= 2) break;
-
-        // Filtra sessão atual e ordena
-        const dfSession = dfForm
-            .filter(item => item.sessao_resposta_id === session)
-            .sort((a, b) => a.pergunta_id - b.pergunta_id);
-
-        // Questões normais
-        const questoesNormais = dfSession.filter(
-            item => item.pergunta_id >= ids[0] && item.pergunta_id <= ids[1]
+    for (let id = 741; id <= 780; id++) {
+        const item = form.find(
+            (resposta) => Number(resposta.perguntaId) === id
         );
 
-        // Questões anormais
-        const questoesAnormais = dfSession.filter(
-            item => item.pergunta_id > ids[1] && item.pergunta_id <= ids[2]
-        );
+        const valor = item?.resposta;
 
-        // Normais
-        for (const item of questoesNormais) {
-            const num = String(item.valor_resposta[0]).trim();
+        if (valor) {
+            const numero = parseInt(String(valor).split(" - ")[0], 10);
 
-            if (count === 0) {
-                pos.push(Number(num));
-            } else if (count === 1) {
-                pre.push(Number(num));
+            if (!isNaN(numero)) {
+                count += numero;
             }
-        }
-
-        // Anormais (lista serializada)
-        for (const item of questoesAnormais) {
-            let lista;
-
-            try {
-                lista = JSON.parse(item.valor_resposta);
-            } catch {
-                continue;
-            }
-
-            for (const valor of lista) {
-                const num = String(valor[0]).trim();
-
-                if (count === 0) {
-                    pos.push(Number(num));
-                } else if (count === 1) {
-                    pre.push(Number(num));
-                }
-            }
-        }
-
-        count += 1;
-    }
-
-    if (pre.length === 0 || pos.length === 0) {
-        console.warn(
-            "Atenção: Apenas uma sessão encontrada para Fugl Meyer Superior. É necessário pelo menos duas para pré e pós."
-        );
-        if(pre.length === 0){
-          return ["", pos.reduce((acc, v) => acc + v, 0)]
-        }
-        if(pos.length === 0){
-          return [pre.reduce((acc, v) => acc + v, 0), ""]
         }
     }
 
-    return [
-        pos.reduce((acc, v) => acc + v, 0),
-        pre.reduce((acc, v) => acc + v, 0)
-    ];
+    for (let id = 781; id <= 792; id++) {
+        const item = form.find(
+            (resposta) => Number(resposta.perguntaId) === id
+        );
+
+        console.log(item);
+
+        if (!item?.resposta) continue;
+
+        const lista = item.resposta;
+
+        console.log(lista);
+
+        for (const valor of lista) {
+            const numero = parseInt(
+                String(valor).split(" - ")[0],
+                10
+            );
+
+            if (!isNaN(numero)) {
+                count += numero;
+            }
+        }
+    }
+
+    if (count >= 104){
+        count = 104;
+    }
+
+    return count;
 };
 
 export const processarFuglMeyerInferior = (respostas) => {
-    const [pos, pre] = coletarFuglMeyerInferior(respostas);
 
-    if (pos == null || pre == null) {
-        return null;
-    }
+    const pontuacao = coletarFuglMeyerInferior(respostas);
+    console.log(pontuacao);
 
     return {
-        valores: [pos, pre],
-        normalizado: {
-            pos: normalizarFuglMeyerInferior(pos),
-            pre: normalizarFuglMeyerInferior(pre),
-        },
+        "resultado": pontuacao,
+        "descricao": "Escala Fugl-Meyer (AVC) - Membros Inferiores",
+        "doi": "10.1016/j.apmr.2012.06.017",
+        "nome_curto": "Fugl-Meyer - Inferiores",
+        "calculo": "Escore = soma das perguntas marcadas na tabela",
+        "calculo_processado": "Padronização Radar = (base / 34) × 10",
+        "interpretacao": "O escore bruto é a soma da pontuação individual de cada pergunta. Valor mínimo = 0; Valor máximo = 34. O escore padronizado lineariza a relação de tal que forma que uma resposta máxima (34 no escore bruto) seja um valor no radar igual a 10. O valor mínimo fica com 0 e qualquer outra pontuação está interpolada linearmente"
     };
 };
 
-export const normalizarFuglMeyerInferior = (pontuacao, pontuacaoTotal = 34) => {
-    /**
-     * Normaliza o Fugl-Meyer – Membros Inferiores (0–34) para escala 0–10
-     *
-     * @param {number} pontuacao - Pontuação bruta do teste (0 a 34)
-     * @param {number} pontuacaoTotal - Pontuação total do teste (padrão: 34)
-     * @returns {Object} Objeto com escore bruto, padronizado e metadados
-     */
-
-    const escoreBruto = Number(pontuacao);
-
-    // Normalização linear
-    let escorePadronizado =
-        Math.round(((escoreBruto / pontuacaoTotal) * 10) * 100) / 100;
-
-    // Garante intervalo 0–10
-    escorePadronizado = Math.max(0, Math.min(escorePadronizado, 10));
-
-    return {
-        escore_bruto: escoreBruto,
-        unidade: 'pontos',
-        escore_padronizado: escorePadronizado,
-        nome: 'Fugl-Meyer - Membros Inferiores',
-        descricao: 'Avalia a função motora dos membros inferiores após AVC',
-        interpretacao: 'Maior pontuação = melhor função motora',
-        faixa_referencia: 'Máximo: 34 pontos',
-        referencia:
-            'Fugl-Meyer, A. R., Jääskö, L., Leyman, I., Olsson, S., & Steglind, S. (1975). The post-stroke hemiplegic patient. 1. a method for evaluation of physical performance. Scandinavian Journal of Rehabilitation Medicine, 7(1), 13-31.',
-        categoria: 'Fugl-Meyer<br>Inferior'
-    };
-};
-
-export const coletarFuglMeyerInferior = (dfForm) => {
-    // Sessões únicas
-    const uniqueSessions = [
-        ...new Set(dfForm.map(item => item.sessao_resposta_id))
-    ];
-
+export const coletarFuglMeyerInferior = (form) => {
     let count = 0;
 
-    // Começa, Fim
-    const ids = [590, 622];
+    for (let id = 590; id <= 622; id++) {
 
-    // Buckets
-    const pre = [];
-    const pos = [];
-
-    // Ordena sessões em ordem decrescente
-    const sortedSessions = uniqueSessions.sort((a, b) => b - a);
-
-    for (const session of sortedSessions) {
-        if (count >= 2) break;
-
-        const dfSession = dfForm
-            .filter(item => item.sessao_resposta_id === session)
-            .sort((a, b) => a.pergunta_id - b.pergunta_id);
-
-        const questoesNormais = dfSession.filter(
-            item => item.pergunta_id >= ids[0] && item.pergunta_id <= ids[1]
+        const item = form.find(
+            (resposta) => Number(resposta.perguntaId) === id
         );
 
-        for (const item of questoesNormais) {
-            const num = String(item.valor_resposta[0]).trim();
+        const valor = item?.resposta;
 
-            if (count === 0) {
-                pos.push(Number(num));
-            } else if (count === 1) {
-                pre.push(Number(num));
+        if (valor) {
+            const numero = parseInt(valor.split(" - ")[0], 10);
+
+            if (!isNaN(numero)) {
+                count += numero;
             }
         }
-
-        count += 1;
     }
 
-    if (pre.length === 0 || pos.length === 0) {
-        console.warn(
-            "Atenção: Apenas uma sessão encontrada para Fugl Meyer Inferior. É necessário pelo menos duas para pré e pós."
-        );
-        return [null, null];
+    if (count >= 34) {
+        count = 34;
     }
 
-    return [
-        pos.reduce((acc, v) => acc + v, 0),
-        pre.reduce((acc, v) => acc + v, 0)
-    ];
+    return count;
+
 };
