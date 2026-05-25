@@ -18,6 +18,8 @@ import AgendaControls from "./AgendaControls.jsx";
  * @param {React.Component} [props.FiltroComponent] - Componente de filtro customizado (opcional)
  */
 function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacientes, CardComponent, titulo = "Agenda Semanal", FiltroComponent, initialPessoaId = null, tipo="paciente" }) {
+    const DAY_COUNT = 6;
+    const lastDayIndex = DAY_COUNT - 1;
     const navigate = useNavigate();
     const [agendamentos, setAgendamentos] = useState([]);
     const [loadingAgendamento, setLoadingAgendamento] = useState(false);
@@ -58,7 +60,7 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
         setLoadingAgendamento(true);
         const start = new Date(weekStart);
         const end = new Date(weekStart);
-        end.setDate(end.getDate() + 4);
+        end.setDate(end.getDate() + lastDayIndex);
         const startDate = start.toISOString().split("T")[0];
         const endDate = end.toISOString().split("T")[0];
         const paramKey = tipo === "paciente" ? "pacienteId" : "usuarioId";
@@ -82,7 +84,7 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
     }, []);
     useEffect(() => {
         if (!isMobile) setVisibleDayIndex(0);
-        else setVisibleDayIndex(prev => Math.max(0, Math.min(4, prev)));
+        else setVisibleDayIndex(prev => Math.max(0, Math.min(lastDayIndex, prev)));
     }, [isMobile]);
     useEffect(() => setVisibleDayIndex(0), [weekStart, pessoaId]);
 
@@ -96,12 +98,12 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
         monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
         return monday;
     });
-    const prevDay = () => setVisibleDayIndex(i => { if (i > 0) return i - 1; prevWeek(); return 4; });
-    const nextDay = () => setVisibleDayIndex(i => { if (i < 4) return i + 1; nextWeek(); return 0; });
+    const prevDay = () => setVisibleDayIndex(i => { if (i > 0) return i - 1; prevWeek(); return lastDayIndex; });
+    const nextDay = () => setVisibleDayIndex(i => { if (i < lastDayIndex) return i + 1; nextWeek(); return 0; });
 
     // Datas
-    const weekDays = useMemo(() => [...Array(5)].map((_, i) => { const dt = new Date(weekStart); dt.setDate(dt.getDate() + i); return dt; }), [weekStart]);
-    const displayedDays = useMemo(() => isMobile ? [weekDays[Math.max(0, Math.min(4, visibleDayIndex))]] : weekDays, [isMobile, weekDays, visibleDayIndex]);
+    const weekDays = useMemo(() => [...Array(DAY_COUNT)].map((_, i) => { const dt = new Date(weekStart); dt.setDate(dt.getDate() + i); return dt; }), [weekStart]);
+    const displayedDays = useMemo(() => isMobile ? [weekDays[Math.max(0, Math.min(lastDayIndex, visibleDayIndex))]] : weekDays, [isMobile, weekDays, visibleDayIndex, lastDayIndex]);
     useEffect(() => {
         if (isMobile && displayedDays.length > 0) {
             const todayTime = new Date().setHours(0,0,0,0);

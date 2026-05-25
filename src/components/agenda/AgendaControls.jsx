@@ -35,7 +35,7 @@ const AgendaControls = ({
             </div>
             <div className="font-bold text-gray-700 text-lg">
                 {!isMobile ? (
-                    <span>📅 {weekDays[0].toLocaleDateString()} <span className="text-gray-400 font-normal mx-2">até</span> {weekDays[4].toLocaleDateString()}</span>
+                    <span>📅 {weekDays[0].toLocaleDateString()} <span className="text-gray-400 font-normal mx-2">até</span> {weekDays[weekDays.length - 1].toLocaleDateString()}</span>
                 ) : (
                     <div className="flex items-center justify-center gap-4">
                         <button onClick={prevDay} className="px-3 py-1 bg-white hover:bg-gray-200 border border-gray-200 rounded-lg shadow-sm transition">‹</button>
