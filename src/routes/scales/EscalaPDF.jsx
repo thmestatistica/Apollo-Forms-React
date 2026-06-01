@@ -249,6 +249,8 @@ export default function EscalaPDF({ perguntas = [], info = [], calculoFake = [] 
 
   const respostasTipo = ["TEXTO_LIVRE", "DATA", "TEXTO_TOPICO", "CONDICIONAL"];
 
+  console.log("FAKE", calculoFake);
+
   return (
     <Document title={`${calculoFake.nome_curto}_Ref`} >
       <Page size="A4" style={styles.page}>
@@ -386,41 +388,98 @@ export default function EscalaPDF({ perguntas = [], info = [], calculoFake = [] 
         <View break={true} style={styles.container}>
           <View style={styles.section}>
             <View style={styles.sectionTitle}>
-              <Text style={styles.sectionTitleText}>3. O equacionamento</Text>
+              <Text>3. O equacionamento</Text>
             </View>
 
-            <View style={styles.box}>
-              <Text>
-                Atualmente para a escala {calculoFake.nome_curto} o cálculo do escore bruto é:
-              </Text>
+            {Array.isArray(calculoFake) ? (
+              calculoFake.map((item, index) => (
+                <View
+                  key={index}
+                  style={{
+                    marginBottom: 20,
+                    paddingBottom: 15,
+                    borderBottomWidth: index < calculoFake.length - 1 ? 1 : 0,
+                    borderBottomColor: "#ccc",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "bold",
+                      marginBottom: 10,
+                    }}
+                  >
+                    {item.nome_curto}
+                  </Text>
 
-              <View style={styles.formulaBox}>
-                <Text style={styles.formula}>
-                  {calculoFake.calculo}
-                </Text>
-              </View>
+                  <View style={styles.box} break>
+                    <Text>
+                      Atualmente para a escala {item.nome_curto} o cálculo do escore bruto é:
+                    </Text>
 
-              <Text>
-                Depois é realizado o cálculo para o radar:
-              </Text>
+                    <View style={styles.formulaBox}>
+                      <Text style={styles.formula}>
+                        {item.calculo}
+                      </Text>
+                    </View>
 
-              <View style={styles.formulaBox}>
-                <Text style={styles.formula}>
-                  {calculoFake.calculo_processado}
-                </Text>
-              </View>
-            </View>
+                    <Text>
+                      Depois é realizado o cálculo para o radar:
+                    </Text>
 
-            <View style={styles.sectionTitle}>
-              <Text style={styles.sectionTitleText}>3-1. Interpretação</Text>
-            </View>
+                    <View style={styles.formulaBox}>
+                      <Text style={styles.formula}>
+                        {item.calculo_processado}
+                      </Text>
+                    </View>
+                  </View>
 
-            <View style={styles.box}></View>
-            <View>
-              <Text style={styles.text}>
-                {calculoFake.interpretacao}
-              </Text>
-            </View>
+                  <View style={[styles.sectionTitle, { marginTop: 10 }]}>
+                    <Text>Interpretação</Text>
+                  </View>
+
+                  <View>
+                    <Text style={styles.text}>
+                      {item.interpretacao}
+                    </Text>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <>
+                <View style={styles.box}>
+                  <Text>
+                    Atualmente para a escala {calculoFake.nome_curto} o cálculo do escore bruto é:
+                  </Text>
+
+                  <View style={styles.formulaBox}>
+                    <Text style={styles.formula}>
+                      {calculoFake.calculo}
+                    </Text>
+                  </View>
+
+                  <Text>
+                    Depois é realizado o cálculo para o radar:
+                  </Text>
+
+                  <View style={styles.formulaBox}>
+                    <Text style={styles.formula}>
+                      {calculoFake.calculo_processado}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.sectionTitle}>
+                  <Text>3-1. Interpretação</Text>
+                </View>
+
+                <View>
+                  <Text style={styles.text}>
+                    {calculoFake.interpretacao}
+                  </Text>
+                </View>
+              </>
+            )}
           </View>
         </View>
 

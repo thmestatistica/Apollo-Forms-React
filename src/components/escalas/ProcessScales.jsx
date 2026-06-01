@@ -15,7 +15,7 @@ import { processarADDENBROK } from './processors/addenbrock.js';
 import { processarFAC } from './processors/fac.js';
 import { processarGRBASI } from './processors/grbasi.js';
 import { processarSUNNYBROOK } from './processors/sunnybrook.js'
-import { processarAIVDs } from './processors/aivds.js'
+import { processarTOScales } from './processors/toscales.js'
 import { processarGAS } from './processors/gas.js'
 
 export const scaleProcessors = {
@@ -29,7 +29,8 @@ export const scaleProcessors = {
     29: processarGAD7,
     //30: processarLawtonBrody,
     31: processarPHQ9,
-    32: processarAIVDs,
+    32: processarTOScales,
+    61: processarTOScales,
     33: processarMIFMobilidade,
     34: processarMIFAutocuidados,
     35: processarMIFControleEsfincteres,
@@ -40,7 +41,6 @@ export const scaleProcessors = {
     41: processarGAS,
     53: processarFAC,
     56: processarSUNNYBROOK,
-    61: processarAIVDs,
     62: processarADDENBROK,
     65: processarEDT,
     68: processarGRBASI,

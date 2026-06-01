@@ -369,13 +369,28 @@ const FormularioGenerico = () => {
                     `
                 });*/
 
-                setSubmitting(false);
 
-                const scorePayload = await createPayloadForScore(pendEscala, payloadRespostas, resultado);
-                const result = await createScore(scorePayload);
-                if(result.ok){
-                    console.log("Score criado")
+                console.log("RESULTADO", resultado)
+
+                if (Array.isArray(resultado)) {
+                    console.log("Array");
+
+                    for (const item of resultado) {
+                        const scorePayload = await createPayloadForScore(pendEscala, payloadRespostas, item);
+                        const result = await createScore(scorePayload);
+                        if (result.ok) {
+                            console.log("Score criado");
+                        }
+                    }
+                } else {
+                    console.log("Unica");
+                    const scorePayload = await createPayloadForScore(pendEscala, payloadRespostas, resultado);
+                    const result = await createScore(scorePayload);
+                    if (result.ok) {
+                        console.log("Score criado")
+                    }
                 }
+                setSubmitting(false);
             }
         }
         //

@@ -6,7 +6,7 @@ export const processarGAS = (respostas) => {
     return {
         resultado: pontuacao,
         descricao: texto,
-        doi: "---",
+        doi: "Sem referência",
         nome_curto: "GAS",
         calculo: "Escore = p3",
         calculo_processado: "Essa escala não é exibida no radar",
