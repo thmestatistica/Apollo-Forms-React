@@ -9,8 +9,8 @@ export const processarPHQ9 = (respostas) => {
         "doi": "10.1046/j.1525-1497.2001.016009606.x",
         "nome_curto": "PHQ9",
         "calculo": "Escore = p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9",
-        "calculo_processado": "Padronização Radar = (base / 27) × 10",
-        "interpretacao": "O escore bruto é a soma da pontuação individual de cada pergunta. Valor mínimo = 0; Valor máximo = 27. O escore padronizado lineariza a relação de tal que forma que uma resposta máxima (27 no escore bruto) seja um valor no radar igual a 10. O valor mínimo fica com 0 e qualquer outra pontuação está interpolada linearmente"
+        "calculo_processado": "Padronização Radar = 10 - (base / 27) × 10",
+        "interpretacao": "O escore bruto é a soma da pontuação individual de cada pergunta. Valor mínimo = 0; Valor máximo = 27. O escore padronizado lineariza a relação de tal que forma que uma resposta máxima (27 no escore bruto) seja um valor no radar igual a 0. O valor mínimo fica com 10 e qualquer outra pontuação está interpolada linearmente"
     };
 };
 

@@ -9,12 +9,13 @@ export const processarFuglMeyerSuperior = (respostas) => {
         "doi": "10.1016/j.apmr.2012.06.017",
         "nome_curto": "Fugl-Meyer - Superiores",
         "calculo": "Escore = soma das perguntas marcadas na tabela",
-        "calculo_processado": "Padronização Radar = (base / 104) × 10",
-        "interpretacao": "O escore bruto é a soma da pontuação individual de cada pergunta. Valor mínimo = 0; Valor máximo = 104. O escore padronizado lineariza a relação de tal que forma que uma resposta máxima (104 no escore bruto) seja um valor no radar igual a 10. O valor mínimo fica com 0 e qualquer outra pontuação está interpolada linearmente"
+        "calculo_processado": "Padronização Radar = (base / 128) × 10",
+        "interpretacao": "O escore bruto é a soma da pontuação individual de cada pergunta com resposta unica, perguntas com multiplas respostas devem ter seus valores somados antes de serem contabilizadas. Valor mínimo = 0; Valor máximo = 128. O escore padronizado lineariza a relação de tal que forma que uma resposta máxima (128 no escore bruto) seja um valor no radar igual a 10. O valor mínimo fica com 0 e qualquer outra pontuação está interpolada linearmente"
     };
 };
 
 export const coletarFuglMeyerSuperior = (form) => {
+    console.log(form)
     let count = 0;
 
     for (let id = 741; id <= 780; id++) {
@@ -38,13 +39,9 @@ export const coletarFuglMeyerSuperior = (form) => {
             (resposta) => Number(resposta.perguntaId) === id
         );
 
-        console.log(item);
-
         if (!item?.resposta) continue;
 
         const lista = item.resposta;
-
-        console.log(lista);
 
         for (const valor of lista) {
             const numero = parseInt(
@@ -58,8 +55,8 @@ export const coletarFuglMeyerSuperior = (form) => {
         }
     }
 
-    if (count >= 104){
-        count = 104;
+    if (count >= 126){
+        count = 126;
     }
 
     return count;

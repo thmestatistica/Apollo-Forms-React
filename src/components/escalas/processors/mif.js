@@ -132,6 +132,7 @@ export const processarMIFMobilidade = (respostas) => {
 };
 
 export const coletarMIFMobilidade = (form) => {
+	console.log(form)
 	let count = 0;
 
 	const ids = [723, 724, 725, 726, 727, 1491];

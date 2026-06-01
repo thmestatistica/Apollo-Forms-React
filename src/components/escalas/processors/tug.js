@@ -9,8 +9,8 @@ export const processarTUG = (respostas) => {
         "doi": "10.1111/j.1532-5415.1991.tb01616.x",
         "nome_curto": "TUG",
         "calculo": "Escore = min(p2, p3, p4)",
-        "calculo_processado": "Padronização Radar = ((base - ?) / (? - ?)) * 10",
-        "interpretacao": "O escore bruto é o menor valor dentre os três informados no formulário. Valor mínimo = 0.8; Valor máximo = 1.3; Valores fora do intervalo viram 0 (se menor que 0.8 m/s) ou 10 (se maior que 1.3 m/s). O escore padronizado lineariza a relação de tal que forma que uma resposta máxima (1.3 no escore bruto) seja um valor no radar igual a 10. O valor mínimo fica com 0 e qualquer outra pontuação está interpolada linearmente"
+        "calculo_processado": "Padronização Radar = ((30 - base) / (30 - 10)) * 10",
+        "interpretacao": "O escore bruto é o menor valor dentre os três informados no formulário. Valor mínimo = 10; Valor máximo = 30; O escore padronizado lineariza a relação de tal que forma que uma resposta mínima (10 no escore bruto) seja um valor no radar igual a 10. O valor máximo ou maior fica com 0 e qualquer outra pontuação está interpolada linearmente"
     };
 };
 

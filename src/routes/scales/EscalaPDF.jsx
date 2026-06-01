@@ -250,7 +250,7 @@ export default function EscalaPDF({ perguntas = [], info = [], calculoFake = [] 
   const respostasTipo = ["TEXTO_LIVRE", "DATA", "TEXTO_TOPICO", "CONDICIONAL"];
 
   return (
-    <Document title={`${calculoFake.nome_curto}_Ref`}>
+    <Document title={`${calculoFake.nome_curto}_Ref`} >
       <Page size="A4" style={styles.page}>
         <View style={styles.containerHeader}>
           <Image src={LogoApollo} style={styles.image} />

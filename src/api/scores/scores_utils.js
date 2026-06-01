@@ -69,16 +69,16 @@ export const createPayloadForScore = async (pendencia, respostas, resultado) => 
         }
     }
 
-    if (ultimoForms.sessao_resposta?.formulario_id != pendencia?.formularioId) {
+    /*if (ultimoForms.sessao_resposta?.formulario_id != pendencia?.formularioId) {
         return "A resposta encontrada não condiz com o formulario atual"
-    }
+    }*/
 
-    const scoreExiste = await getScore({paciente_id: agendamento?.pacienteId, formulario_id: pendencia?.formularioId, sessao_resposta_id: ultimoForms?.sessao_resposta?.sessao_resposta_id})
+    /*const scoreExiste = await getScore({paciente_id: agendamento?.pacienteId, formulario_id: pendencia?.formularioId, sessao_resposta_id: ultimoForms?.sessao_resposta?.sessao_resposta_id})
     console.log(scoreExiste)
 
     if(scoreExiste.data){
         return "Esse score ja existe dentro da base"
-    }
+    }*/
 
     const payload = {
         sessao_resposta_id: ultimoForms?.sessao_resposta?.sessao_resposta_id,
