@@ -25,6 +25,10 @@ export const coletarTUG = (form) => {
 
         const valor = Number(item?.resposta);
 
+        if (valor <= 1){
+            continue
+        }
+
         if (result === null || valor < result) {
             result = valor;
         }
