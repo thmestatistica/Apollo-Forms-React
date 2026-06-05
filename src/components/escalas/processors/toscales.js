@@ -15,7 +15,7 @@ export const processarTOScales = (respostas) => {
             doi: "Sem referência",
             nome_curto: "Av. Cognitiva",
             calculo: "Escore = p1 + p2",
-            calculo_processado: "Padronização Radar = 10 - (base / 8) × 10",
+            calculo_processado: "Padronização Radar = 10 - ((base / 8) × 10)",
             interpretacao: "O escore bruto é a soma da pontuação individual de cada pergunta. Valor mínimo = 0; Valor máximo = 8; O escore padronizado lineariza a relação de tal que forma que uma resposta mínima (0 no escore bruto) seja um valor no radar igual a 10. O valor máximo ou maior fica com 0 e qualquer outra pontuação está interpolada linearmente"
         },
         {
@@ -24,7 +24,7 @@ export const processarTOScales = (respostas) => {
             doi: "Sem referência",
             nome_curto: "AIVDs",
             calculo: "Escore = p1 + p2 + p3 + p4 + p5",
-            calculo_processado: "Padronização Radar = 10 - (base / 20) × 10",
+            calculo_processado: "Padronização Radar = 10 - ((base / 20) × 10)",
             interpretacao: "O escore bruto é a soma da pontuação individual de cada pergunta. Valor mínimo = 0; Valor máximo = 20; O escore padronizado lineariza a relação de tal que forma que uma resposta mínima (0 no escore bruto) seja um valor no radar igual a 10. O valor máximo ou maior fica com 0 e qualquer outra pontuação está interpolada linearmente"
         },
         {
@@ -33,7 +33,7 @@ export const processarTOScales = (respostas) => {
             doi: "Sem referência",
             nome_curto: "Sensorial e Perceptual",
             calculo: "Escore = p1 + p3 + p5 + p6 + p7",
-            calculo_processado: "Padronização Radar = 10 - (base / 20) × 10",
+            calculo_processado: "Padronização Radar = 10 - ((base / 20) × 10)",
             interpretacao: "O escore bruto é a soma da pontuação individual de cada pergunta. Valor mínimo = 0; Valor máximo = 20; O escore padronizado lineariza a relação de tal que forma que uma resposta mínima (0 no escore bruto) seja um valor no radar igual a 10. O valor máximo ou maior fica com 0 e qualquer outra pontuação está interpolada linearmente"
         },
         {
@@ -42,7 +42,7 @@ export const processarTOScales = (respostas) => {
             doi: "Sem referência",
             nome_curto: "Motor",
             calculo: "Escore = p1 + p2 + p3 + p5 + p9 + p11 + p12 + p13 + p14",
-            calculo_processado: "Padronização Radar = 10 - (base / 36) × 10",
+            calculo_processado: "Padronização Radar = 10 - ((base / 36) × 10)",
             interpretacao: "O escore bruto é a soma da pontuação individual de cada pergunta. Valor mínimo = 0; Valor máximo = 36; O escore padronizado lineariza a relação de tal que forma que uma resposta mínima (0 no escore bruto) seja um valor no radar igual a 10. O valor máximo ou maior fica com 0 e qualquer outra pontuação está interpolada linearmente"
         }
     ];
