@@ -37,6 +37,7 @@ import AgendaSemanalTerapeuta from './routes/terapeuta/AgendaSemanalTerapeuta.js
 import AgendaSemanalPaciente from './routes/terapeuta/AgendaSemanalPaciente.jsx'
 
 import PDFPreview from './routes/scales/PDFPreview.jsx'
+import TabelaScorePreview from './routes/scales/TabelaScorePreview.jsx'
 
 // --- Configuração simples das Rotas com createBrowserRouter ---
 const router = createBrowserRouter([
@@ -109,6 +110,10 @@ const router = createBrowserRouter([
                         {
                             element: <PDFPreview/>,
                             path: 'formulario/scales/:id_form'
+                        },
+                        {
+                            element: <TabelaScorePreview/>,
+                            path: 'formulario/tabela-escores'
                         }
                     ]
                 }
