@@ -13,7 +13,8 @@ import {
   MagnifyingGlassIcon,
   ChevronLeftIcon,
   Bars3Icon,
-  EyeIcon
+  EyeIcon,
+  InformationCircleIcon
 } from '@heroicons/react/24/outline';
 
 // Hooks e Componentes
@@ -27,6 +28,7 @@ import PaginationControl from "../../components/pagination/PaginationControl.jsx
 
 // API Utils
 import { listar_formularios, criar_formulario_completo } from "../../api/forms/forms_utils";
+import { scaleProcessors } from "../../components/escalas/ProcessScales.jsx";
 
 // Utils
 import {
@@ -38,6 +40,8 @@ import {
     syncConditionedQuestions,
     validateConditionalRules,
 } from "../../utils/form/conditionalQuestions.js";
+
+const IDS_COM_ESCORE = Object.keys(scaleProcessors).map(Number);
 
 // --- CONSTANTES (Mantidas iguais) ---
 const OPCOES_ESPECIALIDADES = [
@@ -835,27 +839,39 @@ function EditarFormulario() {
                 {!loading && !error && (
                     <div className="flex-1 overflow-y-auto pr-2 p-1 pb-20 [scrollbar-width:thin] [scrollbar-color:rgba(90,39,121,0.55)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:rounded-2xl [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-2xl [&::-webkit-scrollbar-thumb]:bg-[rgba(90,39,121,0.45)] [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-clip-content [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(90,39,121,0.65)]"> 
                         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 content-start">
-                            {pageItems.map((f) => (
-                                // CARD DO FORMULÁRIO - DESIGN APOLLO (Roxo e Clean)
-                                <div 
-                                    key={getId(f) || Math.random()} 
-                                    onClick={() => handleEdit(f)} 
-                                    className="group relative bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-apollo-300 hover:ring-1 hover:ring-apollo-300 transition-all duration-300 cursor-pointer flex flex-col justify-between h-48 overflow-hidden transform hover:-translate-y-1"
-                                >
-                                    <div className="z-10 relative">
-                                        <span className="inline-block px-3 py-1 bg-gray-50 text-gray-500 text-[10px] font-bold rounded-lg border border-gray-100 uppercase tracking-wide group-hover:bg-apollo-50 group-hover:text-apollo-600 group-hover:border-apollo-100 transition-colors">
-                                            {getTipo(f)}
-                                        </span>
-                                        <h3 className="font-bold text-lg text-gray-800 leading-snug line-clamp-2 mt-4 group-hover:text-apollo-600 transition-colors">
-                                            {getTitulo(f)}
-                                        </h3>
+                            {pageItems.map((f) => {
+                                const id = getId(f);
+                                // Verificação especial para formulários com escore, bloqueando edição para profissionais que não sejam da equipe de TI/Estatística
+                                const possuiEscore = IDS_COM_ESCORE.includes(Number(id)) && Number(user?.profissionalId) !== 17;
+                                return (
+                                    // CARD DO FORMULÁRIO - DESIGN APOLLO (Roxo e Clean)
+                                    <div 
+                                        key={id || Math.random()} 
+                                        onClick={() => !possuiEscore && handleEdit(f)} 
+                                        className={`group relative bg-white p-6 rounded-2xl border border-gray-100 shadow-sm transition-all duration-300 flex flex-col justify-between h-48 overflow-hidden transform ${possuiEscore ? 'cursor-default' : 'hover:shadow-xl hover:border-apollo-300 hover:ring-1 hover:ring-apollo-300 hover:-translate-y-1 cursor-pointer'}`}
+                                    >
+                                        <div className="z-10 relative">
+                                            <span className="inline-block px-3 py-1 bg-gray-50 text-gray-500 text-[10px] font-bold rounded-lg border border-gray-100 uppercase tracking-wide group-hover:bg-apollo-50 group-hover:text-apollo-600 group-hover:border-apollo-100 transition-colors">
+                                                {getTipo(f)}
+                                            </span>
+                                            <h3 className="font-bold text-lg text-gray-800 leading-snug line-clamp-2 mt-4 group-hover:text-apollo-600 transition-colors">
+                                                {getTitulo(f)}
+                                            </h3>
+                                        </div>
+                                        
+                                        {possuiEscore ? (
+                                            <div className="w-full py-2 text-xs text-blue-500 font-medium bg-blue-50 rounded-lg border border-blue-500 leading-tight flex items-center justify-center gap-5">
+                                                <InformationCircleIcon className="w-7 h-7 shrink-0" />
+                                                <span className="w-4/5">Formulário utilizado em cálculos automáticos de escore, para editar/alterar, contactar a equipe de TI/Estatística da THM</span>
+                                            </div>
+                                        ) : (
+                                            <div className="mt-auto w-full py-2.5 rounded-xl bg-gray-50 text-gray-600 font-bold text-center text-xs border border-gray-100 group-hover:bg-apollo-200 group-hover:text-white group-hover:border-transparent transition-all flex items-center justify-center gap-2 z-10">
+                                                <span>Editar Formulário</span> <PencilSquareIcon className="w-4 h-4" />
+                                            </div>
+                                        )}
                                     </div>
-                                    
-                                    <div className="mt-auto w-full py-2.5 rounded-xl bg-gray-50 text-gray-600 font-bold text-center text-xs border border-gray-100 group-hover:bg-apollo-200 group-hover:text-white group-hover:border-transparent transition-all flex items-center justify-center gap-2 z-10">
-                                        <span>Editar Formulário</span> <PencilSquareIcon className="w-4 h-4" />
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 )}

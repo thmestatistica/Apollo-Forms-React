@@ -15,6 +15,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import SingleSelect from "../../components/input/SingleSelect.jsx";
 import MultiSelect from "../../components/input/MultiSelect.jsx";
 import AdaptiveInput from "../../components/input/AdaptiveInput.jsx";
+import { useAuth } from "../../hooks/useAuth";
 import { carregar_info_form, carregar_perguntas_form, upsert_perguntas_form, atualizar_info_form } from "../../api/forms/forms_utils";
 import ErroGen from "../../components/info/ErroGen.jsx";
 import SucessGen from "../../components/info/SucessGen.jsx";
@@ -28,6 +29,7 @@ import {
   syncConditionedQuestions,
   validateConditionalRules,
 } from "../../utils/form/conditionalQuestions.js";
+import { scaleProcessors } from "../../components/escalas/ProcessScales.jsx";
 
 // Tipos permitidos em células da Matriz
 const MATRIZ_CELL_TYPES = [
@@ -155,6 +157,7 @@ function EditTela() {
   // Params e navegação
   const { id_form } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   // Estados de ciclo de vida e feedback
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -174,6 +177,14 @@ function EditTela() {
   // Refs para inputs de texto das perguntas e foco pendente
   const inputRefs = useRef([]);
   const [pendingFocusIndex, setPendingFocusIndex] = useState(null);
+
+
+  const isBlocked = useMemo(() => {
+    // Profissional com ID 17 (TI) tem acesso irrestrito para manutenção, mesmo em formulários de escore
+    if (Number(user?.profissionalId) === 17) return false;
+    const blockedIds = Object.keys(scaleProcessors).map(Number);
+    return blockedIds.includes(Number(id_form));
+  }, [id_form, user]);
 
   /**
    * Rola o container de scroll para o final (fallback: janela).
@@ -204,6 +215,12 @@ function EditTela() {
   useEffect(() => {
     let mounted = true;
     (async () => {
+      if (isBlocked) {
+        setError("Formulário utilizado em cálculos automáticos de escore, para editar/alterar, contactar a equipe de TI/Estatística da THM");
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError("");
       const [perguntasData, infoData] = await Promise.all([
@@ -253,7 +270,7 @@ function EditTela() {
     return () => {
       mounted = false;
     };
-  }, [id_form]);
+  }, [id_form, isBlocked]);
 
   // Opções de tipo de pergunta
   const tipoOptions = useMemo(
@@ -1053,7 +1070,7 @@ function EditTela() {
           {!!error && <ErroGen mensagem={error} />}
           {!!success && <SucessGen mensagem={success} />}
 
-          {!loading && (
+          {!loading && !error && (
             <div className="flex flex-col gap-4">
               {/* Detalhes do formulário */}
               {infoEntries.length > 0 && (
