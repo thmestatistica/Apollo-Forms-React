@@ -35,6 +35,7 @@ import GestaoReavaliacao from './routes/terapeuta/GestaoReavaliacao.jsx'
 import LacamentosPendencias from './routes/terapeuta/LacamentosPendencias.jsx'
 import AgendaSemanalTerapeuta from './routes/terapeuta/AgendaSemanalTerapeuta.jsx'
 import AgendaSemanalPaciente from './routes/terapeuta/AgendaSemanalPaciente.jsx'
+import UploadArquivos from './routes/terapeuta/UploadArquivos.jsx'
 
 import PDFPreview from './routes/scales/PDFPreview.jsx'
 import TabelaScorePreview from './routes/scales/TabelaScorePreview.jsx'
@@ -114,6 +115,10 @@ const router = createBrowserRouter([
                         {
                             element: <TabelaScorePreview/>,
                             path: 'formulario/tabela-escores'
+                        },
+                        {
+                            element: <UploadArquivos />,
+                            path: 'upload-arquivos'
                         }
                     ]
                 }

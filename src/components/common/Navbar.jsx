@@ -15,7 +15,8 @@ import {
   PencilSquareIcon,
   EyeIcon,
   ChevronDownIcon,
-  ChevronUpIcon
+  ChevronUpIcon,
+  ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
 import ApolloLogo from '../../assets/logo_apollo.png';
 
@@ -106,6 +107,11 @@ const Navbar = () => {
                     name: 'Visualizar Formulários', 
                     href: '/forms-terapeuta/visualizar-formularios', 
                     icon: EyeIcon,
+                },
+                {
+                    name: 'Upload de Arquivos',
+                    href: '/forms-terapeuta/upload-arquivos',
+                    icon: ArrowDownTrayIcon,
                 }
             ]
         },
