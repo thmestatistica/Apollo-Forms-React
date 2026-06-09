@@ -28,6 +28,9 @@ const UploadArquivos = () => {
   // Opções para categorias e subcategorias conforme a hierarquia de pastas do Drive
   const categoriasOptions = [
     { value: "Robótica", label: "Robótica" },
+    { exame: "Exames", label: "Exames" },
+    { value: "Fotos/Registros", label: "Fotos/Registros" },
+    { value: "Outros", label: "Outros" },
   ];
 
   const subCategoriasMap = {
@@ -35,7 +38,7 @@ const UploadArquivos = () => {
       { value: "C-Mill", label: "C-Mill" },
       { value: "Armeo", label: "Armeo" },
       { value: "Lokomat", label: "Lokomat" },
-    ],
+    ]
   };
 
   // Carrega a lista de pacientes para o SelectBox
