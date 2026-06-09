@@ -17,6 +17,7 @@ import { processarGRBASI } from './processors/grbasi.js';
 import { processarSUNNYBROOK } from './processors/sunnybrook.js'
 import { processarTOScales } from './processors/toscales.js'
 import { processarGAS } from './processors/gas.js'
+import { processarIPAQ } from './processors/ipaq.js';
 
 export const scaleProcessors = {
     1: processarTUG,
@@ -44,4 +45,5 @@ export const scaleProcessors = {
     62: processarADDENBROK,
     65: processarEDT,
     68: processarGRBASI,
+    50: processarIPAQ
 };
