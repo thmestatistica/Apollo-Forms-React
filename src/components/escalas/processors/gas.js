@@ -5,7 +5,7 @@ export const processarGAS = (respostas) => {
 
     return {
         resultado: pontuacao,
-        descricao: [texto, justificativa],
+        descricao: `["${texto}"], ["${justificativa}"]`,
         doi: "Sem referência",
         nome_curto: "GAS",
         calculo: "Escore = p3",
