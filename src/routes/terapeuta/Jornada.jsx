@@ -11,6 +11,7 @@ import HistoricoSection from "../../components/jornada/HistoricoSection.jsx";
 import ProntuarioSection from "../../components/jornada/ProntuarioSection.jsx";
 import JornadaEmptyState from "../../components/jornada/JornadaEmptyState.jsx";
 import JornadaLoadingSkeleton from "../../components/jornada/JornadaLoadingSkeleton.jsx";
+import FilesSection from "../../components/jornada/FilesSection.jsx";
 import BotaoVerAnexo from "../../components/common/BotaoVerAnexo.jsx";
 
 const JornadaPage = () => {
@@ -52,6 +53,10 @@ const JornadaPage = () => {
               <hr className="border-gray-100" />
 
               <HistoricoSection agendamentos={agendamentos} resetKey={pacienteSelecionadoId} />
+
+              <hr className="border-gray-100" />
+
+              <FilesSection pacienteId={pacienteSelecionadoId} profissionais={profissionais} />
 
               <hr className="border-gray-100" />
 

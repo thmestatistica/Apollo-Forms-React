@@ -86,6 +86,11 @@ export const _parseIso = (iso) => {
  * abreviarNome("Maria", 2); // "Maria"
  */
 export const abreviarNome = (nomeCompleto, limiteNomes = 1) => {
+  // Validação para evitar erros caso o valor não seja uma string válida
+  if (!nomeCompleto || typeof nomeCompleto !== "string") {
+    return "";
+  }
+
   // Remove espaços extras e divide o nome em partes
   const partes = nomeCompleto.trim().split(/\s+/);
 
@@ -108,4 +113,3 @@ export const abreviarNome = (nomeCompleto, limiteNomes = 1) => {
   // Retorna o nome abreviado com a inicial do primeiro sobrenome em maiúscula
   return `${nomesFormatados.join(" ")} ${primeiroSobrenome[0].toLocaleUpperCase('pt-BR')}.`;
 };
-

@@ -56,6 +56,32 @@ export const enviar_upload_arquivo = async (arquivo, { pacienteId, profissionalI
 };
 
 /**
+ * Busca todos os arquivos relacionados a um paciente no backend.
+ * Endpoint: GET /upload/patient/:paciente_id
+ * 
+ * @param {number|string} pacienteId - ID do paciente.
+ * @returns {Promise<{ok: boolean, data?: Object, error?: Error}>}
+ */
+export const listar_arquivos_paciente = async (pacienteId) => {
+  try {
+    if (!pacienteId) {
+      throw new Error("ID do paciente não fornecido.");
+    }
+
+    const { data } = await axiosInstanceForms.get(`/upload/patient/${pacienteId}`);
+    return { ok: true, data };
+
+  } catch (err) {
+    console.error("Erro ao listar arquivos do paciente:", {
+      message: err?.message,
+      status: err?.response?.status,
+      data: err?.response?.data,
+    });
+    return { ok: false, error: err };
+  }
+};
+
+/**
  * Busca o link da pasta do Google Drive de um paciente.
  * Endpoint: GET /upload/folder/:paciente_id
  * 
@@ -77,6 +103,25 @@ export const obter_link_pasta_paciente = async (pacienteId) => {
       status: err?.response?.status,
       data: err?.response?.data,
     });
+    return { ok: false, error: err };
+  }
+};
+
+/**
+ * Obtém o conteúdo de um arquivo para visualização (streaming) segura.
+ * Endpoint: GET /upload/:arquivo_id/view
+ * 
+ * @param {number|string} arquivoId - ID do registro do arquivo no banco de dados.
+ * @returns {Promise<{ok: boolean, data?: Blob, error?: Error}>}
+ */
+export const visualizar_arquivo = async (arquivoId) => {
+  try {
+    const { data } = await axiosInstanceForms.get(`/upload/${arquivoId}/view`, {
+      responseType: "blob",
+    });
+    return { ok: true, data };
+  } catch (err) {
+    console.error("Erro ao visualizar arquivo:", err);
     return { ok: false, error: err };
   }
 };

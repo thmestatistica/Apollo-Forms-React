@@ -64,7 +64,15 @@ const ProntuarioItem = React.memo(({ item, agendamentos, pacienteDetalhes, profi
                         )}
                         <h4 className="font-bold text-base text-gray-800">{item.nome_formulario}</h4>
                         <span className="text-gray-400">•</span>
-                        <span className="text-sm text-gray-700">{profNome == "—" ? `🧑‍⚕️ ${profissionais[item.sessao_raw.profissional_id]}` : `🧑‍⚕️ ${profNome}`}</span>
+                        <span className="text-sm text-gray-700">
+                            {profNome === "—" 
+                                ? `🧑‍⚕️ ${profissionais?.[item.sessao_raw?.profissional_id]?.nome || 
+                                    profissionais?.[item.sessao_raw?.profissional_id]?.usuario?.nome || 
+                                    (typeof profissionais?.[item.sessao_raw?.profissional_id] === 'string' ? profissionais[item.sessao_raw.profissional_id] : 'Profissional')
+                                }` 
+                                : `🧑‍⚕️ ${profNome}`
+                            }
+                        </span>
 
                         <span className="text-gray-400">•</span>
                         <span className="text-sm text-gray-700">🧩 {slotStr === "—" ? (slotExtra === undefined ? "Não encontrado" : slotExtra) : slotStr} {siglaStr !== "" ? `(${siglaStr})` : null}</span>

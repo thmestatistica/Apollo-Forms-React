@@ -108,8 +108,8 @@ const ProntuarioSection = ({ prontuario, agendamentos, loadingProntuario, onRelo
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {prontuarioPaginado.map((item) => (
-            <div key={item.id} className="transform transition-all duration-300 hover:scale-[1.005]">
+          {prontuarioPaginado.map((item, index) => (
+            <div key={item.id || `pront-${index}`} className="transform transition-all duration-300 hover:scale-[1.005]">
               <ProntuarioItem item={item} agendamentos={agendamentos} pacienteDetalhes={pacienteDetalhes} profissionais={profissionais}/>
             </div>
           ))}

@@ -78,7 +78,7 @@ const UploadArquivos = () => {
     const uploadPromises = formData.arquivo.map(async (file) => {
       const resultado = await enviar_upload_arquivo(file, {
         pacienteId: formData.pacienteId,
-        profissionalId: user?.id, // Obtido do contexto de autenticação
+        profissionalId: user?.profissionalId, // Obtido do contexto de autenticação
         categoria: formData.categoria,
         subCategoria: formData.subCategoria,
       });
