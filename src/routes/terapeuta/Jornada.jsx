@@ -11,6 +11,7 @@ import HistoricoSection from "../../components/jornada/HistoricoSection.jsx";
 import ProntuarioSection from "../../components/jornada/ProntuarioSection.jsx";
 import JornadaEmptyState from "../../components/jornada/JornadaEmptyState.jsx";
 import JornadaLoadingSkeleton from "../../components/jornada/JornadaLoadingSkeleton.jsx";
+import BotaoVerAnexo from "../../components/common/BotaoVerAnexo.jsx";
 
 const JornadaPage = () => {
   const {
@@ -39,6 +40,11 @@ const JornadaPage = () => {
             <JornadaLoadingSkeleton />
           ) : pacienteSelecionadoId && pacienteDetalhes ? (
             <div className="flex flex-col gap-12 animate-fade-in w-full">
+              
+              <div className="flex justify-end -mb-8">
+                <BotaoVerAnexo pacienteId={pacienteSelecionadoId} />
+              </div>
+
               <DadosCadastraisSection pacienteDetalhes={pacienteDetalhes} />
 
               <ResumoSessoesSection stats={stats} />

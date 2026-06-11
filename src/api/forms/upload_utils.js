@@ -54,3 +54,29 @@ export const enviar_upload_arquivo = async (arquivo, { pacienteId, profissionalI
     return { ok: false, error: err };
   }
 };
+
+/**
+ * Busca o link da pasta do Google Drive de um paciente.
+ * Endpoint: GET /upload/folder/:paciente_id
+ * 
+ * @param {number|string} pacienteId - ID do paciente.
+ * @returns {Promise<{ok: boolean, data?: Object, error?: Error}>}
+ */
+export const obter_link_pasta_paciente = async (pacienteId) => {
+  try {
+    if (!pacienteId) {
+      throw new Error("ID do paciente não fornecido.");
+    }
+
+    const { data } = await axiosInstanceForms.get(`/upload/folder/${pacienteId}`);
+    return { ok: true, data };
+
+  } catch (err) {
+    console.error("Erro ao obter link da pasta do paciente:", {
+      message: err?.message,
+      status: err?.response?.status,
+      data: err?.response?.data,
+    });
+    return { ok: false, error: err };
+  }
+};

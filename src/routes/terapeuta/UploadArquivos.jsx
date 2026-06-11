@@ -22,13 +22,14 @@ const UploadArquivos = () => {
     pacienteId: "",
     categoria: "",
     subCategoria: "",
-    arquivo: null,
+    arquivo: [],
   });
 
   // Opções para categorias e subcategorias conforme a hierarquia de pastas do Drive
   const categoriasOptions = [
     { value: "Robótica", label: "Robótica" },
-    { exame: "Exames", label: "Exames" },
+    { value: "Exames", label: "Exames" },
+    { value: "Tecnologia", label: "Tecnologia" },
     { value: "Fotos/Registros", label: "Fotos/Registros" },
     { value: "Outros", label: "Outros" },
   ];
@@ -38,6 +39,9 @@ const UploadArquivos = () => {
       { value: "C-Mill", label: "C-Mill" },
       { value: "Armeo", label: "Armeo" },
       { value: "Lokomat", label: "Lokomat" },
+    ],
+    Tecnologia: [
+      { value: "Baiobit", label: "Baiobit"}
     ]
   };
 
@@ -65,29 +69,76 @@ const UploadArquivos = () => {
   const handleUpload = async (e) => {
     e.preventDefault();
 
-    if (!formData.arquivo || !formData.pacienteId) {
+    if (formData.arquivo.length === 0 || !formData.pacienteId) {
       Swal.fire("Atenção", "Selecione o paciente e o arquivo antes de continuar.", "warning");
       return;
     }
 
     setLoadingUpload(true); // Ativa o loading para o upload
-    const resultado = await enviar_upload_arquivo(formData.arquivo, {
-      pacienteId: formData.pacienteId,
-      profissionalId: user?.id, // Obtido do contexto de autenticação
-      categoria: formData.categoria,
-      subCategoria: formData.subCategoria,
+    const uploadPromises = formData.arquivo.map(async (file) => {
+      const resultado = await enviar_upload_arquivo(file, {
+        pacienteId: formData.pacienteId,
+        profissionalId: user?.id, // Obtido do contexto de autenticação
+        categoria: formData.categoria,
+        subCategoria: formData.subCategoria,
+      });
+      return { file, ok: resultado.ok, error: resultado.error };
     });
+
+    const results = await Promise.all(uploadPromises);
     setLoadingUpload(false); // Desativa o loading após o upload
 
-    if (resultado.ok) {
-      Swal.fire("Sucesso!", "O arquivo foi enviado e organizado no Drive.", "success");
-      setFormData({ pacienteId: "", categoria: "", subCategoria: "", arquivo: null });
+    const successfulUploads = results.filter(res => res.ok);
+    const failedUploads = results.filter(res => !res.ok);
+
+    if (successfulUploads.length > 0 && failedUploads.length === 0) {
+      Swal.fire("Sucesso!", `${successfulUploads.length} arquivo(s) enviado(s) e organizado(s) no Drive.`, "success");
+      setFormData({ pacienteId: "", categoria: "", subCategoria: "", arquivo: [] });
       // Reinicia o input de arquivo
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+    } else if (successfulUploads.length > 0 && failedUploads.length > 0) {
+      const failedNames = failedUploads.map(res => res.file.name).join(", ");
+      Swal.fire(
+        "Sucesso Parcial",
+        `${successfulUploads.length} arquivo(s) enviado(s). Falha ao enviar: ${failedNames}.`,
+        "warning"
+      );
+      setFormData({ pacienteId: "", categoria: "", subCategoria: "", arquivo: [] });
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } else {
-      Swal.fire("Erro", "Não foi possível completar o upload. Verifique sua conexão.", "error");
+      Swal.fire(
+        "Erro",
+        "Não foi possível completar o upload de nenhum arquivo. Verifique sua conexão e tente novamente.",
+        "error"
+      );
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    if (selectedFiles.length > 8) {
+      Swal.fire("Atenção", "Você pode selecionar no máximo 8 arquivos por vez.", "warning");
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      setFormData({ ...formData, arquivo: [] });
+      return;
+    }
+    setFormData({ ...formData, arquivo: selectedFiles });
+  };
+
+  const removeFile = (indexToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      arquivo: prev.arquivo.filter((_, index) => index !== indexToRemove)
+    }));
+    if (formData.arquivo.length === 1 && fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -172,24 +223,25 @@ const UploadArquivos = () => {
                   <input
                     type="file"
                     ref={fileInputRef} // Atribui a ref ao input
-                    onChange={(e) => setFormData({ ...formData, arquivo: e.target.files[0] })}
+                    multiple // Permite múltiplos arquivos
+                    onChange={handleFileChange}
                     className="block w-full min-h-[120px] text-sm text-gray-500 border-2 border-dashed border-gray-200 rounded-xl p-8 bg-white hover:border-apollo-200 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-apollo-50 file:text-apollo-600 hover:file:bg-apollo-100 cursor-pointer"
                   />
-                  {formData.arquivo && (
-                    <div className="absolute top-2 right-2 flex items-center gap-2 bg-white p-2 rounded-full text-sm text-gray-700">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormData({ ...formData, arquivo: null });
-                          if (fileInputRef.current) {
-                            fileInputRef.current.value = ""; // Limpa o valor do input
-                          }
-                        }}
-                        className="text-red-500 hover:text-red-700 font-bold text-lg leading-none"
-                        title="Remover arquivo selecionado"
-                      >
-                        &times;
-                      </button>
+                  {formData.arquivo.length > 0 && (
+                    <div className="absolute top-2 right-2 flex flex-col gap-1 bg-white p-2 rounded-lg shadow-md text-sm text-gray-700 max-h-[100px] overflow-y-auto">
+                      {formData.arquivo.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between gap-2">
+                          <span className="truncate max-w-[150px]">{file.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeFile(index)}
+                            className="text-red-500 hover:text-red-700 font-bold text-lg leading-none"
+                            title={`Remover ${file.name}`}
+                          >
+                            &times;
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
