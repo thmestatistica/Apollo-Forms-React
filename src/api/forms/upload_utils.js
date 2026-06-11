@@ -36,7 +36,7 @@ export const enviar_upload_arquivo = async (arquivo, { pacienteId, profissionalI
     }
 
     // O cabeçalho 'Content-Type': 'multipart/form-data' é configurado automaticamente pelo Axios ao receber FormData
-    const { data } = await axiosInstanceForms.post("/upload", formData, {
+    const { data } = await axiosInstanceForms.post("/upload/", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
