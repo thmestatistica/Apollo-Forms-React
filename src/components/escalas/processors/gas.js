@@ -1,11 +1,11 @@
 export const processarGAS = (respostas) => {
-    const { pontuacao, texto } = coletarGAS(respostas);
+    const { pontuacao, texto, justificativa } = coletarGAS(respostas);
 
-    console.log(pontuacao, texto);
+    console.log(pontuacao, texto, justificativa);
 
     return {
         resultado: pontuacao,
-        descricao: texto,
+        descricao: `["${texto}"], ["${justificativa}"]`,
         doi: "Sem referência",
         nome_curto: "GAS",
         calculo: "Escore = p3",
@@ -39,10 +39,16 @@ export const coletarGAS = (form) => {
         (resposta) => Number(resposta.perguntaId) === 829
     );
 
+    const itemJustificativa = form.find(
+        (resposta) => Number(resposta.perguntaId) === 1756
+    );
+
     const texto = itemTexto?.resposta;
+    const justificativa = itemJustificativa?.resposta;
 
     return {
         pontuacao: count,
-        texto
+        texto,
+        justificativa
     };
 };
