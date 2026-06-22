@@ -393,6 +393,7 @@ const FormularioGenerico = () => {
                 setSubmitting(false);
             }
         }
+        //--------------------------------------------------------
         //
         // Concluir pendência de escala (se aplicável)
         if (!houveErro && pendEscala?.id) {
@@ -519,6 +520,7 @@ const FormularioGenerico = () => {
             }
         });
         //
+        //-----------------------------------------------------------------------------------------------------------
     };
 
     if (!cacheLoaded) return <LoadingGen mensagem="Carregando..." />;

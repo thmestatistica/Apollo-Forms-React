@@ -18,7 +18,11 @@ import { processarSUNNYBROOK } from './processors/sunnybrook.js'
 import { processarTOScales } from './processors/toscales.js'
 import { processarGAS } from './processors/gas.js'
 import { processarIPAQ } from './processors/ipaq.js';
-import { processarSARA } from './processors/sara.js'
+import { processarSARA } from './processors/sara.js';
+import { processarWISCI } from './processors/wisci.js';
+import { processarFMS } from './processors/fms.js';
+import { processarGMFM } from './processors/gmfm.js';
+import { processarParkinsonUPDRS } from './processors/parkinsonUpdrs.js';
 
 export const scaleProcessors = {
     1: processarTUG,
@@ -47,5 +51,9 @@ export const scaleProcessors = {
     65: processarEDT,
     68: processarGRBASI,
     69: processarSARA,
-    50: processarIPAQ
+    50: processarIPAQ,
+    51: processarWISCI,
+    66: processarFMS,
+    67: processarGMFM,
+    54: processarParkinsonUPDRS,
 };
