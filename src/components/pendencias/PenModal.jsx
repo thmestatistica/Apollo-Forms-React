@@ -250,32 +250,49 @@ const PenModal = ({ penData }) => {
    * É um switch puramente de front-end (modifica o Contexto local) e reversível.
    * * @param {boolean} checked - Estado atual do checkbox/toggle.
    */
+  // const handleToggleDistantes = (checked) => {
+  //   const dayDistance = 10; // Define a distância em dias para considerar uma escala como "distante"
+  //   setIsToggleDistantesAtivo(checked);
+
+  //   options.forEach((escala) => {
+  //     const diffDays = calcularDiferencaDias(escala.data_referencia);
+  //     const key = getPendenciaKey(escala);
+  //     if (!key) return;
+
+  //     const statusAtual = getEffectiveStatus(escala);
+
+  //     if (checked) {
+  //       // Se ativou o toggle, a escala está há mais de 10 dias de distância, e ainda está "aberta/pendente"
+  //       if (diffDays > dayDistance && (!statusAtual || statusAtual === "PENDENTE" || statusAtual === "ABERTA")) {
+  //         // Marca a pendência instantaneamente como "Não Feito" via Contexto
+  //         setPendenciaStatus(key, "NAO_FEITO");
+  //       }
+  //     } else {
+  //       // Se desativou o toggle, reverta APENAS as que foram marcadas como "NAO_FEITO" que estão a > 10 dias
+  //       if (diffDays > dayDistance && statusAtual === "NAO_FEITO") {
+  //         // Retorna o status para aberta/pendente
+  //         setPendenciaStatus(key, "ABERTA");
+  //       }
+  //     }
+  //   });
+  // };
+
+  /**
+   * Lida com a ativação/desativação do toggle que marca escalas distantes como "Não feito".
+   * É um switch puramente de front-end (modifica o Contexto local) e reversível.
+   * * @param {boolean} checked - Estado atual do checkbox/toggle.
+   */
   const handleToggleDistantes = (checked) => {
-    const dayDistance = 10; // Define a distância em dias para considerar uma escala como "distante"
     setIsToggleDistantesAtivo(checked);
 
     options.forEach((escala) => {
-      const diffDays = calcularDiferencaDias(escala.data_referencia);
-      const key = getPendenciaKey(escala);
-      if (!key) return;
-
-      const statusAtual = getEffectiveStatus(escala);
-
-      if (checked) {
-        // Se ativou o toggle, a escala está há mais de 10 dias de distância, e ainda está "aberta/pendente"
-        if (diffDays > dayDistance && (!statusAtual || statusAtual === "PENDENTE" || statusAtual === "ABERTA")) {
-          // Marca a pendência instantaneamente como "Não Feito" via Contexto
-          setPendenciaStatus(key, "NAO_FEITO");
-        }
+      if(checked) {
+        setPendenciaStatus(getPendenciaKey(escala), "NAO_FEITO");
       } else {
-        // Se desativou o toggle, reverta APENAS as que foram marcadas como "NAO_FEITO" que estão a > 10 dias
-        if (diffDays > dayDistance && statusAtual === "NAO_FEITO") {
-          // Retorna o status para aberta/pendente
-          setPendenciaStatus(key, "ABERTA");
-        }
+        setPendenciaStatus(getPendenciaKey(escala), "ABERTA");
       }
-    });
-  };
+    })
+  }
 
   /**
    * Constrói o payload necessário para as requisições de atualização de uma escala específica,
@@ -540,7 +557,7 @@ const PenModal = ({ penData }) => {
           )}
         </div>
         {/* Checkbox para desmarcar escalas de data distante em lote */}
-        <div className="flex items-center gap-3 p-3.5 rounded-xl bg-apollo-200/5 border border-apollo-200/30 transition-colors hover:bg-apollo-200/10">
+        {/* <div className="flex items-center gap-3 p-3.5 rounded-xl bg-apollo-200/5 border border-apollo-200/30 transition-colors hover:bg-apollo-200/10">
           <input
             type="checkbox"
             id="toggleDistantes"
@@ -550,6 +567,19 @@ const PenModal = ({ penData }) => {
           />
           <label htmlFor="toggleDistantes" className="text-sm font-medium text-apollo-200 cursor-pointer select-none">
             Marcar escalas com mais de 10 dias de distância como "Não feito"
+          </label>
+        </div>
+      </div> */}
+      <div className="flex items-center gap-3 p-3.5 rounded-xl bg-apollo-200/5 border border-apollo-200/30 transition-colors hover:bg-apollo-200/10">
+          <input
+            type="checkbox"
+            id="toggleDistantes"
+            checked={isToggleDistantesAtivo}
+            onChange={(e) => handleToggleDistantes(e.target.checked)}
+            className="cursor-pointer w-4 h-4 text-apollo-500 rounded border-gray-300 focus:ring-apollo-500 transition-all"
+          />
+          <label htmlFor="toggleDistantes" className="text-sm font-medium text-apollo-200 cursor-pointer select-none">
+            Marcar todas as escalas como "Não feito"
           </label>
         </div>
       </div>
