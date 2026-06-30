@@ -54,9 +54,9 @@ const extrairEspecialidade = (ag, sessao) => {
     return spec.charAt(0).toUpperCase() + spec.slice(1).toLowerCase();
 };
 
-export const processarProntuario = (dadosBrutos, agendamentos = []) => {
+export const processarProntuario = (dadosBrutos, agendamentos = [], criterioOrdenacao = 'agendamento') => {
     if (!dadosBrutos || !Array.isArray(dadosBrutos)) return [];
-    console.log("Processando prontuário bruto: ", dadosBrutos);
+    
     const agendamentoMap = new Map();
     agendamentos.forEach(ag => {
         if (ag.id) agendamentoMap.set(String(ag.id), ag);
@@ -66,7 +66,6 @@ export const processarProntuario = (dadosBrutos, agendamentos = []) => {
 
     dadosBrutos.forEach(item => {
         const sessao = item.sessao_resposta || {};
-        // console.log("Processando item de prontuário: ", item);
         const id = sessao.sessao_resposta_id;
         const tipo_pergunta = item.pergunta?.tipo_resposta_esperada || "—";
         if (!id) return;
@@ -85,8 +84,6 @@ export const processarProntuario = (dadosBrutos, agendamentos = []) => {
         }
         
         let valor = item.valor_resposta;
-        // Se for MATRIZ (esperado JSON), não removemos colchetes/aspas destrutivamente.
-        // Para outros tipos (ex: select múltiplo salvo como array string), mantemos a limpeza antiga.
         if (tipo_pergunta !== "MATRIZ" && valor && typeof valor === 'string' && valor.trim().startsWith('[') && valor.trim().endsWith(']')) {
             valor = valor.replace(/["[\]]/g, '');
         }
@@ -123,7 +120,6 @@ export const processarProntuario = (dadosBrutos, agendamentos = []) => {
                 return key;
             }).join(', ');
         }
-        // console.log("Resposta Bruta: ", item.valor_resposta, " => Processada: ", valor);
 
         mapaSessoes[id].respostas.push({
             pergunta: item.pergunta?.texto_pergunta || "Questão",
@@ -137,7 +133,17 @@ export const processarProntuario = (dadosBrutos, agendamentos = []) => {
         .map(s => {
             s.respostas.sort((a, b) => a.ordem - b.ordem);
             const ag = agendamentoMap.get(String(s.agendamento_id));
-            s.data_ordenacao = ag ? new Date(ag.inicio) : new Date(s.data_registro);
+            
+            let dataBase;
+            if (criterioOrdenacao === 'registro') {
+                // Prioriza Registro, se não houver usa Agendamento
+                dataBase = s.data_registro || ag?.inicio;
+            } else {
+                // Prioriza Agendamento (comportamento padrão), se não houver usa Registro
+                dataBase = ag?.inicio || s.data_registro;
+            }
+
+            s.data_ordenacao = dataBase ? new Date(dataBase).getTime() : 0;
             s.especialidade = extrairEspecialidade(ag, s.sessao_raw);
             return s;
         })

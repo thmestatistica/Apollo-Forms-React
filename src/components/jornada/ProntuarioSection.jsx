@@ -3,7 +3,7 @@ import EditableSelect from "../input/EditableSelect.jsx";
 import Pagination from "./Pagination.jsx";
 import ProntuarioItem from "./ProntuarioItem.jsx";
 
-const ProntuarioSection = ({ prontuario, agendamentos, loadingProntuario, onReload, resetKey, pacienteDetalhes, profissionais }) => {
+const ProntuarioSection = ({ prontuario, agendamentos, loadingProntuario, onReload, resetKey, pacienteDetalhes, profissionais, tipoOrdenacao, setTipoOrdenacao }) => {
   const [prontNomeFiltro, setProntNomeFiltro] = useState("");
   const [prontLimit, setProntLimit] = useState(10);
   const [prontEspecialidade, setProntEspecialidade] = useState("Todas");
@@ -75,6 +75,18 @@ const ProntuarioSection = ({ prontuario, agendamentos, loadingProntuario, onRelo
             onChange={(e) => { const val = e.target.value; setProntLimit(val === "Todos" ? "Todos" : Number(val)); setProntPage(1); }}
           >
             <option value={3}>Últimos 3</option><option value={5}>Últimos 5</option><option value={10}>Últimos 10</option><option value="Todos">Ver Todos</option>
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400 text-xs">▼</div>
+        </div>
+
+        <div className="relative">
+          <select
+            className="appearance-none bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-lg py-1.5 pl-3 pr-8 cursor-pointer outline-none focus:border-apollo-300 hover:border-apollo-300 transition-colors"
+            value={tipoOrdenacao}
+            onChange={(e) => { setTipoOrdenacao(e.target.value); setProntPage(1); }}
+          >
+            <option value="agendamento">📅 Ordenar por Agendamento</option>
+            <option value="registro">📝 Ordenar por Data de Registro</option>
           </select>
           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400 text-xs">▼</div>
         </div>

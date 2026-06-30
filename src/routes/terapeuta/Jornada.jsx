@@ -20,7 +20,7 @@ const JornadaPage = () => {
       agendamentos, stats, prontuario,
       loadingInicial, loadingDados, loadingProntuario,
       recarregarProntuario,
-      profissionais
+      profissionais, tipoOrdenacao, setTipoOrdenacao
   } = useJornadaController();
 
   if (loadingInicial) return <LoadingGen primaryColor="#ffffff" secondaryColor="#ffffff" messageColor="text-apollo-100" />;
@@ -61,6 +61,8 @@ const JornadaPage = () => {
               <hr className="border-gray-100" />
 
               <ProntuarioSection
+                tipoOrdenacao={tipoOrdenacao}
+                setTipoOrdenacao={setTipoOrdenacao}
                 prontuario={prontuario}
                 agendamentos={agendamentos}
                 loadingProntuario={loadingProntuario}

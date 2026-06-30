@@ -22,6 +22,7 @@ export const useJornadaController = () => {
     const [stats, setStats] = useState(null);
     const [prontuario, setProntuario] = useState([]);
     const [profissionais, setProfissionais] = useState([])
+    const [tipoOrdenacao, setTipoOrdenacao] = useState('agendamento');
 
     // --- Estados de Loading ---
     const [loadingInicial, setLoadingInicial] = useState(true);
@@ -91,86 +92,82 @@ export const useJornadaController = () => {
 
     // 2. Selecionar Paciente (Busca Paralela + Cache por ID)
     useEffect(() => {
-        if (!pacienteSelecionadoId) {
-            setAgendamentos([]); setStats(null); setPacienteDetalhes(null); setProntuario([]);
-            return;
-        }
-
-        const loadDetalhes = async () => {
-            // Define detalhes básicos (já temos na lista de pacientes)
-            const pct = pacientes.find(p => String(p.id) === String(pacienteSelecionadoId));
-            setPacienteDetalhes(pct);
-
-            // 🔥 CHECK DE CACHE: Se já visitou esse paciente, carrega instantâneo
-            const cached = globalCache.dadosPorId[pacienteSelecionadoId];
-            if (cached) {
-                setAgendamentos(cached.agendamentos);
-                setStats(cached.stats);
-                setProntuario(cached.prontuario);
-                setLoadingDados(false);
-                return; // Não faz requisição de rede
+            if (!pacienteSelecionadoId) {
+                setAgendamentos([]); setStats(null); setPacienteDetalhes(null); setProntuario([]);
+                return;
             }
 
-            setLoadingDados(true);
-            try {
-                // 🔥 PARALELISMO: Busca Agendamentos e Prontuário ao mesmo tempo
-                const [histRaw, formsRaw] = await Promise.all([
-                    listar_agendamentos_paciente(pacienteSelecionadoId),
-                    listar_respostas_prontuario(pacienteSelecionadoId)
-                ]);
+            const loadDetalhes = async () => {
+                const pct = pacientes.find(p => String(p.id) === String(pacienteSelecionadoId));
+                setPacienteDetalhes(pct);
 
-                // Processamento Agendamentos
-                const sortedHist = (histRaw || []).sort((a, b) => new Date(b.inicio).getTime() - new Date(a.inicio).getTime());
-                const statsCalc = calcularTotaisRobotica(sortedHist);
+                const cacheKey = `${pacienteSelecionadoId}_${tipoOrdenacao}`;
+                const cached = globalCache.dadosPorId[cacheKey];
+                if (cached) {
+                    setAgendamentos(cached.agendamentos);
+                    setStats(cached.stats);
+                    setProntuario(cached.prontuario);
+                    setLoadingDados(false);
+                    return;
+                }
 
-                // Processamento Prontuário (usa a lista de agendamentos para cruzar dados)
-                const processedForms = processarProntuario(formsRaw, sortedHist);
+                setLoadingDados(true);
+                try {
+                    const [histRaw, formsRaw] = await Promise.all([
+                        listar_agendamentos_paciente(pacienteSelecionadoId),
+                        listar_respostas_prontuario(pacienteSelecionadoId)
+                    ]);
 
-                // Atualiza Estado
-                setAgendamentos(sortedHist);
-                setStats(statsCalc);
-                setProntuario(processedForms);
+                    const sortedHist = (histRaw || []).sort((a, b) => new Date(b.inicio).getTime() - new Date(a.inicio).getTime());
+                    const statsCalc = calcularTotaisRobotica(sortedHist);
 
-                // Salva no Cache Global
-                globalCache.dadosPorId[pacienteSelecionadoId] = {
-                    agendamentos: sortedHist,
-                    stats: statsCalc,
-                    prontuario: processedForms
-                };
+                    // 🔥 Passando o tipo de ordenação atual aqui
+                    const processedForms = processarProntuario(formsRaw, sortedHist, tipoOrdenacao);
 
-            } catch (e) {
-                console.error("Erro ao carregar detalhes do paciente", e);
-            } finally {
-                setLoadingDados(false);
-            }
-        };
+                    setAgendamentos(sortedHist);
+                    setStats(statsCalc);
+                    setProntuario(processedForms);
 
-        loadDetalhes();
+                    // Salva no cache com a chave específica da ordenação
+                    globalCache.dadosPorId[cacheKey] = {
+                        agendamentos: sortedHist,
+                        stats: statsCalc,
+                        prontuario: processedForms
+                    };
 
-    }, [pacienteSelecionadoId, pacientes]);
+                } catch (e) {
+                    console.error("Erro ao carregar detalhes", e);
+                } finally {
+                    setLoadingDados(false);
+                }
+            };
+
+            loadDetalhes();
+
+        // 🔥 Adicionado 'tipoOrdenacao' como dependência para disparar o recarregamento ao mudar o filtro
+        }, [pacienteSelecionadoId, pacientes, tipoOrdenacao]);
 
     // 3. Ação: Recarregar Prontuário Manualmente
     const recarregarProntuario = useCallback(async () => {
-        if (!pacienteSelecionadoId) return;
-        setLoadingProntuario(true);
-        try {
-            const rawForms = await listar_respostas_prontuario(pacienteSelecionadoId);
+            if (!pacienteSelecionadoId) return;
+            setLoadingProntuario(true);
+            try {
+                const rawForms = await listar_respostas_prontuario(pacienteSelecionadoId);
+                
+                const processedForms = processarProntuario(rawForms, agendamentos, tipoOrdenacao);
 
-            // Re-processa usando o estado atual de agendamentos
-            const processedForms = processarProntuario(rawForms, agendamentos);
+                setProntuario(processedForms);
 
-            setProntuario(processedForms);
-
-            // Atualiza o cache também
-            if (globalCache.dadosPorId[pacienteSelecionadoId]) {
-                globalCache.dadosPorId[pacienteSelecionadoId].prontuario = processedForms;
+                const cacheKey = `${pacienteSelecionadoId}_${tipoOrdenacao}`;
+                if (globalCache.dadosPorId[cacheKey]) {
+                    globalCache.dadosPorId[cacheKey].prontuario = processedForms;
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoadingProntuario(false);
             }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoadingProntuario(false);
-        }
-    }, [pacienteSelecionadoId, agendamentos]);
+        }, [pacienteSelecionadoId, agendamentos, tipoOrdenacao]);
 
     // Retorna tudo que a View precisa
     return {
@@ -180,7 +177,8 @@ export const useJornadaController = () => {
         agendamentos,
         stats,
         prontuario,
-
+        tipoOrdenacao,      
+        setTipoOrdenacao,  
         loadingInicial,
         loadingDados,
         loadingProntuario,
