@@ -33,6 +33,38 @@ const DadosCadastraisSection = ({ pacienteDetalhes }) => (
         </div>
       </div>
     </div>
+
+    {/* Médicos Respónsáveis */}
+    {pacienteDetalhes.medicosResponsaveis && pacienteDetalhes.medicosResponsaveis.length > 0 && (
+      <div className="mt-8">
+        <h3 className="font-semibold text-xl text-gray-900 mb-4 tracking-tight">
+          🧑‍⚕️ Médicos Responsáveis
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {pacienteDetalhes.medicosResponsaveis.map((medico, index) => (
+            <div 
+              key={index} 
+              className="p-4 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200"
+            >
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <h4 className="font-medium text-gray-800 text-base">{medico.nome}</h4>
+                  <p className="text-sm text-indigo-600 font-medium">{medico.especialidade}</p>
+                </div>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                  CRM: {medico.crm || "—"}
+                </span>
+              </div>
+              
+              <div className="mt-3 pt-3 border-t border-gray-50 flex flex-col sm:flex-row sm:justify-between text-sm text-gray-500 gap-1 sm:gap-0">
+                <span>📞 {medico.telefone || "—"}</span>
+                <span className="truncate">✉️ {medico.email || "—"}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
   </div>
 );
 
