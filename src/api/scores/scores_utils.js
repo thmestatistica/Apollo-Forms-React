@@ -1,6 +1,6 @@
-import { agendamentos_pendentes, carregar_agendamento_por_id } from "../agenda/agenda_utils";
+import { carregar_agendamento_por_id } from "../agenda/agenda_utils";
 import axiosInstanceForms from "../forms/axiosInstanceForms";
-import { carregar_info_form, carregar_perguntas_form, verificar_forms_respondidos } from "../forms/forms_utils";
+import { carregar_info_form, carregar_perguntas_form } from "../forms/forms_utils";
 import { listar_respostas_prontuario } from "../jornada/jornada_utils";
 
 export const createScore = async (payload) => {
@@ -51,7 +51,7 @@ export const createPayloadForScore = async (pendencia, respostas, resultado) => 
     const fim = new Date(agendamento?.fim)
 
     const formsRespondidos = await listar_respostas_prontuario(agendamento?.pacienteId)
-    const ultimoForms = formsRespondidos?.at(-1)
+    let ultimoForms = formsRespondidos?.at(-1)
 
     if (!ultimoForms) {
         // Regra de negócio, essa função é executada depois da resposta ser enviada, então se existe um formulário respondido para hoje talvez esse formulário seja o que queremos enviar a escala
