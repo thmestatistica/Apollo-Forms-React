@@ -4,19 +4,11 @@ import { formatarDataHora } from "../../utils/jornada/format.js";
 
 import LoadingGen from "../info/LoadingGen.jsx";
 import InfoGen from "../info/InfoGen.jsx";
-import SingleSelect from "../input/SingleSelect.jsx";
 import AgendaTable from "./AgendaTable.jsx";
 import AgendaHeader from "./AgendaHeader.jsx";
 import AgendaControls from "./AgendaControls.jsx";
+import { DownloadPDFBotaoAgenda } from "./DownloadPDFBotaoAgenda.jsx";
 
-/**
- * Componente genérico de agenda semanal com filtro obrigatório de paciente/profissionais.
- * @param {Object} props
- * @param {Function} props.listarAgendamentos - Função para buscar agendamentos (startDate, endDate, pessoaId)
- * @param {Function} props.listarPessoas - Função para buscar pacientes/profissionais
- * @param {Function} props.CardComponent - Componente para renderizar cada agendamento
- * @param {React.Component} [props.FiltroComponent] - Componente de filtro customizado (opcional)
- */
 function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacientes, CardComponent, titulo = "Agenda Semanal", FiltroComponent, initialPessoaId = null, tipo="paciente" }) {
     const DAY_COUNT = 6;
     const lastDayIndex = DAY_COUNT - 1;
@@ -37,7 +29,7 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
         return monday;
     });
 
-    // Buscar pessoas (aceita listarPessoas ou listarPacientes por compatibilidade)
+    // Buscar pessoas
     useEffect(() => {
         setLoadingPessoas(true);
         const fetchPessoas = listarPessoas || listarPacientes;
@@ -45,7 +37,6 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
             const ativos = (pacs || []).filter(p => p.ativo !== false);
             ativos.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
             setPessoas(ativos);
-            // Use initialPessoaId when provided and present in list, otherwise default to first
             if (initialPessoaId && ativos.find(p => p.id === initialPessoaId)) {
                 setPessoaId(initialPessoaId);
             } else {
@@ -64,12 +55,11 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
         const startDate = start.toISOString().split("T")[0];
         const endDate = end.toISOString().split("T")[0];
         const paramKey = tipo === "paciente" ? "pacienteId" : "usuarioId";
-        // console.log("Buscando agendamentos com params:", { startDate, endDate, [paramKey]: pessoaId });
         const params = { startDate, endDate, [paramKey]: pessoaId };
         listarAgendamentos(params)
             .then(resp => setAgendamentos(resp || []))
             .finally(() => setLoadingAgendamento(false));
-    }, [listarAgendamentos, weekStart, pessoaId, tipo]);
+    }, [listarAgendamentos, weekStart, pessoaId, tipo, lastDayIndex]);
 
     // Responsividade
     useEffect(() => {
@@ -82,13 +72,13 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
             window.removeEventListener('orientationchange', handleResize);
         };
     }, []);
+
     useEffect(() => {
         if (!isMobile) setVisibleDayIndex(0);
         else setVisibleDayIndex(prev => Math.max(0, Math.min(lastDayIndex, prev)));
-    }, [isMobile]);
-    useEffect(() => setVisibleDayIndex(0), [weekStart, pessoaId]);
+    }, [isMobile, lastDayIndex]);
 
-    // Navegação
+    // Navegação de Semanas
     const prevWeek = () => setWeekStart(ws => { const d = new Date(ws); d.setDate(d.getDate() - 7); return d; });
     const nextWeek = () => setWeekStart(ws => { const d = new Date(ws); d.setDate(d.getDate() + 7); return d; });
     const goToToday = () => setWeekStart(() => {
@@ -98,18 +88,51 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
         monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
         return monday;
     });
-    const prevDay = () => setVisibleDayIndex(i => { if (i > 0) return i - 1; prevWeek(); return lastDayIndex; });
-    const nextDay = () => setVisibleDayIndex(i => { if (i < lastDayIndex) return i + 1; nextWeek(); return 0; });
 
-    // Datas
-    const weekDays = useMemo(() => [...Array(DAY_COUNT)].map((_, i) => { const dt = new Date(weekStart); dt.setDate(dt.getDate() + i); return dt; }), [weekStart]);
-    const displayedDays = useMemo(() => isMobile ? [weekDays[Math.max(0, Math.min(lastDayIndex, visibleDayIndex))]] : weekDays, [isMobile, weekDays, visibleDayIndex, lastDayIndex]);
-    useEffect(() => {
-        if (isMobile && displayedDays.length > 0) {
-            const todayTime = new Date().setHours(0,0,0,0);
-            if (displayedDays[0].getTime() === todayTime) setVisibleDayIndex(0);
+    // Navegação de Dias (Corrigida sem efeitos colaterais internos)
+    const nextDay = () => {
+        if (visibleDayIndex < lastDayIndex) {
+            setVisibleDayIndex(prev => prev + 1);
+        } else {
+            nextWeek();
+            setVisibleDayIndex(0);
         }
-    }, [displayedDays, isMobile]);
+    };
+
+    const prevDay = () => {
+        if (visibleDayIndex > 0) {
+            setVisibleDayIndex(prev => prev - 1);
+        } else {
+            prevWeek();
+            setVisibleDayIndex(lastDayIndex);
+        }
+    };
+
+    // Datas da Semana
+    const weekDays = useMemo(() => {
+        return [...Array(DAY_COUNT)].map((_, i) => { 
+            const dt = new Date(weekStart); 
+            dt.setDate(dt.getDate() + i); 
+            return dt; 
+        });
+    }, [weekStart]);
+
+    const displayedDays = useMemo(() => {
+        return isMobile ? [weekDays[Math.max(0, Math.min(lastDayIndex, visibleDayIndex))]] : weekDays;
+    }, [isMobile, weekDays, visibleDayIndex, lastDayIndex]);
+
+    // Inicializa no dia de hoje caso ele pertença à semana atual
+    useEffect(() => {
+        if (isMobile && weekDays.length > 0) {
+            const todayTime = new Date().setHours(0, 0, 0, 0);
+            const todayIndex = weekDays.findIndex(day => day.getTime() === todayTime);
+            if (todayIndex !== -1) {
+                setVisibleDayIndex(todayIndex);
+            } else {
+                setVisibleDayIndex(0);
+            }
+        }
+    }, [weekStart, isMobile, weekDays]);
 
     // Agrupamento e horários usando UTC
     const { agByDateAndHour, minHour, maxHour } = useMemo(() => {
@@ -119,9 +142,8 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
         const hours = [];
         agendamentos.forEach(ag => {
             if (!ag?.inicio) return;
-            const { data, hora } = formatarDataHora(ag.inicio);
-            // hora: "HH:mm" (UTC)
-            const key = ag.inicio.slice(0, 10); // yyyy-mm-dd
+            const { hora } = formatarDataHora(ag.inicio);
+            const key = ag.inicio.slice(0, 10);
             const hour = parseInt(hora.slice(0, 2), 10);
             hours.push(hour);
             if (!agrupado[key]) agrupado[key] = {};
@@ -135,9 +157,14 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
         return { agByDateAndHour: agrupado, minHour: minH, maxHour: maxH };
     }, [agendamentos]);
 
-    const timeSlots = useMemo(() => { const slots = []; for (let h = minHour; h <= maxHour; h++) slots.push(h); return slots; }, [minHour, maxHour]);
+    const timeSlots = useMemo(() => { 
+        const slots = []; 
+        for (let h = minHour; h <= maxHour; h++) slots.push(h); 
+        return slots; 
+    }, [minHour, maxHour]);
 
     if(loadingPessoas || loadingAgendamento) return <LoadingGen mensagem="Carregando agenda semanal..." primaryColor="#ffffff" secondaryColor="#ffffff" messageColor="text-apollo-100" />;
+    
     return (
         <div className="flex flex-col items-center justify-center min-h-screen gap-8 bg-gray-50">
             <div className="w-full h-screen flex flex-col md:gap-8 gap-4 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-6 p-2 items-center">
@@ -156,6 +183,13 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
                         prevWeek={prevWeek}
                         nextWeek={nextWeek}
                         goToToday={goToToday}
+                    />
+                    <DownloadPDFBotaoAgenda 
+                        displayedDays={weekDays} 
+                        pacienteAgenda={tipo === "paciente" ? true : false}
+                        timeSlots={timeSlots} 
+                        agByDateAndHour={agByDateAndHour}
+                        titulo={titulo}
                     />
                     {agendamentos.length === 0 ? (
                         <div className="flex">
