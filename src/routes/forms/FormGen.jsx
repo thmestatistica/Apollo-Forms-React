@@ -23,6 +23,8 @@ import { createPayloadForScore, createScore } from "../../api/scores/scores_util
 
 const CACHE_DURATION = 3 * 24 * 60 * 60 * 1000; // 3 dias em milisegundos
 
+const IDS_FORMS_DEPENDENCIAS_IDADE_SEXO = [63, 79]; // IDs de formulários que requerem idade e sexo do paciente
+
 // Chave para inserir, atualizar, recuperar e deletar os dados do cache
 const getCacheKey = (formId, userId, agendamentoId) => {
     const agendamentoKey = agendamentoId ?? "sem_agendamento";
@@ -71,6 +73,7 @@ const FormularioGenerico = () => {
     const { user } = useAuth();
     const { removerPendenciaStatus, closeModal } = useFormContext();
     const pendencia = location.state?.pendencia;
+    // console.log("Pendência recebida via state:", pendencia);
     const returnTo = location.state?.returnTo;
 
     const [formulario, setFormulario] = useState(null);
@@ -302,7 +305,8 @@ const FormularioGenerico = () => {
             profissional_id,
             disponibilizado_id: null,
             respostas: respostasForm,
-            agendamento_id: agendamento_id
+            agendamento_id: agendamento_id,
+            formulario_id: Number(id_form),
         };
 
         // console.log("Payload de respostas preparado:", payloadRespostas);
@@ -312,6 +316,8 @@ const FormularioGenerico = () => {
         //    Todas precisam ter ok === true
         // =====================
         const pendEscala = location.state?.pendenciaEscala;
+        // console.log("Pendência de escala recebida via state:", pendEscala);
+        // console.log("Pendência de escala recebida via state (pendencia):", location.state?.pendencia);
         const isEvolucao = location.state?.isEvolucao === true || /evolu/i.test(tipo_form ?? "");
         const isAvaliacao = location.state?.isAvaliacao === true || /avaliac/i.test(tipo_form ?? "");
 
@@ -349,7 +355,10 @@ const FormularioGenerico = () => {
         }
 
         if (resultados.enviar?.ok) {
-            const processor = scaleProcessors[pendEscala?.formularioId];
+            const processor = scaleProcessors[pendEscala?.formularioId ?? id_form ?? null];
+            // console.log(pendEscala)
+            // console.log(pendencia)
+            // console.log("PROCESSOR", processor)
 
             if (processor) {
                 const respostasFormatadas = Object.entries(respostasToScales).map(([perguntaId, resposta]) => ({
@@ -357,7 +366,17 @@ const FormularioGenerico = () => {
                     resposta
                 }));
 
-                const resultado = processor(respostasFormatadas);
+                let resultado;
+
+                
+                if(IDS_FORMS_DEPENDENCIAS_IDADE_SEXO.includes(pendEscala.formularioId ?? Number(id_form))) {
+                    // console.log("Processando com idade e sexo:", pendencia["Idade"], pendencia["SexoBiologico"]);
+                    resultado = processor(respostasFormatadas, pendencia["Idade"], pendencia["SexoBiologico"]);
+                    
+                } else {
+                    resultado = processor(respostasFormatadas);
+                }
+
 
                 /*Swal.fire({
                     icon: "success",

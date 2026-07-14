@@ -5,6 +5,19 @@
 
 import { _parseIso, formatarHora } from "../format/formatar_utils";
 
+// Calcular idade em anos a partir da data de nascimento
+const calcularIdade = (dataNascimento) => {
+    const hoje = new Date();
+    const nascimento = _parseIso(dataNascimento);
+    let idade = hoje.getFullYear() - nascimento.getFullYear();
+    const mes = hoje.getMonth() - nascimento.getMonth();
+    if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+        idade--;
+    }
+    return idade;
+};
+
+
 /**
  * Classifica pendências por horas desde o fim do agendamento.
  *
@@ -47,6 +60,8 @@ export const classificarPendencias = async (idsPendentes, carregarAgendamento) =
             const slotNome = ag?.slot?.nome || "—";
             const slotSigla = ag?.slot?.sigla || "—";
             const profissionalEspecialidade = ag?.profissional?.especialidade[0] || "—";
+            const idadePaciente = ag?.paciente?.dataNascimento ? calcularIdade(ag.paciente.dataNascimento) : "—";
+            const sexoPaciente = ag?.paciente?.sexoBiologico || "—";
             // console.log("[classificarPendencias] id=", agId, " paciente=", paciente, " slot=", slotNome);
             // console.log(ag);
             // console.log(profissionalEspecialidade);
@@ -69,6 +84,8 @@ export const classificarPendencias = async (idsPendentes, carregarAgendamento) =
                 "Slot": slotNome,
                 "Sigla": slotSigla,
                 "TipoAtendimento": ag?.tipo || "—",
+                "Idade": idadePaciente,
+                "SexoBiologico": sexoPaciente
             });
         } catch (err) {
             // console.log("[classificarPendencias] erro ao carregar id=", agId);

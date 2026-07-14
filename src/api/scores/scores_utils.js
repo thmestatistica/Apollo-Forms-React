@@ -40,9 +40,12 @@ export const getScore = async (params) => {
 }
 
 export const createPayloadForScore = async (pendencia, respostas, resultado) => {
-    const agendamento = await carregar_agendamento_por_id(pendencia?.agendamentoId);
-    const form = await carregar_info_form(pendencia?.formularioId);
-    const perguntas = await carregar_perguntas_form(pendencia?.formularioId)
+    // console.log("Criando payload para score com pendencia:", pendencia);
+    // console.log("Respostas recebidas:", respostas);
+    const agendamento = await carregar_agendamento_por_id(respostas?.agendamento_id);
+    // console.log("Agendamento carregado:", agendamento);
+    const form = await carregar_info_form(pendencia?.formularioId || respostas?.formulario_id);
+    const perguntas = await carregar_perguntas_form(pendencia?.formularioId || respostas?.formulario_id);
 
     const idsPerguntas = perguntas.map((pergunta) => pergunta?.pergunta_id);
     const textoPerguntas = perguntas.map((pergunta) => pergunta?.texto_pergunta)
@@ -82,7 +85,7 @@ export const createPayloadForScore = async (pendencia, respostas, resultado) => 
 
     const payload = {
         sessao_resposta_id: ultimoForms?.sessao_resposta?.sessao_resposta_id,
-        formulario_id: pendencia?.formularioId,
+        formulario_id: pendencia?.formularioId || respostas?.formulario_id,
         agendamento_id: agendamento?.id,
 
         slot_id: agendamento?.slotId,

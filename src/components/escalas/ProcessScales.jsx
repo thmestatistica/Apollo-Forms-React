@@ -24,6 +24,8 @@ import { processarFMS } from './processors/fms.js';
 import { processarGMFM } from './processors/gmfm.js';
 import { processarParkinsonUPDRS } from './processors/parkinsonUpdrs.js';
 import { processarApraxia } from './processors/apraxia.js';
+import { processarBoxAndBlocks } from './processors/boxandblocks.js';
+import { processarCondFisc } from './processors/condfisc.js';
 
 export const scaleProcessors = {
     1: processarTUG,
@@ -58,4 +60,6 @@ export const scaleProcessors = {
     67: processarGMFM,
     54: processarParkinsonUPDRS,
     55: processarApraxia,
+    63: processarBoxAndBlocks,
+    79: processarCondFisc
 };
