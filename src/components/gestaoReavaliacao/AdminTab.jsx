@@ -755,6 +755,51 @@ const AdminTab = ({ accessMode, allowedPatientIds }) => {
     }
   };
 
+  const handleExcluirGrupoAdmin = useCallback(async (grupo) => {
+    const result = await Swal.fire({
+      title: 'Exclusão em Massa',
+      html: `
+        <div class="text-left mt-2">
+            <div class="bg-red-50 border border-red-100 rounded-lg p-4 mb-3">
+                <h3 class="text-red-800 font-bold text-sm flex items-center gap-2 mb-2">⚠️ Atenção: Ação Irreversível</h3>
+                <p class="text-red-700 text-xs mb-3">Você está prestes a apagar permanentemente <b>${grupo.itens.length}</b> pendências referentes à data <b>${grupo.dataRef}</b>.</p>
+            </div>
+            <p class="text-center text-xs text-slate-500">Tem certeza absoluta?</p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Sim, apagar grupo',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        setLoadingAdmin(true);
+        
+        // Deleta todas as pendências do grupo no backend
+        await Promise.all(grupo.itens.map((item) => deletar_pendencia_admin(item.id)));
+
+        // Remove os itens deletados do estado local
+        const idsExcluidos = new Set(grupo.itens.map(item => item.id));
+        setDadosAdmin((prev) => {
+          const novos = prev.filter((item) => !idsExcluidos.has(item.id));
+          adminDataCache.current = novos;
+          return novos;
+        });
+
+        Swal.fire('Deletado!', `${grupo.itens.length} registros foram removidos.`, 'success');
+      } catch (error) {
+        Swal.fire('Erro', 'Falha ao deletar algumas pendências. Verifique a conexão.', 'error');
+        console.error('Erro ao deletar grupo de pendências:', error);
+      } finally {
+        setLoadingAdmin(false);
+      }
+    }
+  }, []);
+
   return (
     <div className="flex flex-col gap-8 animate-fade-in w-full">
       <AdminPesquisaCard
@@ -881,7 +926,7 @@ const AdminTab = ({ accessMode, allowedPatientIds }) => {
                               </div>
                               <div className="text-xs text-slate-500 mt-2">{grupo.itens.length} escalas neste grupo</div>
                             </div>
-                            <div className="grid sm:grid-cols-2 gap-3 w-full lg:w-auto">
+                            <div className="grid sm:grid-cols-[1fr_auto] gap-3 w-full lg:w-auto">
                               <div>
                                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Data referencia</label>
                                 <input
@@ -891,12 +936,19 @@ const AdminTab = ({ accessMode, allowedPatientIds }) => {
                                   className="mt-2 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 shadow-sm transition-all focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none"
                                 />
                               </div>
-                              <div className="flex items-end">
+                              <div className="flex items-end gap-2">
                                 <button
                                   onClick={() => aplicarEdicaoGrupo(grupo)}
-                                  className="h-10 w-full rounded-xl bg-indigo-600 text-white text-xs font-bold uppercase tracking-wide shadow-md transition-all hover:-translate-y-0.5 hover:bg-indigo-700 active:translate-y-0"
+                                  className="h-10 px-4 rounded-xl bg-indigo-600 text-white text-xs font-bold uppercase tracking-wide shadow-md transition-all hover:-translate-y-0.5 hover:bg-indigo-700 active:translate-y-0 whitespace-nowrap"
                                 >
                                   Aplicar no grupo
+                                </button>
+                                <button
+                                  onClick={() => handleExcluirGrupoAdmin(grupo)}
+                                  title="Excluir todas as pendências deste dia"
+                                  className="h-10 px-3 flex items-center justify-center rounded-xl bg-red-50 text-red-600 border border-red-200 shadow-sm transition-all hover:-translate-y-0.5 hover:bg-red-100 hover:text-red-700 active:translate-y-0"
+                                >
+                                  <TrashIcon className="w-5 h-5" />
                                 </button>
                               </div>
                             </div>
