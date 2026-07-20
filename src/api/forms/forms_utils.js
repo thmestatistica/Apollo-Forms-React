@@ -430,6 +430,30 @@ export const upsert_perguntas_form = async (formId, perguntas = []) => {
   }
 }
 
+
+/**
+ * Busca o último preenchimento de um formulário por ID para um determinado paciente.
+ * Endpoint esperado: GET /forms/:id/respostas/ultimo?paciente_id=...
+ * Retorna um objeto mapeando a 'chave_pergunta' ao seu respectivo valor.
+ */
+export const carregar_ultimas_respostas_form = async (formId, pacienteId) => {
+  if (!formId || !pacienteId) return {};
+  try {
+    const { data } = await axiosInstanceForms.get(`/forms/${formId}/respostas/ultimo`, {
+      params: { paciente_id: pacienteId }
+    });
+    return data ?? {};
+  } catch (err) {
+    console.error("Erro ao carregar últimas respostas do formulário:", {
+      message: err?.message,
+      status: err?.response?.status,
+      data: err?.response?.data,
+    });
+    return {};
+  }
+};
+
+
 export const criar_formulario_completo = async (payload) => {
   let idCriadoParaRollback = null;
 

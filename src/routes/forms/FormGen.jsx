@@ -20,6 +20,7 @@ import Swal from "sweetalert2";
 import { CONDITIONAL_CONSTANTS, getConditionalTargetsForAnswer } from "../../utils/form/conditionalQuestions.js";
 import { scaleProcessors } from "../../components/escalas/ProcessScales.jsx";
 import { createPayloadForScore, createScore } from "../../api/scores/scores_utils.js";
+import { carregar_ultimas_respostas_form } from "../../api/forms/forms_utils.js";
 
 const CACHE_DURATION = 3 * 24 * 60 * 60 * 1000; // 3 dias em milisegundos
 
@@ -81,6 +82,11 @@ const FormularioGenerico = () => {
     const [erro, setErro] = useState(null);
     const [submitting, setSubmitting] = useState(false); // indica envio em progresso
 
+    // Controle de estado para carregamento do autopreenchimento e versão dos campos
+    const [loadingAutofill, setLoadingAutofill] = useState(false);
+    const [formVersion, setFormVersion] = useState(0);
+
+    const paciente_id = pendencia?.["PacienteID"] ?? pendencia?.pacienteId ?? null;
     const userId = user?.profissionalId ?? user?.id ?? user?.usuarioId ?? "anon";
     const agendamentoCacheId = pendencia?.["AgendamentoID"] ?? pendencia?.agendamentoId ?? null;
     const cacheKey = getCacheKey(id_form, userId, agendamentoCacheId);
@@ -136,6 +142,76 @@ const FormularioGenerico = () => {
 
         fetchFormulario();
     }, [cacheKey, id_form, location, user]);
+
+
+    /**
+     * Função para buscar as respostas do último formulário e injetar na tela
+     */
+    const handleAutofillLastForm = async () => {
+        if (!paciente_id) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Atenção',
+                text: 'Não foi possível identificar o paciente para esta operação.',
+                confirmButtonColor: '#7C3AED'
+            });
+            return;
+        }
+
+        try {
+            setLoadingAutofill(true);
+            const response = await carregar_ultimas_respostas_form(Number(id_form), paciente_id);
+            console.log("Resposta da API de últimas respostas:", response);
+
+            if (response && response.ok === false) {
+                throw new Error("Resposta da API mal sucedida.");
+            }
+
+            const respostasAnteriores = (response && response.data !== undefined) ? response.data : response;
+
+            // Verifica se é null, undefined, ou um objeto/array vazio ({})
+            const semDados = 
+                !respostasAnteriores || 
+                (typeof respostasAnteriores === 'object' && Object.keys(respostasAnteriores).length === 0);
+
+            if (semDados) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Nenhum registro',
+                    text: 'Nenhum histórico de preenchimento anterior deste formulário foi encontrado para este paciente.',
+                    confirmButtonColor: '#7C3AED'
+                });
+                return;
+            }
+
+            // Atualiza as respostas cacheadas locais
+            setCachedValues(respostasAnteriores);
+            // Salva no localStorage para consistência e persistência
+            saveFormCache(cacheKey, respostasAnteriores);
+            // Força a desmontagem e montagem limpa de todos os campos com a nova versão
+            setFormVersion(prev => prev + 1);
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Autopreenchido!',
+                text: 'Respostas do último formulário aplicadas com sucesso.',
+                timer: 2000,
+                showConfirmButton: false
+            });
+
+        } catch (err) {
+            console.error("Erro ao autopreencher formulário:", err);
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro',
+                text: 'Ocorreu uma falha ao tentar buscar as últimas respostas.',
+                confirmButtonColor: '#EF4444'
+            });
+        } finally {
+            setLoadingAutofill(false);
+        }
+    };
+
 
     /**
      * Valores iniciais mapeados da pendência (caso exista).
@@ -548,10 +624,31 @@ const FormularioGenerico = () => {
     return (
         <div className="min-h-screen flex justify-center items-center bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-6 p-3">
             <div className="bg-white w-full max-w-6xl rounded-2xl shadow-lg flex flex-col gap-6 p-6 sm:p-8">
-                <h1 className="text-2xl font-semibold text-center text-gray-800">
-                    {formulario.titulo}
-                </h1>
-
+                {/* Cabeçalho */}
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 pb-4 border-b border-zinc-100">
+                    <h1 className="text-2xl font-semibold text-gray-800">
+                        {formulario.titulo}
+                    </h1>
+                    
+                    {/* Botão de Autopreenchimento */}
+                    {paciente_id && (
+                        <button
+                            type="button"
+                            onClick={handleAutofillLastForm}
+                            disabled={loadingAutofill}
+                            className="flex items-center justify-center gap-2 border border-purple-300 text-purple-700 bg-purple-50/50 hover:bg-purple-100/50 font-medium rounded-xl px-4 py-2.5 text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+                        >
+                            {loadingAutofill ? (
+                                <p>
+                                    <span className="animate-spin inline-block w-4 h-4 border-2 border-purple-700 border-t-transparent rounded-full"></span>
+                                    Buscando dados...
+                                </p>
+                            ) : (
+                                <p>📋 Copiar último preenchimento</p>
+                            )}
+                        </button>
+                    )}
+                </div>
                 {/* Bloco com informações da pendência */}
                 {pendencia && (
                     <section className="border rounded-lg bg-purple-50 text-purple-900 p-4 shadow-sm">
@@ -595,6 +692,7 @@ const FormularioGenerico = () => {
                     }}
                     className="flex flex-col gap-6 w-full"
                     noValidate
+                    key={`form-version-${formVersion}`}
                 >
                     {visibleCampos.map((campo) => (
                         <CampoDinamico

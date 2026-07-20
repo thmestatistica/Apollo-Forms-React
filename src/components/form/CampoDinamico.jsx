@@ -166,21 +166,26 @@ const CampoDinamico = ({ campo, initialValues = {}, onFieldChange = null}) => {
     const [matrizData, setMatrizData] = useState(() => {
         if (tipoReal !== "MATRIZ") return [];
         
-        // Tenta carregar do cache ou dos initialValues se já existir
-        if (valorInicial && typeof valorInicial === "string") {
+        if (valorInicial) {
             try {
-                const parsed = JSON.parse(valorInicial);
-                // Lida com o formato antigo (array) e o novo (columns/data)
-                const rows = Array.isArray(parsed) ? parsed : (parsed.data || parsed.matriz || []);
-                return rows;
+                const parsed = typeof valorInicial === "string" 
+                    ? JSON.parse(valorInicial) 
+                    : valorInicial;
+
+                const rows = Array.isArray(parsed) 
+                    ? parsed 
+                    : (parsed?.data || parsed?.matriz || []);
+
+                if (Array.isArray(rows) && rows.length > 0) {
+                    return rows;
+                }
             } catch (e) {
                 console.warn("Aviso: Falha ao fazer parse do valor inicial da Matriz.", e);
             }
         }
 
-        // Cria a malha inicial usando apenas títulos e colunas; o comportamento vem de config_linhas.
+        // Cria a malha vazia inicial caso não existam dados salvos
         return titulo_linhas.map((linha) => {
-            // Garante que a chave da linha seja a primeira prop do objeto
             const rowObj = { [rowKey]: linha };
             titulo_colunas.forEach((col) => {
                 rowObj[col] = "";
