@@ -153,14 +153,44 @@ const CampoDinamico = ({ campo, initialValues = {}, onFieldChange = null}) => {
      */
     const [singleValue, setSingleValue] = useState(() => {
         if (tipoReal !== "SELECAO_UNICA" && tipo_resposta_esperada !== CONDITIONAL_CONSTANTS.CONDITIONAL_TYPE) return null;
-        const found = selectOptions.find((o) => o.value === valorInicial || o.label === valorInicial);
+        if (valorInicial === "" || valorInicial === null || valorInicial === undefined) return null;
+
+        const target = String(valorInicial).trim();
+
+        const found = selectOptions.find((o) => 
+            String(o.value).trim() === target || 
+            String(o.label).trim() === target
+        );
+
         return found ?? null;
     });
 
     const [multiValue, setMultiValue] = useState(() => {
         if (tipoReal !== "SELECAO_MULTIPLA") return [];
-        const initialArray = Array.isArray(valorInicial) ? valorInicial : [];
-        return selectOptions.filter((o) => initialArray.includes(o.value) || initialArray.includes(o.label));
+        if (!valorInicial) return [];
+
+        let initialArray = [];
+
+        if (Array.isArray(valorInicial)) {
+            initialArray = valorInicial;
+        } else if (typeof valorInicial === "string") {
+            try {
+                const parsed = JSON.parse(valorInicial);
+                initialArray = Array.isArray(parsed) ? parsed : [valorInicial];
+            } catch (e) {
+                initialArray = valorInicial.includes(",") 
+                    ? valorInicial.split(",").map((s) => s.trim()) 
+                    : [valorInicial];
+                console.warn("Aviso: Falha ao fazer parse do valor inicial da seleção múltipla. Usando fallback para array simples.", e);
+            }
+        }
+
+        const targetStrings = initialArray.map((v) => String(v).trim());
+
+        return selectOptions.filter((o) => 
+            targetStrings.includes(String(o.value).trim()) || 
+            targetStrings.includes(String(o.label).trim())
+        );
     });
 
     const [matrizData, setMatrizData] = useState(() => {
