@@ -100,7 +100,41 @@ function HomeForms() {
                 </div>
               </Link>
 
-              {/* Opção 2: Paciente */}
+              {/* Opção 2: Médico Parceiro
+              <Link 
+                to='/login/medico-parceiro' 
+                className='
+                  group relative w-full md:w-64
+                  bg-white border-2 border-gray-100 rounded-2xl p-4
+                  flex flex-col items-center justify-center gap-3 text-center
+                  shadow-sm hover:shadow-xl hover:shadow-red-200/50
+                  hover:border-red-500 hover:-translate-y-1
+                  transition-all duration-300 cursor-pointer text-decoration-none
+                '
+              >
+                <div className='
+                    w-16 h-16 bg-red-50 rounded-full flex items-center justify-center text-3xl
+                    group-hover:bg-red-500 group-hover:text-white group-hover:scale-110
+                    transition-all duration-300 shadow-inner
+                '>
+                  🧑‍⚕️
+                </div>
+                
+                <div className='flex flex-col gap-0.5'>
+                  <span className='font-bold text-lg text-gray-800 group-hover:text-red-600 transition-colors'>
+                      Sou Medico Parceiro
+                  </span>
+                  <span className='text-[10px] text-gray-400 font-medium uppercase tracking-wide group-hover:text-red-400'>
+                      Acesso Profissional
+                  </span>
+                </div>
+
+                <div className='opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-500 text-red-500 font-bold text-sm'>
+                  Acessar →
+                </div>
+              </Link>*/}
+
+              {/* Opção 3: Paciente */}
               <Link 
                 to='/login/paciente' 
                 className='

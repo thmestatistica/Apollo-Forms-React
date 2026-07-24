@@ -1,6 +1,7 @@
 // src/api/jornada/jornada_utils.js
 import axiosInstance from "../axiosInstance";
 import axiosInstanceForms from "../forms/axiosInstanceForms";
+import { stockcareApi } from "../stockcare/axiosInstanceStockCare";
 
 // Busca lista de pacientes
 export const listar_pacientes = async () => {
@@ -48,3 +49,41 @@ export const buscar_profissionais = async () => {
         return [];
     }
 };
+
+export const buscar_profissionais_stockcare = async () => {
+    try{
+        const response = await stockcareApi.get(`/usuarios/`);
+        return response.data;
+    } catch (error) {
+        console.error(`Erro ao buscar profissionais cadastrados no stockcare: `, error);
+        return [];
+    }
+}
+
+export const buscar_agendamentos_stockcare = async ({usuarioId = null, pacienteId = null, data_inicial = null, data_final = null, paciente_apollo = true}) => {
+    try{
+        const params = {};
+
+        if (usuarioId){
+            params.id_usuario = usuarioId;
+        }
+        if (pacienteId){
+            params.id_paciente = pacienteId;
+        }
+        if (data_inicial){
+            params.data_inicial = data_inicial
+        }
+        if (data_final){
+            params.data_final = data_final
+        }
+        if (paciente_apollo){
+            params.paciente_apollo = paciente_apollo
+        }
+
+        const response = await stockcareApi.get(`/agendamento/filtro/`, {params});
+        return response.data;
+    } catch (error) {
+        console.error(`Erro ao buscar agendamentos cadastrados no stockcare: `, error);
+        return [];
+    }
+}

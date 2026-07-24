@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "./AuthContext";
-import { authenticate_terapeuta, authenticate_pacientes } from "../../api/auth/auth_utils";
+import { authenticate_terapeuta, authenticate_pacientes, authenticate_stockcare } from "../../api/auth/auth_utils";
 
 const LS_AUTH_KEY = "userAuthData";
 
@@ -33,6 +33,8 @@ export const AuthProvider = ({ children }) => {
 
             if (type === "terapeuta") {
                 response = await authenticate_terapeuta(credentials);
+            } else if (type === "medico-parceiro") {
+                response = await authenticate_stockcare(credentials);
             } else if (type === "paciente") {
                 response = await authenticate_pacientes(credentials);
             }
@@ -48,6 +50,8 @@ export const AuthProvider = ({ children }) => {
             if (redirect) {
                 const destino = type === "terapeuta"
                     ? "/forms-terapeuta/tela-inicial"
+                    : type === "medico-parceiro"
+                    ? "/forms-medico-parceiro/tela-inicial" 
                     : "/forms-paciente/tela-inicial";
                 const go = () => navigate(destino, { replace: true });
                 if (delayMs > 0) setTimeout(go, delayMs); else go();

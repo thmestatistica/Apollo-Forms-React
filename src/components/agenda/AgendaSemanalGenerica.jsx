@@ -1,18 +1,23 @@
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatarDataHora } from "../../utils/jornada/format.js";
 
-import LoadingGen from "../info/LoadingGen.jsx";
+import { useAuth } from "../../hooks/useAuth.jsx";
 import InfoGen from "../info/InfoGen.jsx";
-import AgendaTable from "./AgendaTable.jsx";
-import AgendaHeader from "./AgendaHeader.jsx";
+import LoadingGen from "../info/LoadingGen.jsx";
 import AgendaControls from "./AgendaControls.jsx";
+import AgendaHeader from "./AgendaHeader.jsx";
+import AgendaTable from "./AgendaTable.jsx";
 import { DownloadPDFBotaoAgenda } from "./DownloadPDFBotaoAgenda.jsx";
+import { useJornadaMedicoController } from "../../hooks/useJornadaMedicoController.jsx";
 
-function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacientes, CardComponent, titulo = "Agenda Semanal", FiltroComponent, initialPessoaId = null, tipo="paciente" }) {
+function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, medicoParceiro = false, listarPacientes, CardComponent, titulo = "Agenda Semanal", FiltroComponent, initialPessoaId = null, tipo = "paciente" }) {
     const DAY_COUNT = 6;
     const lastDayIndex = DAY_COUNT - 1;
     const navigate = useNavigate();
+
+    const { user } = useAuth();
+
     const [agendamentos, setAgendamentos] = useState([]);
     const [loadingAgendamento, setLoadingAgendamento] = useState(false);
     const [pessoas, setPessoas] = useState([]);
@@ -24,26 +29,54 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
         const d = new Date();
         const diffToMonday = (d.getDay() + 6) % 7;
         const monday = new Date(d);
-        monday.setHours(0,0,0,0);
+        monday.setHours(0, 0, 0, 0);
         monday.setDate(d.getDate() - diffToMonday);
         return monday;
     });
 
+    const { pacientes: pacientesMedico } = useJornadaMedicoController();
+
     // Buscar pessoas
     useEffect(() => {
-        setLoadingPessoas(true);
-        const fetchPessoas = listarPessoas || listarPacientes;
-        fetchPessoas().then(pacs => {
-            const ativos = (pacs || []).filter(p => p.ativo !== false);
-            ativos.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
-            setPessoas(ativos);
-            if (initialPessoaId && ativos.find(p => p.id === initialPessoaId)) {
-                setPessoaId(initialPessoaId);
-            } else {
-                setPessoaId(ativos[0]?.id ?? null);
+        const carregarPessoas = async () => {
+            setLoadingPessoas(true);
+
+            try {
+                let lista = [];
+
+                if (medicoParceiro) {
+                    lista = pacientesMedico;
+                } else {
+                    const fetchPessoas = listarPessoas || listarPacientes;
+                    lista = await fetchPessoas();
+                }
+
+                const ativos = (lista || [])
+                    .filter(p => p.ativo !== false)
+                    .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
+
+                setPessoas(ativos);
+
+                if (initialPessoaId && ativos.find(p => p.id === initialPessoaId)) {
+                    setPessoaId(initialPessoaId);
+                } else {
+                    setPessoaId(ativos[0]?.id ?? null);
+                }
+            } finally {
+                setLoadingPessoas(false);
             }
-        }).finally(() => setLoadingPessoas(false));
-    }, [listarPessoas, listarPacientes, initialPessoaId]);
+        };
+
+        if (!medicoParceiro || pacientesMedico.length > 0) {
+            carregarPessoas();
+        }
+    }, [
+        listarPessoas,
+        listarPacientes,
+        initialPessoaId,
+        medicoParceiro,
+        pacientesMedico
+    ]);
 
     // Buscar agendamentos
     useEffect(() => {
@@ -59,6 +92,7 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
         listarAgendamentos(params)
             .then(resp => setAgendamentos(resp || []))
             .finally(() => setLoadingAgendamento(false));
+
     }, [listarAgendamentos, weekStart, pessoaId, tipo, lastDayIndex]);
 
     // Responsividade
@@ -84,7 +118,7 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
     const goToToday = () => setWeekStart(() => {
         const d = new Date();
         const monday = new Date(d);
-        monday.setHours(0,0,0,0);
+        monday.setHours(0, 0, 0, 0);
         monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
         return monday;
     });
@@ -110,10 +144,10 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
 
     // Datas da Semana
     const weekDays = useMemo(() => {
-        return [...Array(DAY_COUNT)].map((_, i) => { 
-            const dt = new Date(weekStart); 
-            dt.setDate(dt.getDate() + i); 
-            return dt; 
+        return [...Array(DAY_COUNT)].map((_, i) => {
+            const dt = new Date(weekStart);
+            dt.setDate(dt.getDate() + i);
+            return dt;
         });
     }, [weekStart]);
 
@@ -157,17 +191,17 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
         return { agByDateAndHour: agrupado, minHour: minH, maxHour: maxH };
     }, [agendamentos]);
 
-    const timeSlots = useMemo(() => { 
-        const slots = []; 
-        for (let h = minHour; h <= maxHour; h++) slots.push(h); 
-        return slots; 
+    const timeSlots = useMemo(() => {
+        const slots = [];
+        for (let h = minHour; h <= maxHour; h++) slots.push(h);
+        return slots;
     }, [minHour, maxHour]);
 
-    if(loadingPessoas || loadingAgendamento) return <LoadingGen mensagem="Carregando agenda semanal..." primaryColor="#ffffff" secondaryColor="#ffffff" messageColor="text-apollo-100" />;
-    
+    if (loadingPessoas || loadingAgendamento) return <LoadingGen mensagem="Carregando agenda semanal..." primaryColor="#ffffff" secondaryColor="#ffffff" messageColor="text-apollo-100" />;
+
     return (
         <div className="flex flex-col items-center justify-center min-h-screen gap-8 bg-gray-50">
-            <div className="w-full h-screen flex flex-col md:gap-8 gap-4 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-6 p-2 items-center">
+            <div className={`w-full h-screen flex flex-col md:gap-8 gap-4 bg-linear-to-tr from-apollo-300 to-apollo-400 items-center ${user.role === "medico-parceiro" ? "p-30 py-20" : "md:p-6 p-2"}`}>
                 <div className="bg-white w-full h-full rounded-2xl shadow-xl flex flex-col md:p-8 p-4 overflow-hidden">
                     <AgendaHeader titulo={titulo} onBack={() => navigate("/forms-terapeuta/tela-inicial")} />
                     <AgendaControls
@@ -184,10 +218,10 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, listarPacien
                         nextWeek={nextWeek}
                         goToToday={goToToday}
                     />
-                    <DownloadPDFBotaoAgenda 
-                        displayedDays={weekDays} 
+                    <DownloadPDFBotaoAgenda
+                        displayedDays={weekDays}
                         pacienteAgenda={tipo === "paciente" ? true : false}
-                        timeSlots={timeSlots} 
+                        timeSlots={timeSlots}
                         agByDateAndHour={agByDateAndHour}
                         titulo={titulo}
                     />

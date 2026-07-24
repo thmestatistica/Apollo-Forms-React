@@ -19,6 +19,7 @@ const DadosCadastraisSection = ({ pacienteDetalhes }) => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12 text-gray-600">
       <div className="space-y-3">
         <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Nome:</span> <span>{pacienteDetalhes.nomeFormatado}</span></p>
+        <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Data de nascimento:</span> <span>{new Date(pacienteDetalhes.dataNascimento).toLocaleDateString("pt-BR")}</span></p>
         <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Idade:</span> <span>{calcularIdade(pacienteDetalhes.dataNascimento)} anos</span></p>
         <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Período:</span> <span className="px-2 py-0.5 bg-gray-100 rounded text-sm font-mono">{pacienteDetalhes.periodoAvaliacaoSemanas || "—"} semanas</span></p>
       </div>
@@ -42,8 +43,8 @@ const DadosCadastraisSection = ({ pacienteDetalhes }) => (
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {pacienteDetalhes.medicosResponsaveis.map((medico, index) => (
-            <div 
-              key={index} 
+            <div
+              key={index}
               className="p-4 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200"
             >
               <div className="flex justify-between items-start mb-2">
@@ -55,7 +56,7 @@ const DadosCadastraisSection = ({ pacienteDetalhes }) => (
                   CRM: {medico.crm || "—"}
                 </span>
               </div>
-              
+
               <div className="mt-3 pt-3 border-t border-gray-50 flex flex-col sm:flex-row sm:justify-between text-sm text-gray-500 gap-1 sm:gap-0">
                 <span>📞 {medico.telefone || "—"}</span>
                 <span className="truncate">✉️ {medico.email || "—"}</span>

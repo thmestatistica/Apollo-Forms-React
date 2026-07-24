@@ -6,7 +6,7 @@ export const tipoForms = {
         // 40: ['NUT'],
         73: ['LKM'],
         46: ['CML'],
-        14: ['ARM'],
+        105: ['ARM'],
         48: ['TMS'],
         96: ['AVAL.MEDICA'],
     },

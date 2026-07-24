@@ -39,6 +39,12 @@ import UploadArquivos from './routes/terapeuta/UploadArquivos.jsx'
 
 import PDFPreview from './routes/scales/PDFPreview.jsx'
 import TabelaScorePreview from './routes/scales/TabelaScorePreview.jsx'
+import LoginMedicoParceiro from './routes/medico_parceiro/LoginMedicoParceiro.jsx'
+import FormsMedicoParceiro from './routes/medico_parceiro/FormsMedicoParceiro.jsx'
+import TelaInicialMedicoParceiro from './routes/medico_parceiro/TelaInicialMedicoParceiro.jsx'
+import JornadaMedicoParceiro from './routes/medico_parceiro/JornadaMedicoParceiro.jsx'
+import AgendaSemanalMedico from './routes/medico_parceiro/AgendaSemanalMedico.jsx'
+import AgendaSemanalPacienteMedico from './routes/medico_parceiro/AgendaSemanalMedico.jsx'
 
 // --- Configuração simples das Rotas com createBrowserRouter ---
 const router = createBrowserRouter([
@@ -52,6 +58,7 @@ const router = createBrowserRouter([
 
         // Rotas de Login Específicas
         { element: <LoginTerapeuta/>, path: '/login/terapeuta'},  
+        { element: <LoginMedicoParceiro/>, path: '/login/medico-parceiro'},
         { element: <LoginPaciente/>, path: '/login/paciente'},
 
         // --- 1. Rota de Layout Protegida para TERAPEUTAS ---
@@ -125,7 +132,33 @@ const router = createBrowserRouter([
             ]
         },
 
-        // --- 2. Rota de Layout Protegida para PACIENTE ---
+        // --- 2. Rota de Layout Protegida para MEDICO PARCEIRO ---
+        // Usa o ProtectedRoute para checar o role 'medico-parceiro'
+        {
+            element: <ProtectedRoute allowedRoles={['medico-parceiro']}/>,
+            children: [
+                {
+                    element: <FormsMedicoParceiro />,
+                    path: '/forms-medico-parceiro',
+                    children: [
+                        { 
+                            element: <TelaInicialMedicoParceiro />,
+                            path: 'tela-inicial'
+                        },
+                        {
+                            element: <JornadaMedicoParceiro />,
+                            path: 'jornada'
+                        },
+                        {
+                            element: <AgendaSemanalPacienteMedico />,
+                            path: 'agenda-semanal-medico'
+                        }
+                    ]
+                }
+            ]
+        },
+
+        // --- 3. Rota de Layout Protegida para PACIENTE ---
         // Usa o ProtectedRoute para checar o role 'paciente'
         {
             element: <ProtectedRoute allowedRoles={['paciente']}/>,

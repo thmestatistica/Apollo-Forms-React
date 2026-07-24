@@ -1,4 +1,5 @@
 import axiosInstance from "../axiosInstance";
+import { stockcareApi } from "../stockcare/axiosInstanceStockCare";
 
 /**
  * Login de paciente via CPF
@@ -44,3 +45,24 @@ export const authenticate_terapeuta = async (usuario) => {
     return null;
   }
 };
+
+/**
+ * Login de medico parceiro com a API do stockcare
+ * @param {{ username: string, password: string }} usuario
+ * @returns {Promise<Object|null>}
+ */
+export async function authenticate_stockcare({ username, password }) {
+    const { data } = await stockcareApi.post("/auth/login-journey", {
+        username: username,
+        senha: password,
+    });
+
+    if (data?.token) {
+        localStorage.setItem("stockcareToken", data.token);
+    }
+
+    return {
+        ...data,
+        token: data.token,
+    };
+}

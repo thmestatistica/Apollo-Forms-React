@@ -1,0 +1,101 @@
+// Componente Genérico de Loading
+import LoadingGen from "../../components/info/LoadingGen.jsx";
+// Hook de Controle da Jornada
+import { useJornadaController } from "../../hooks/useJornadaController";
+// Componentes da Jornada
+import JornadaHeader from "../../components/jornada/JornadaHeader.jsx";
+import PacienteSearch from "../../components/jornada/PacienteSearch.jsx";
+import DadosCadastraisSection from "../../components/jornada/DadosCadastraisSection.jsx";
+import ResumoSessoesSection from "../../components/jornada/ResumoSessoesSection.jsx";
+import HistoricoSection from "../../components/jornada/HistoricoSection.jsx";
+import ProntuarioSection from "../../components/jornada/ProntuarioSection.jsx";
+import JornadaEmptyState from "../../components/jornada/JornadaEmptyState.jsx";
+import JornadaLoadingSkeleton from "../../components/jornada/JornadaLoadingSkeleton.jsx";
+import FilesSection from "../../components/jornada/FilesSection.jsx";
+import BotaoVerAnexo from "../../components/common/BotaoVerAnexo.jsx";
+import { useJornadaMedicoController } from "../../hooks/useJornadaMedicoController.jsx";
+
+const JornadaMedicoParceiro = () => {
+  const {
+      pacientes,
+      profissionais,
+      agendamentos,
+      pacienteSelecionadoId,
+      setProfissionais,
+      setPacienteSelecionadoId,
+      loadingInicial,
+      setLoadingInicial,
+      loadingDados,
+      setLoadingDados,
+      loadingProntuario,
+      setLoadingProntuario,
+      pacienteDetalhes,
+      setPacienteDetalhes,
+      tipoOrdenacao,
+      setTipoOrdenacao,
+      stats,
+      setStats,
+      prontuario,
+      setProntuario,
+      recarregarProntuario
+  } = useJornadaMedicoController();
+
+  if (loadingInicial) return <LoadingGen primaryColor="#ffffff" secondaryColor="#ffffff" messageColor="text-apollo-100" />;
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen gap-8 bg-gray-50 mx-30 my-10">
+      <div className="w-full min-h-screen flex flex-col md:gap-8 gap-4 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-6 p-2 items-center">
+        {/* Card Branco Base */}
+        <div className="bg-white w-full h-full rounded-2xl shadow-xl flex flex-col md:p-8 p-4">
+          
+          {/* --- CABECALHO --- */}
+          <JornadaHeader />
+
+          {/* --- BUSCA DE PACIENTE --- */}
+          <PacienteSearch pacientes={pacientes} onSelect={setPacienteSelecionadoId} />
+
+          {loadingDados ? (
+            <JornadaLoadingSkeleton />
+          ) : pacienteSelecionadoId && pacienteDetalhes ? (
+            <div className="flex flex-col gap-12 animate-fade-in w-full">
+              
+              <div className="flex justify-end -mb-8">
+                <BotaoVerAnexo pacienteId={pacienteSelecionadoId} />
+              </div>
+
+              <DadosCadastraisSection pacienteDetalhes={pacienteDetalhes} />
+
+              <ResumoSessoesSection stats={stats} />
+
+              <hr className="border-gray-100" />
+
+              <HistoricoSection agendamentos={agendamentos} resetKey={pacienteSelecionadoId} />
+
+              <hr className="border-gray-100" />
+
+              <FilesSection pacienteId={pacienteSelecionadoId} profissionais={profissionais} />
+
+              <hr className="border-gray-100" />
+
+              <ProntuarioSection
+                tipoOrdenacao={tipoOrdenacao}
+                setTipoOrdenacao={setTipoOrdenacao}
+                prontuario={prontuario}
+                agendamentos={agendamentos}
+                loadingProntuario={loadingProntuario}
+                onReload={recarregarProntuario}
+                resetKey={pacienteSelecionadoId}
+                pacienteDetalhes={pacienteDetalhes}
+                profissionais={profissionais}
+              />
+            </div>
+          ) : !loadingDados && (
+            <JornadaEmptyState />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default JornadaMedicoParceiro;

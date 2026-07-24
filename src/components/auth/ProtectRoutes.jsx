@@ -12,14 +12,22 @@ export const ProtectedRoute = ({ allowedRoles }) => {
 
     // Verifica se o usuário está autenticado
     if (!isAuthenticated) {
+        let loginPath = "/";
+
+        if (allowedRoles?.includes("medico-parceiro")) {
+            loginPath = "/login/medico-parceiro";
+        } else {
+            loginPath = "/";
+        }
+
         // Não autenticado: redireciona para a página de login
-        return <Navigate to="/" replace />;
+        return <Navigate to={loginPath} replace />;
     }
 
     // Verifica se há restrição de roles e se o usuário tem a role correta
     if (allowedRoles && !allowedRoles.includes(user.role)) {
         // Autenticado, mas com role incorreta: redireciona para o painel apropriado ou uma página de erro
-        const redirectPath = user.role === 'terapeuta' ? '/forms-terapeuta/tela-inicial' : '/forms-paciente/tela-inicial';
+        const redirectPath = user.role === 'terapeuta' ? '/forms-terapeuta/tela-inicial' : user.role === 'medico-parceiro' ? '/forms-medico-parceiro/tela-inicial' : '/forms-paciente/tela-inicial';
         return <Navigate to={redirectPath} replace />;
     }
 
