@@ -34,6 +34,8 @@ export const useJornadaMedicoController = () => {
 
     const { user } = useAuth();
 
+    const USUARIO_APOLLO = user?.usuario?.id_usuario === 109 && user?.usuario?.id_papel_usuario === 7;
+
     /*useEffect(() => {
         const loadProfissionais = async () => {
 
@@ -108,7 +110,17 @@ export const useJornadaMedicoController = () => {
     }, [user?.id]);
 
     useEffect(() => {
-        if (!pacientesProfissional.length || !pacientesAll.length) {
+        if (!pacientesAll.length) {
+            setPacientes([]);
+            return;
+        }
+
+        if (USUARIO_APOLLO) {
+            setPacientes(pacientesAll);
+            return;
+        }
+
+        if (!pacientesProfissional.length) {
             setPacientes([]);
             return;
         }
@@ -118,9 +130,8 @@ export const useJornadaMedicoController = () => {
         );
 
         setPacientes(filtrados);
-        // paciente_apollo = true
 
-    }, [pacientesAll, pacientesProfissional]);
+    }, [pacientesAll, pacientesProfissional, USUARIO_APOLLO]);
 
     useEffect(() => {
         if (!pacienteSelecionadoId) {
@@ -129,7 +140,11 @@ export const useJornadaMedicoController = () => {
         }
 
         const loadDetalhes = async () => {
-            const pct = pacientes.find(p => String(p.id) === String(pacienteSelecionadoId));
+            const listaPacientes = USUARIO_APOLLO ? pacientesAll : pacientes;
+
+            const pct = listaPacientes.find(
+                p => String(p.id) === String(pacienteSelecionadoId)
+            );
             setPacienteDetalhes(pct);
 
             const cacheKey = `${pacienteSelecionadoId}_${tipoOrdenacao}`;
@@ -179,25 +194,25 @@ export const useJornadaMedicoController = () => {
     }, [pacienteSelecionadoId, pacientes, tipoOrdenacao]);
 
     const recarregarProntuario = useCallback(async () => {
-                if (!pacienteSelecionadoId) return;
-                setLoadingProntuario(true);
-                try {
-                    const rawForms = await listar_respostas_prontuario(pacienteSelecionadoId);
-                    
-                    const processedForms = processarProntuario(rawForms, agendamentos, tipoOrdenacao);
-    
-                    setProntuario(processedForms);
-    
-                    const cacheKey = `${pacienteSelecionadoId}_${tipoOrdenacao}`;
-                    if (globalCache.dadosPorId[cacheKey]) {
-                        globalCache.dadosPorId[cacheKey].prontuario = processedForms;
-                    }
-                } catch (e) {
-                    console.error(e);
-                } finally {
-                    setLoadingProntuario(false);
-                }
-            }, [pacienteSelecionadoId, agendamentos, tipoOrdenacao]);
+        if (!pacienteSelecionadoId) return;
+        setLoadingProntuario(true);
+        try {
+            const rawForms = await listar_respostas_prontuario(pacienteSelecionadoId);
+
+            const processedForms = processarProntuario(rawForms, agendamentos, tipoOrdenacao);
+
+            setProntuario(processedForms);
+
+            const cacheKey = `${pacienteSelecionadoId}_${tipoOrdenacao}`;
+            if (globalCache.dadosPorId[cacheKey]) {
+                globalCache.dadosPorId[cacheKey].prontuario = processedForms;
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoadingProntuario(false);
+        }
+    }, [pacienteSelecionadoId, agendamentos, tipoOrdenacao]);
 
     // Retorna tudo que a View precisa
     return {

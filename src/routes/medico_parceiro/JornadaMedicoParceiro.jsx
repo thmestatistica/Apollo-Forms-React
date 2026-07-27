@@ -59,7 +59,6 @@ const JornadaMedicoParceiro = () => {
 
           {/* --- BUSCA DE PACIENTE --- */}
           <PacienteSearch pacientes={USUARIO_APOLLO ? pacientesAll : pacientes} onSelect={setPacienteSelecionadoId} />
-          {console.log(pacientes)}
 
           {loadingDados ? (
             <JornadaLoadingSkeleton />
