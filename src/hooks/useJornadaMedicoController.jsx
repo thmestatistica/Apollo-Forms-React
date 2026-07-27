@@ -221,6 +221,7 @@ export const useJornadaMedicoController = () => {
         setStats,
         prontuario,
         setProntuario,
-        recarregarProntuario
+        recarregarProntuario,
+        pacientesAll
     };
 };

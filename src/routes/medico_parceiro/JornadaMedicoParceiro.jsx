@@ -14,6 +14,7 @@ import JornadaLoadingSkeleton from "../../components/jornada/JornadaLoadingSkele
 import FilesSection from "../../components/jornada/FilesSection.jsx";
 import BotaoVerAnexo from "../../components/common/BotaoVerAnexo.jsx";
 import { useJornadaMedicoController } from "../../hooks/useJornadaMedicoController.jsx";
+import { useAuth } from "../../hooks/useAuth.jsx";
 
 const JornadaMedicoParceiro = () => {
   const {
@@ -37,8 +38,13 @@ const JornadaMedicoParceiro = () => {
       setStats,
       prontuario,
       setProntuario,
-      recarregarProntuario
+      recarregarProntuario,
+      pacientesAll
   } = useJornadaMedicoController();
+
+  const { user } = useAuth();
+
+  const USUARIO_APOLLO = user?.usuario?.id_usuario === 109 && user?.usuario.id_papel_usuario === 7;
 
   if (loadingInicial) return <LoadingGen primaryColor="#ffffff" secondaryColor="#ffffff" messageColor="text-apollo-100" />;
 
@@ -52,7 +58,8 @@ const JornadaMedicoParceiro = () => {
           <JornadaHeader />
 
           {/* --- BUSCA DE PACIENTE --- */}
-          <PacienteSearch pacientes={pacientes} onSelect={setPacienteSelecionadoId} />
+          <PacienteSearch pacientes={USUARIO_APOLLO ? pacientesAll : pacientes} onSelect={setPacienteSelecionadoId} />
+          {console.log(pacientes)}
 
           {loadingDados ? (
             <JornadaLoadingSkeleton />

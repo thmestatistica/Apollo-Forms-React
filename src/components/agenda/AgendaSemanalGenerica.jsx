@@ -44,7 +44,7 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, medicoParcei
             try {
                 let lista = [];
 
-                if (medicoParceiro) {
+                if (medicoParceiro && user?.usuario?.id_usuario !== 109 && user?.usuario?.id_papel_usuario !== 7) {
                     lista = pacientesMedico;
                 } else {
                     const fetchPessoas = listarPessoas || listarPacientes;

@@ -151,7 +151,7 @@ const LoginMedicoParceiro = () => {
                     </button>
                 </form>
 
-                <Link 
+                {/*<Link 
                     to='/' 
                     className='
                         text-gray-400 font-semibold text-sm 
@@ -160,7 +160,7 @@ const LoginMedicoParceiro = () => {
                     '
                 >
                     <span>←</span> Voltar para a página inicial
-                </Link>
+                </Link>*/}
             </div>
         </div>
     );
