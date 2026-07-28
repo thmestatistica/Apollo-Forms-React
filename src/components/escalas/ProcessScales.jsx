@@ -16,7 +16,7 @@ import { processarFAC } from './processors/fac.js';
 import { processarGRBASI } from './processors/grbasi.js';
 import { processarSUNNYBROOK } from './processors/sunnybrook.js'
 import { processarTOScales } from './processors/toscales.js'
-import { processarGAS } from './processors/gas.js'
+import { processarGASantiga, processarGAS } from './processors/gas.js'
 import { processarIPAQ } from './processors/ipaq.js';
 import { processarSARA } from './processors/sara.js';
 import { processarWISCI } from './processors/wisci.js';
@@ -47,7 +47,11 @@ export const scaleProcessors = {
     37: processarMIFConhecimentoSocial,
     38: processarFuglMeyerSuperior,
     45: processarMOCA,
-    41: processarGAS,
+
+    // GAS - Escala de atendimento de objetivos
+    41: processarGASantiga,
+    106: processarGAS,
+    
     53: processarFAC,
     56: processarSUNNYBROOK,
     62: processarADDENBROK,
@@ -61,5 +65,5 @@ export const scaleProcessors = {
     54: processarParkinsonUPDRS,
     55: processarApraxia,
     63: processarBoxAndBlocks,
-    79: processarCondFisc
+    79: processarCondFisc,
 };
