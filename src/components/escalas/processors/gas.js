@@ -60,10 +60,10 @@ export const processarGAS = (respostas) => {
 
     return {
         resultado: pontuacao,
-        descricao: {
-            objetivos: { objetivos },
-            justificativa: { justificativa }
-        },
+        descricao: JSON.stringify({
+            objetivos,
+            justificativa,
+        }),
         doi: "10.1007/BF01530764",
         nome_curto: "GAS Avaliação / Reavaliação",
         calculo: "Escore = p3 \n A pergunta p4 é sempre relativa ao preenchimento anterior.",
