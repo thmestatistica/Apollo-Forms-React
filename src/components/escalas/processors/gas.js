@@ -54,13 +54,14 @@ export const coletarGASantiga = (form) => {
 };
 
 export const processarGAS = (respostas) => {
-    const { pontuacao, objetivos, justificativa } = coletarGAS(respostas);
+    const { pontuacao, especialidade, objetivos, justificativa } = coletarGAS(respostas);
 
-    console.log(pontuacao, objetivos, justificativa);
+    console.log(especialidade, pontuacao, objetivos, justificativa);
 
     return {
         resultado: pontuacao,
         descricao: JSON.stringify({
+            especialidade,
             objetivos,
             justificativa,
         }),
@@ -106,6 +107,10 @@ export const coletarGAS = (form) => {
         count = -2;
     }
 
+    const itemEspecialidade = form.find(
+        (respsota) => Number(resposta.perguntaId) === 2204
+    );
+
     const objetivosMatrix = form.find(
         (resposta) => Number(resposta.perguntaId) === 2188
     );
@@ -114,11 +119,13 @@ export const coletarGAS = (form) => {
         (resposta) => Number(resposta.perguntaId) === 2205
     );
 
+    const especialidade = itemEspecialidade?.resposta;
     const objetivos = objetivosMatrix?.resposta;
     const justificativa = itemJustificativa?.resposta;
 
     return {
         pontuacao: count,
+        especialidade,
         objetivos,
         justificativa
     };
