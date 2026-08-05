@@ -9,7 +9,7 @@ import InfoGen from "../info/InfoGen";
 import Pagination from "./Pagination";
 import SingleSelect from "../input/SingleSelect";
 
-const FilesSection = ({ pacienteId, profissionais }) => {
+const FilesSection = ({ pacienteId, profissionais, medicoParceiro }) => {
   const [arquivos, setArquivos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -49,7 +49,7 @@ const FilesSection = ({ pacienteId, profissionais }) => {
     const cats = new Set(
       arquivos
         .map(a => a.categoria)
-        .filter(cat => Boolean(cat) && (cat !== "Referencias" && cat !== "Robótica"))
+        .filter(cat => Boolean(cat) && (cat !== "Referencias" || (cat !== "Robótica" && medicoParceiro)))
     );
     return Array.from(cats).sort();
   }, [arquivos]);
@@ -61,7 +61,7 @@ const FilesSection = ({ pacienteId, profissionais }) => {
 
   const arquivosFiltrados = useMemo(() => {
     return arquivos.filter(a => {
-      if (a.categoria === "Referencias" || a.categoria === "Robótica") return false;
+      if (a.categoria === "Referencias" || (a.categoria === "Robótica" && medicoParceiro)) return false;
       return !filtroCategoria || a.categoria === filtroCategoria;
     });
   }, [arquivos, filtroCategoria]);

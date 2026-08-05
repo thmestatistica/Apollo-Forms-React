@@ -38,9 +38,14 @@ const ProntuarioSection = ({ prontuario, agendamentos, loadingProntuario, onRelo
     if (filtroNome) {
       lista = lista.filter(p => (p.nome_formulario || "").toLowerCase().includes(filtroNome));
     }
-    console.log("Lista filtrada de prontuário: ", lista);
-    const itemRelatorioNavegador = lista.find(p => String(p.nome_formulario) === "Relatório Navegador Apollo");
-    const listaSemRelatórioNavegador = lista.filter(p => String(p.nome_formulario) !== "Relatório Navegador Apollo");
+    let itemRelatorioNavegador = null;
+    let listaSemRelatórioNavegador = lista;
+    // console.log("Lista filtrada de prontuário: ", lista);
+    if(medicoParceiro) {
+      // Para o médico parceiro, sempre incluímos o item "Relatório Navegador Apollo" no início da lista
+      itemRelatorioNavegador = lista.find(p => String(p.nome_formulario) === "Relatório Navegador Apollo");
+      listaSemRelatórioNavegador = lista.filter(p => String(p.nome_formulario) !== "Relatório Navegador Apollo");
+    } 
 
     let listaPaginada = listaSemRelatórioNavegador;
     if (prontLimit !== "Todos") {

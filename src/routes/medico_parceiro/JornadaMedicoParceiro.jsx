@@ -94,7 +94,7 @@ const JornadaMedicoParceiro = () => {
 
               <hr className="border-gray-100" />
 
-              <FilesSection pacienteId={pacienteSelecionadoId} profissionais={profissionais} />
+              <FilesSection pacienteId={pacienteSelecionadoId} profissionais={profissionais} medicoParceiro={true} />
 
               <hr className="border-gray-100" />
 
