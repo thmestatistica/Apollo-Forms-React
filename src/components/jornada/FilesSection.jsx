@@ -45,21 +45,17 @@ const FilesSection = ({ pacienteId, profissionais, medicoParceiro }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pacienteId]);
 
-  // Função centralizada para aplicar as regras das categorias
   const isCategoriaPermitida = (cat) => {
     if (!cat) return false;
 
-    // Regra 1: "Referencias" NUNCA é exibida (nem para parceiro, nem para não parceiro)
     if (cat === "Referencias") {
       return false;
     }
 
-    // Regra 2: Se for Médico Parceiro, oculta também "Robótica"
     if (medicoParceiro && cat === "Robótica") {
       return false;
     }
 
-    // Médico NÃO Parceiro vê "Robótica" e todas as outras categorias restantes
     return true;
   };
 
@@ -79,10 +75,8 @@ const FilesSection = ({ pacienteId, profissionais, medicoParceiro }) => {
 
   const arquivosFiltrados = useMemo(() => {
     return arquivos.filter(a => {
-      // 1. Aplica a validação das regras da categoria
       if (!isCategoriaPermitida(a.categoria)) return false;
 
-      // 2. Aplica o filtro do dropdown (se houver seleção)
       return !filtroCategoria || a.categoria === filtroCategoria;
     });
   }, [arquivos, filtroCategoria, medicoParceiro]);
