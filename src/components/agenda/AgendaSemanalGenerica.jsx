@@ -218,13 +218,15 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, medicoParcei
                         nextWeek={nextWeek}
                         goToToday={goToToday}
                     />
-                    <DownloadPDFBotaoAgenda
-                        displayedDays={weekDays}
-                        pacienteAgenda={tipo === "paciente" ? true : false}
-                        timeSlots={timeSlots}
-                        agByDateAndHour={agByDateAndHour}
-                        titulo={titulo}
-                    />
+                    {!medicoParceiro && 
+                        <DownloadPDFBotaoAgenda
+                            displayedDays={weekDays}
+                            pacienteAgenda={tipo === "paciente" ? true : false}
+                            timeSlots={timeSlots}
+                            agByDateAndHour={agByDateAndHour}
+                            titulo={titulo}
+                        />
+                    }
                     {agendamentos.length === 0 ? (
                         <div className="flex">
                             <InfoGen message="📄 Nenhum agendamento encontrado para este período." />
