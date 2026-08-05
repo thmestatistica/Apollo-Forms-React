@@ -45,14 +45,32 @@ const FilesSection = ({ pacienteId, profissionais, medicoParceiro }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pacienteId]);
 
+  // Função centralizada para aplicar as regras das categorias
+  const isCategoriaPermitida = (cat) => {
+    if (!cat) return false;
+
+    // Regra 1: "Referencias" NUNCA é exibida (nem para parceiro, nem para não parceiro)
+    if (cat === "Referencias") {
+      return false;
+    }
+
+    // Regra 2: Se for Médico Parceiro, oculta também "Robótica"
+    if (medicoParceiro && cat === "Robótica") {
+      return false;
+    }
+
+    // Médico NÃO Parceiro vê "Robótica" e todas as outras categorias restantes
+    return true;
+  };
+
   const categoriasDisponiveis = useMemo(() => {
     const cats = new Set(
       arquivos
         .map(a => a.categoria)
-        .filter(cat => Boolean(cat) && (cat !== "Referencias" || (cat !== "Robótica" && medicoParceiro)))
+        .filter(isCategoriaPermitida)
     );
     return Array.from(cats).sort();
-  }, [arquivos]);
+  }, [arquivos, medicoParceiro]);
 
   const optionsCategorias = useMemo(() => [
     { value: "", label: "Todas Categorias" },
@@ -61,10 +79,13 @@ const FilesSection = ({ pacienteId, profissionais, medicoParceiro }) => {
 
   const arquivosFiltrados = useMemo(() => {
     return arquivos.filter(a => {
-      if (a.categoria === "Referencias" || (a.categoria === "Robótica" && medicoParceiro)) return false;
+      // 1. Aplica a validação das regras da categoria
+      if (!isCategoriaPermitida(a.categoria)) return false;
+
+      // 2. Aplica o filtro do dropdown (se houver seleção)
       return !filtroCategoria || a.categoria === filtroCategoria;
     });
-  }, [arquivos, filtroCategoria]);
+  }, [arquivos, filtroCategoria, medicoParceiro]);
 
   const totalPages = Math.ceil(arquivosFiltrados.length / itemsPerPage);
 
@@ -80,7 +101,7 @@ const FilesSection = ({ pacienteId, profissionais, medicoParceiro }) => {
         <div className="flex items-center gap-1">
           <div className="p-2 bg-apollo-50 rounded-xl">
             <p className="text-3xl font-bold text-apollo-400 uppercase tracking-widest">
-                🗂️
+              🗂️
             </p>
           </div>
           <div>
