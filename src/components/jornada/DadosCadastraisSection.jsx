@@ -1,7 +1,7 @@
 import React from 'react';
 import { calcularIdade } from "../../utils/jornada/stats";
 
-const DadosCadastraisSection = ({ pacienteDetalhes }) => (
+const DadosCadastraisSection = ({ pacienteDetalhes, medicoParceiro }) => (
   <div
     className="
       group
@@ -21,7 +21,12 @@ const DadosCadastraisSection = ({ pacienteDetalhes }) => (
         <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Nome:</span> <span>{pacienteDetalhes.nomeFormatado}</span></p>
         <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Data de nascimento:</span> <span>{new Date(pacienteDetalhes.dataNascimento).toLocaleDateString("pt-BR")}</span></p>
         <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Idade:</span> <span>{calcularIdade(pacienteDetalhes.dataNascimento)} anos</span></p>
-        <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Período:</span> <span className="px-2 py-0.5 bg-gray-100 rounded text-sm font-mono">{pacienteDetalhes.periodoAvaliacaoSemanas || "—"} semanas</span></p>
+        <p className="flex justify-between border-b border-gray-50 pb-2">
+          <span className="font-bold text-gray-800">{medicoParceiro ? "Período de Reavaliação:" : "Período:"}</span>
+          <span className="px-2 py-0.5 bg-gray-100 rounded text-sm font-mono">
+              {medicoParceiro && <span>A cada</span>} {pacienteDetalhes.periodoAvaliacaoSemanas || "—"} semanas
+          </span>
+          </p>
       </div>
       <div className="space-y-3">
         <div className="flex flex-col gap-1 border-b border-gray-50 pb-2">

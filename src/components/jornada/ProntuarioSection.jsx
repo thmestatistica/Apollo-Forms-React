@@ -3,7 +3,7 @@ import EditableSelect from "../input/EditableSelect.jsx";
 import Pagination from "./Pagination.jsx";
 import ProntuarioItem from "./ProntuarioItem.jsx";
 
-const ProntuarioSection = ({ prontuario, agendamentos, loadingProntuario, onReload, resetKey, pacienteDetalhes, profissionais, tipoOrdenacao, setTipoOrdenacao }) => {
+const ProntuarioSection = ({ prontuario, agendamentos, loadingProntuario, onReload, resetKey, pacienteDetalhes, profissionais, tipoOrdenacao, setTipoOrdenacao, medicoParceiro }) => {
   const [prontNomeFiltro, setProntNomeFiltro] = useState("");
   const [prontLimit, setProntLimit] = useState(10);
   const [prontEspecialidade, setProntEspecialidade] = useState("Todas");
@@ -30,13 +30,25 @@ const ProntuarioSection = ({ prontuario, agendamentos, loadingProntuario, onRelo
 
   const prontuarioPaginado = useMemo(() => {
     const filtroNome = prontNomeFiltro.trim().toLowerCase();
-    let lista = prontEspecialidade === "Todas" ? prontuario : prontuario.filter(p => p.especialidade === prontEspecialidade);
+    
+    let lista = prontEspecialidade === "Todas" 
+      ? prontuario 
+      : prontuario.filter(p => p.especialidade === prontEspecialidade);
+
     if (filtroNome) {
       lista = lista.filter(p => (p.nome_formulario || "").toLowerCase().includes(filtroNome));
     }
-    if (prontLimit === "Todos") return lista;
-    const start = (prontPage - 1) * prontLimit;
-    return lista.slice(start, start + prontLimit);
+    console.log("Lista filtrada de prontuário: ", lista);
+    const itemRelatorioNavegador = lista.find(p => String(p.nome_formulario) === "Relatório Navegador Apollo");
+    const listaSemRelatórioNavegador = lista.filter(p => String(p.nome_formulario) !== "Relatório Navegador Apollo");
+
+    let listaPaginada = listaSemRelatórioNavegador;
+    if (prontLimit !== "Todos") {
+      const start = (prontPage - 1) * prontLimit;
+      listaPaginada = listaSemRelatórioNavegador.slice(start, start + prontLimit);
+    }
+
+    return itemRelatorioNavegador ? [itemRelatorioNavegador, ...listaPaginada] : listaPaginada;
   }, [prontuario, prontEspecialidade, prontPage, prontLimit, prontNomeFiltro]);
 
   const totalProntItens = useMemo(() => {
@@ -122,7 +134,7 @@ const ProntuarioSection = ({ prontuario, agendamentos, loadingProntuario, onRelo
         <div className="flex flex-col gap-4">
           {prontuarioPaginado.map((item, index) => (
             <div key={item.id || `pront-${index}`} className="transform transition-all duration-300 hover:scale-[1.005]">
-              <ProntuarioItem item={item} agendamentos={agendamentos} pacienteDetalhes={pacienteDetalhes} profissionais={profissionais}/>
+              <ProntuarioItem item={item} agendamentos={agendamentos} pacienteDetalhes={pacienteDetalhes} profissionais={profissionais} disablePDF={medicoParceiro} />
             </div>
           ))}
           {totalProntPages > 1 && (

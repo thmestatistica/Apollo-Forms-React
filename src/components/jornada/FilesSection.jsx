@@ -46,7 +46,11 @@ const FilesSection = ({ pacienteId, profissionais }) => {
   }, [pacienteId]);
 
   const categoriasDisponiveis = useMemo(() => {
-    const cats = new Set(arquivos.map(a => a.categoria).filter(Boolean));
+    const cats = new Set(
+      arquivos
+        .map(a => a.categoria)
+        .filter(cat => Boolean(cat) && (cat !== "Referencias" && cat !== "Robótica"))
+    );
     return Array.from(cats).sort();
   }, [arquivos]);
 
@@ -55,9 +59,12 @@ const FilesSection = ({ pacienteId, profissionais }) => {
     ...categoriasDisponiveis.map(cat => ({ value: cat, label: cat }))
   ], [categoriasDisponiveis]);
 
-  const arquivosFiltrados = arquivos.filter(a => {
-    return !filtroCategoria || a.categoria === filtroCategoria;
-  });
+  const arquivosFiltrados = useMemo(() => {
+    return arquivos.filter(a => {
+      if (a.categoria === "Referencias" || a.categoria === "Robótica") return false;
+      return !filtroCategoria || a.categoria === filtroCategoria;
+    });
+  }, [arquivos, filtroCategoria]);
 
   const totalPages = Math.ceil(arquivosFiltrados.length / itemsPerPage);
 
