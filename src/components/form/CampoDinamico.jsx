@@ -302,6 +302,20 @@ const CampoDinamico = ({ campo, initialValues = {}, onFieldChange = null}) => {
                     />
                 );
 
+            /** Campo numérico (int) */
+            case "NUMERO_INT":
+                return (
+                    <input
+                    id={nome}
+                    name={nome}
+                    type="number"
+                    className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-gray-800 text-sm placeholder-gray-400 shadow-sm outline-none transition-all duration-200 focus:border-apollo-200 focus:ring-2 focus:ring-apollo-200/30 hover:border-apollo-200"
+                    step={meta_dados.step ?? 1}
+                    min={meta_dados.min_value ?? 0}
+                    defaultValue={valorInicial}
+                    />
+                );
+
             /** Campo de seleção única (react-select customizado) */
             case "SELECAO_UNICA":
                 return (
