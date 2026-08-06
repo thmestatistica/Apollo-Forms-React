@@ -36,15 +36,27 @@ export const useJornadaMedicoController = () => {
 
     const USUARIO_APOLLO = user?.usuario?.id_usuario === 109 && user?.usuario?.id_papel_usuario === 7;
 
-    /*useEffect(() => {
+    useEffect(() => {
         const loadProfissionais = async () => {
-
             try {
                 const dados = await buscar_profissionais_stockcare();
                 globalCache.profissionais = dados;
 
+                const PAPEIS_PERMITIDOS = [1,3];
+
+                const profissionaisFiltrados = (Array.isArray(dados) ? dados : []).filter(p => {
+                    const papelValido = PAPEIS_PERMITIDOS.includes(p.id_papel_usuario);
+
+                    const nomeUpper = (p.nome || "").toUpperCase();
+                    const naoETeste = !nomeUpper.includes("TESTE");
+                    const naoEOttobock = !nomeUpper.includes("OTT");
+                    const naoEAdmin = !nomeUpper.includes("ADMIN");
+
+                    return papelValido && naoETeste && naoEOttobock && naoEAdmin;
+                });
+
                 const profissionaisMap = Object.fromEntries(
-                    dados.map(p => [p.id_usuario, p.nome])
+                    profissionaisFiltrados.map(p => [p.id_usuario, p.nome])
                 );
 
                 setProfissionais(profissionaisMap);
@@ -54,7 +66,7 @@ export const useJornadaMedicoController = () => {
         };
 
         loadProfissionais();
-    }, [user]);*/
+    }, [user]);
 
     useEffect(() => {
         const loadPacientes = async () => {
