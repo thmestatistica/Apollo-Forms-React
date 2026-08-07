@@ -7,25 +7,26 @@ import {
     buscar_profissionais_stockcare, 
     buscar_agendamentos_stockcare 
 } from "../api/jornada/jornada_utils";
-import { obter_pacientes_bloqueados_do_medico } from "../api/stockcare/controle_visualizacao";
+
+import { obter_pacientes_controle_do_medico } from "../api/stockcare/controle_visualizacao";
 import { calcularTotaisRobotica } from "../utils/jornada/stats";
 import { formatarNome, processarProntuario } from "../utils/jornada/format";
 import { useAuth } from './useAuth';
 
-// 🔥 CACHE GLOBAL (Fora do Hook): 
-// Sobrevive à desmontagem do componente visual.
-// Isso garante o "Zero Loading" ao voltar para a tela.
+// 🔥 CACHE GLOBAL (Fora do Hook)
 const globalCache = {
     pacientes: null,
     dadosPorId: {}
 };
 
 export const useJornadaMedicoController = () => {
-    // --- Estados de Dados ---
     const [pacientes, setPacientes] = useState([]);
     const [pacientesAll, setPacientesAll] = useState([]);
     const [pacientesProfissional, setPacientesProfissional] = useState([]);
+    
     const [pacientesBloqueadosIds, setPacientesBloqueadosIds] = useState([]);
+    const [pacientesAdicionadosIds, setPacientesAdicionadosIds] = useState([]);
+
     const [agendamentos, setAgendamentos] = useState([]);
     const [pacienteDetalhes, setPacienteDetalhes] = useState([]);
     const [stats, setStats] = useState(null);
@@ -109,24 +110,22 @@ export const useJornadaMedicoController = () => {
         loadPacientes();
     }, []);
 
-    //  Carregar IDs de Pacientes Bloqueados do Médico Logado
     useEffect(() => {
-        const loadPacientesBloqueados = async () => {
+        const loadPacientesControle = async () => {
             if (!idUsuarioLogado) return;
 
             try {
-                const res = await obter_pacientes_bloqueados_do_medico(idUsuarioLogado);
-                const idsBloqueados = res?.ids_pacientes_bloqueados || [];
-                setPacientesBloqueadosIds(idsBloqueados);
+                const res = await obter_pacientes_controle_do_medico(idUsuarioLogado);
+                setPacientesBloqueadosIds(res?.ids_pacientes_bloqueados || []);
+                setPacientesAdicionadosIds(res?.ids_pacientes_adicionados || []);
             } catch (e) {
-                console.error("Erro ao carregar pacientes bloqueados do médico", e);
+                console.error("Erro ao carregar controles de pacientes do médico", e);
             }
         };
 
-        loadPacientesBloqueados();
+        loadPacientesControle();
     }, [idUsuarioLogado]);
 
-    // Carregar Agendamentos do Profissional
     useEffect(() => {
         const loadPacientesDoProfissional = async () => {
             if (!idUsuarioLogado) return;
@@ -147,17 +146,18 @@ export const useJornadaMedicoController = () => {
         loadPacientesDoProfissional();
     }, [idUsuarioLogado]);
 
-    //  Filtrar e definir lista final de pacientes (removendo os bloqueados)
     useEffect(() => {
         if (!pacientesAll.length) {
             setPacientes([]);
             return;
         }
 
-        // Se for o usuário APOLLO, carrega todos (aplicando também o filtro de bloqueio se houver)
+        // Se for o usuário APOLLO, carrega todos. Senão, carrega quem tem agendamento OU quem foi adicionado.
         let basePacientes = USUARIO_APOLLO 
             ? pacientesAll 
-            : pacientesAll.filter(p => pacientesProfissional.includes(p.id));
+            : pacientesAll.filter(p => 
+                pacientesProfissional.includes(p.id) || pacientesAdicionadosIds.includes(p.id)
+            );
 
         // Remove os pacientes cujos IDs estão na lista de bloqueados
         const filtradosSemBloqueados = basePacientes.filter(
@@ -165,8 +165,7 @@ export const useJornadaMedicoController = () => {
         );
 
         setPacientes(filtradosSemBloqueados);
-        console.log("Pacientes filtrados (sem bloqueados):", filtradosSemBloqueados.length);
-    }, [pacientesAll, pacientesProfissional, pacientesBloqueadosIds, USUARIO_APOLLO]);
+    }, [pacientesAll, pacientesProfissional, pacientesBloqueadosIds, pacientesAdicionadosIds, USUARIO_APOLLO]);
 
     useEffect(() => {
         if (!pacienteSelecionadoId) {

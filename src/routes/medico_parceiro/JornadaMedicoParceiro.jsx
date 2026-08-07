@@ -22,7 +22,14 @@ import { useAuth } from "../../hooks/useAuth.jsx";
 import { useNavigate } from "react-router-dom";
 import { listar_agendamentos_filtrados } from "../../api/agenda/agenda_utils.js";
 import { listar_pacientes, buscar_agendamentos_stockcare } from "../../api/jornada/jornada_utils.js";
-import { obter_pacientes_bloqueados_do_medico } from "../../api/stockcare/controle_visualizacao.js";
+
+// ATUALIZADO: Importando novas chamadas da API
+import { 
+  obter_pacientes_controle_do_medico, 
+  criar_controle_paciente, 
+  remover_controle_paciente, 
+  listar_bloqueios_detalhados 
+} from "../../api/stockcare/controle_visualizacao.js";
 
 const JornadaMedicoParceiro = () => {
   const {
@@ -82,6 +89,7 @@ const JornadaMedicoParceiro = () => {
         }))
     : [];
 
+
   const handleSelectMedico = async (option) => {
     setMedicoSelecionadoOption(option);
     setPacienteSelecionadoId(null);
@@ -99,24 +107,26 @@ const JornadaMedicoParceiro = () => {
       const idsPacientesAgendados = [...new Set(listaAgendamentos.map(ag => ag.id_paciente))];
 
       let idsBloqueados = [];
+      let idsAdicionados = [];
       try {
-        const resBloqueios = await obter_pacientes_bloqueados_do_medico(option.value);
-        idsBloqueados = resBloqueios?.ids_pacientes_bloqueados || resBloqueios || [];
-      } catch (errBloqueio) {
-        console.warn("Aviso ao buscar bloqueios do médico:", errBloqueio);
+        const resControle = await obter_pacientes_controle_do_medico(option.value);
+        idsBloqueados = resControle?.ids_pacientes_bloqueados || [];
+        idsAdicionados = resControle?.ids_pacientes_adicionados || [];
+      } catch (errControle) {
+        console.warn("Aviso ao buscar controles do médico:", errControle);
       }
-      // console.log("IDs de pacientes bloqueados:", idsBloqueados);
-      // console.log("IDs de pacientes agendados:", idsPacientesAgendados);
+
       const filtrados = (pacientesAll || []).filter(p => {
         const isAtivo = p.ativo !== false;
-        
         const pacienteId = String(p.id || p.id_paciente);
 
-        const temAgendamento = idsPacientesAgendados.some(id => String(id) === pacienteId);
+        // O paciente tem agendamento OU foi adicionado na tela
+        const temAgendamentoOuAdicionado = idsPacientesAgendados.some(id => String(id) === pacienteId) || 
+                                           idsAdicionados.some(id => String(id) === pacienteId);
 
         const naoEstaBloqueado = !idsBloqueados.some(id => String(id) === pacienteId);
 
-        return isAtivo && temAgendamento && naoEstaBloqueado;
+        return isAtivo && temAgendamentoOuAdicionado && naoEstaBloqueado;
       });
 
       console.log("Qtd pacientes do médico selecionado:", filtrados.length);
