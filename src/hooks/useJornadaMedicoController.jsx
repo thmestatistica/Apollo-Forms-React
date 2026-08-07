@@ -1,7 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 
-// Imports das funções utilitárias e de API
-import { listar_pacientes, listar_agendamentos_paciente, listar_respostas_prontuario, buscar_profissionais, buscar_profissionais_stockcare, buscar_agendamentos_stockcare } from "../api/jornada/jornada_utils";
+import { 
+    listar_pacientes, 
+    listar_agendamentos_paciente, 
+    listar_respostas_prontuario, 
+    buscar_profissionais_stockcare, 
+    buscar_agendamentos_stockcare 
+} from "../api/jornada/jornada_utils";
+import { obter_pacientes_bloqueados_do_medico } from "../api/stockcare/controle_visualizacao";
 import { calcularTotaisRobotica } from "../utils/jornada/stats";
 import { formatarNome, processarProntuario } from "../utils/jornada/format";
 import { useAuth } from './useAuth';
@@ -11,7 +17,7 @@ import { useAuth } from './useAuth';
 // Isso garante o "Zero Loading" ao voltar para a tela.
 const globalCache = {
     pacientes: null,
-    dadosPorId: {} // { [id]: { agendamentos, stats, prontuario } }
+    dadosPorId: {}
 };
 
 export const useJornadaMedicoController = () => {
@@ -19,11 +25,12 @@ export const useJornadaMedicoController = () => {
     const [pacientes, setPacientes] = useState([]);
     const [pacientesAll, setPacientesAll] = useState([]);
     const [pacientesProfissional, setPacientesProfissional] = useState([]);
+    const [pacientesBloqueadosIds, setPacientesBloqueadosIds] = useState([]);
     const [agendamentos, setAgendamentos] = useState([]);
     const [pacienteDetalhes, setPacienteDetalhes] = useState([]);
     const [stats, setStats] = useState(null);
     const [prontuario, setProntuario] = useState([]);
-    const [profissionais, setProfissionais] = useState([])
+    const [profissionais, setProfissionais] = useState([]);
     const [tipoOrdenacao, setTipoOrdenacao] = useState('agendamento');
 
     const [pacienteSelecionadoId, setPacienteSelecionadoId] = useState();
@@ -34,6 +41,7 @@ export const useJornadaMedicoController = () => {
 
     const { user } = useAuth();
 
+    const idUsuarioLogado = user?.id || user?.usuario?.id_usuario;
     const USUARIO_APOLLO = user?.usuario?.id_usuario === 109 && user?.usuario?.id_papel_usuario === 7;
 
     useEffect(() => {
@@ -42,7 +50,7 @@ export const useJornadaMedicoController = () => {
                 const dados = await buscar_profissionais_stockcare();
                 globalCache.profissionais = dados;
 
-                const PAPEIS_PERMITIDOS = [1,3];
+                const PAPEIS_PERMITIDOS = [1, 3];
 
                 const profissionaisFiltrados = (Array.isArray(dados) ? dados : []).filter(p => {
                     const papelValido = PAPEIS_PERMITIDOS.includes(p.id_papel_usuario);
@@ -101,12 +109,30 @@ export const useJornadaMedicoController = () => {
         loadPacientes();
     }, []);
 
+    //  Carregar IDs de Pacientes Bloqueados do Médico Logado
     useEffect(() => {
-        const loadPacientesDoProfissional = async () => {
-            if (!user?.id) return;
+        const loadPacientesBloqueados = async () => {
+            if (!idUsuarioLogado) return;
 
             try {
-                const res = await buscar_agendamentos_stockcare({ usuarioId: user.id });
+                const res = await obter_pacientes_bloqueados_do_medico(idUsuarioLogado);
+                const idsBloqueados = res?.ids_pacientes_bloqueados || [];
+                setPacientesBloqueadosIds(idsBloqueados);
+            } catch (e) {
+                console.error("Erro ao carregar pacientes bloqueados do médico", e);
+            }
+        };
+
+        loadPacientesBloqueados();
+    }, [idUsuarioLogado]);
+
+    // Carregar Agendamentos do Profissional
+    useEffect(() => {
+        const loadPacientesDoProfissional = async () => {
+            if (!idUsuarioLogado) return;
+
+            try {
+                const res = await buscar_agendamentos_stockcare({ usuarioId: idUsuarioLogado });
                 const listaAgendamentos = Array.isArray(res) ? res : (res?.data || []);
 
                 setAgendamentos(listaAgendamentos);
@@ -119,31 +145,28 @@ export const useJornadaMedicoController = () => {
         };
 
         loadPacientesDoProfissional();
-    }, [user?.id]);
+    }, [idUsuarioLogado]);
 
+    //  Filtrar e definir lista final de pacientes (removendo os bloqueados)
     useEffect(() => {
         if (!pacientesAll.length) {
             setPacientes([]);
             return;
         }
 
-        if (USUARIO_APOLLO) {
-            setPacientes(pacientesAll);
-            return;
-        }
+        // Se for o usuário APOLLO, carrega todos (aplicando também o filtro de bloqueio se houver)
+        let basePacientes = USUARIO_APOLLO 
+            ? pacientesAll 
+            : pacientesAll.filter(p => pacientesProfissional.includes(p.id));
 
-        if (!pacientesProfissional.length) {
-            setPacientes([]);
-            return;
-        }
-
-        const filtrados = pacientesAll.filter(p =>
-            pacientesProfissional.includes(p.id)
+        // Remove os pacientes cujos IDs estão na lista de bloqueados
+        const filtradosSemBloqueados = basePacientes.filter(
+            p => !pacientesBloqueadosIds.includes(p.id)
         );
 
-        setPacientes(filtrados);
-
-    }, [pacientesAll, pacientesProfissional, USUARIO_APOLLO]);
+        setPacientes(filtradosSemBloqueados);
+        console.log("Pacientes filtrados (sem bloqueados):", filtradosSemBloqueados.length);
+    }, [pacientesAll, pacientesProfissional, pacientesBloqueadosIds, USUARIO_APOLLO]);
 
     useEffect(() => {
         if (!pacienteSelecionadoId) {
@@ -201,9 +224,7 @@ export const useJornadaMedicoController = () => {
         };
 
         loadDetalhes();
-
-        // 🔥 Adicionado 'tipoOrdenacao' como dependência para disparar o recarregamento ao mudar o filtro
-    }, [pacienteSelecionadoId, pacientes, tipoOrdenacao]);
+    }, [pacienteSelecionadoId, pacientes, tipoOrdenacao, pacientesAll, USUARIO_APOLLO]);
 
     const recarregarProntuario = useCallback(async () => {
         if (!pacienteSelecionadoId) return;

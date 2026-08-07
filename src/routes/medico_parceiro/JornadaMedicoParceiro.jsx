@@ -22,6 +22,7 @@ import { useAuth } from "../../hooks/useAuth.jsx";
 import { useNavigate } from "react-router-dom";
 import { listar_agendamentos_filtrados } from "../../api/agenda/agenda_utils.js";
 import { listar_pacientes, buscar_agendamentos_stockcare } from "../../api/jornada/jornada_utils.js";
+import { obter_pacientes_bloqueados_do_medico } from "../../api/stockcare/controle_visualizacao.js";
 
 const JornadaMedicoParceiro = () => {
   const {
@@ -68,11 +69,17 @@ const JornadaMedicoParceiro = () => {
 
   const USUARIO_APOLLO = user?.usuario?.id_usuario === 109 && user?.usuario?.id_papel_usuario === 7;
 
+  const termoExcluir = ["ott", "admin", "teste"];
   const medicoOptions = profissionais && typeof profissionais === 'object'
-    ? Object.entries(profissionais).map(([id, nome]) => ({
-        value: Number(id),
-        label: nome || `Profissional ${id}`
-      }))
+    ? Object.entries(profissionais)
+        .filter(([_, nome]) => {
+          const nomeLower = (nome || "").toLowerCase();
+          return !termoExcluir.some(termo => nomeLower.includes(termo));
+        })
+        .map(([id, nome]) => ({
+          value: Number(id),
+          label: nome || `Profissional ${id}`
+        }))
     : [];
 
   const handleSelectMedico = async (option) => {
@@ -86,11 +93,34 @@ const JornadaMedicoParceiro = () => {
 
     setLoadingPacientesMedico(true);
     try {
-      const res = await buscar_agendamentos_stockcare({ usuarioId: option.value });
-      const listaAgendamentos = Array.isArray(res) ? res : (res?.data || []);
-      const idsPacientes = [...new Set(listaAgendamentos.map(ag => ag.id_paciente))];
 
-      const filtrados = (pacientesAll || []).filter(p => idsPacientes.includes(p.id));
+      const resAgendamentos = await buscar_agendamentos_stockcare({ usuarioId: option.value });
+      const listaAgendamentos = Array.isArray(resAgendamentos) ? resAgendamentos : (resAgendamentos?.data || []);
+      const idsPacientesAgendados = [...new Set(listaAgendamentos.map(ag => ag.id_paciente))];
+
+      let idsBloqueados = [];
+      try {
+        const resBloqueios = await obter_pacientes_bloqueados_do_medico(option.value);
+        idsBloqueados = resBloqueios?.ids_pacientes_bloqueados || resBloqueios || [];
+      } catch (errBloqueio) {
+        console.warn("Aviso ao buscar bloqueios do médico:", errBloqueio);
+      }
+      // console.log("IDs de pacientes bloqueados:", idsBloqueados);
+      // console.log("IDs de pacientes agendados:", idsPacientesAgendados);
+      const filtrados = (pacientesAll || []).filter(p => {
+        const isAtivo = p.ativo !== false;
+        
+        const pacienteId = String(p.id || p.id_paciente);
+
+        const temAgendamento = idsPacientesAgendados.some(id => String(id) === pacienteId);
+
+        const naoEstaBloqueado = !idsBloqueados.some(id => String(id) === pacienteId);
+
+        return isAtivo && temAgendamento && naoEstaBloqueado;
+      });
+
+      console.log("Qtd pacientes do médico selecionado:", filtrados.length);
+
       setPacientesDoMedicoSelecionado(filtrados);
     } catch (e) {
       console.error("Erro ao buscar pacientes do médico selecionado", e);
@@ -186,6 +216,13 @@ const JornadaMedicoParceiro = () => {
                   />
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Mensagem caso o médico selecionado não possua pacientes disponíveis no journey */}
+          {USUARIO_APOLLO && modoVisualizacao === "MEDICO" && medicoSelecionadoOption && !loadingPacientesMedico && pacientesDoMedicoSelecionado.length === 0 && (
+            <div className="p-4 mb-6 text-sm text-amber-800 bg-amber-50 rounded-xl border border-amber-200 flex items-center gap-2">
+              ⚠️ Não existem pacientes ativos na jornada para este médico.
             </div>
           )}
 
