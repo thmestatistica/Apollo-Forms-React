@@ -1,7 +1,21 @@
 import React from 'react';
 import { calcularIdade } from "../../utils/jornada/stats";
 
-const DadosCadastraisSection = ({ pacienteDetalhes, medicoParceiro }) => (
+const DadosCadastraisSection = ({ pacienteDetalhes, medicoParceiro, stats }) => {
+
+  const equipamentosDisponiveis = [
+    { key: 'ARM', nome: 'Armeo' },
+    { key: 'CML', nome: 'C-Mill' },
+    { key: 'LKM', nome: 'Lokomat' },
+    { key: 'KTS', nome: 'Kratos' },
+    { key: 'TMS', nome: 'TMS' },
+  ];
+
+  const equipamentosFiltrados = stats 
+    ? equipamentosDisponiveis.filter(eq => stats[eq.key] > 1) 
+    : [];
+
+  return (
   <div
     className="
       group
@@ -36,6 +50,14 @@ const DadosCadastraisSection = ({ pacienteDetalhes, medicoParceiro }) => (
         <div className="flex flex-col gap-1 border-b border-gray-50 pb-2">
           <span className="font-bold text-gray-800">Objetivo Principal:</span>
           <span className="text-sm bg-gray-50 p-2 rounded border border-gray-100 italic">{pacienteDetalhes.objetivoPrincipal || "—"}</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="font-bold text-gray-800 w-full">Tecnologias Adicionadas em seu Protocolo:</span>
+          {equipamentosFiltrados.map((equipamento) => (
+            <span key={equipamento.key} className="px-2 py-0.5 bg-gray-100 rounded text-sm font-mono">
+              {equipamento.nome}
+            </span>
+          ))}
         </div>
       </div>
     </div>
@@ -72,6 +94,6 @@ const DadosCadastraisSection = ({ pacienteDetalhes, medicoParceiro }) => (
       </div>
     )}
   </div>
-);
+)};
 
 export default DadosCadastraisSection;
