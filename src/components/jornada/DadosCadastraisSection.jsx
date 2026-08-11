@@ -3,16 +3,43 @@ import { calcularIdade } from "../../utils/jornada/stats";
 
 const DadosCadastraisSection = ({ pacienteDetalhes, medicoParceiro, stats }) => {
 
-  const equipamentosDisponiveis = [
-    { key: 'ARM', nome: 'Armeo' },
-    { key: 'CML', nome: 'C-Mill' },
-    { key: 'LKM', nome: 'Lokomat' },
-    { key: 'KTS', nome: 'Kratos' },
-    { key: 'TMS', nome: 'TMS' },
-  ];
+  const equipamentosFiltrados = stats
+    ? Object.entries(stats)
+        .filter(([chave, quantidade]) => {
+          if (typeof quantidade !== 'number' || quantidade <= 1) return false;
+          
+          const chaveUpper = chave.toUpperCase();
+          
+          if (chaveUpper.includes('NENHUM')) return false;
+          if (chave.includes('{') || chave.includes('}') || chave.toLowerCase().includes('valor')) return false;
+          
+          return true;
+        })
+        .map(([chave]) => {
+          let nomeLimpo = chave.replace(/^[\d_]+/, '');
+          nomeLimpo = nomeLimpo.replace(/Label$/i, '').replace(/_/g, '-').trim();
 
-  const equipamentosFiltrados = stats 
-    ? equipamentosDisponiveis.filter(eq => stats[eq.key] > 1) 
+          let nomeFormatado = nomeLimpo;
+          const upper = nomeLimpo.toUpperCase();
+
+          if (upper === 'C-MILL' || upper === 'CMILL') {
+            nomeFormatado = 'C-Mill';
+          } else if (upper === 'TMS') {
+            nomeFormatado = 'TMS';
+          } else if (upper === 'FES') {
+            nomeFormatado = 'FES';
+          } else if (upper === 'TENS') {
+            nomeFormatado = 'TENS';
+          } else if (upper === 'CICLOERGÔMETRO ATIVO DE MI') {
+            nomeFormatado = 'Cicloergômetro ativo de MI';
+          } else if (upper === 'PMS (ESTIMULAÇÃO MAGNÉTICA PERIFÉRICA)') {
+            nomeFormatado = 'PMS (Estimulação Magnética Periférica)';
+          } else {
+            nomeFormatado = nomeLimpo.charAt(0).toUpperCase() + nomeLimpo.slice(1).toLowerCase();
+          }
+          
+          return { key: chave, nome: nomeFormatado };
+        })
     : [];
 
   return (
@@ -51,14 +78,16 @@ const DadosCadastraisSection = ({ pacienteDetalhes, medicoParceiro, stats }) => 
           <span className="font-bold text-gray-800">Objetivo Principal:</span>
           <span className="text-sm bg-gray-50 p-2 rounded border border-gray-100 italic">{pacienteDetalhes.objetivoPrincipal || "—"}</span>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <span className="font-bold text-gray-800 w-full">Tecnologias Adicionadas em seu Protocolo:</span>
-          {equipamentosFiltrados.map((equipamento) => (
-            <span key={equipamento.key} className="px-2 py-0.5 bg-gray-100 rounded text-sm font-mono">
-              {equipamento.nome}
-            </span>
-          ))}
-        </div>
+        {equipamentosFiltrados.length > 0 &&
+          <div className="flex flex-wrap gap-2">
+            <span className="font-bold text-gray-800 w-full">Tecnologias Adicionadas em seu Protocolo:</span>
+            {equipamentosFiltrados.map((equipamento) => (
+              <span key={equipamento.key} className="px-2 py-0.5 bg-gray-100 rounded text-sm font-mono">
+                {equipamento.nome}
+              </span>
+            ))}
+          </div>
+          }
       </div>
     </div>
 

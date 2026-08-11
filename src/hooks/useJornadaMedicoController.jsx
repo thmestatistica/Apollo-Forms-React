@@ -199,10 +199,11 @@ export const useJornadaMedicoController = () => {
                 ]);
 
                 const sortedHist = (histRaw || []).sort((a, b) => new Date(b.inicio).getTime() - new Date(a.inicio).getTime());
-                const statsCalc = calcularTotaisRobotica(sortedHist);
 
                 // 🔥 Passando o tipo de ordenação atual aqui
                 const processedForms = processarProntuario(formsRaw, sortedHist, tipoOrdenacao);
+
+                const statsCalc = calcularTotaisRobotica(sortedHist, processedForms);
 
                 setAgendamentos(sortedHist);
                 setStats(statsCalc);
