@@ -12,33 +12,64 @@ export const calcularIdade = (dataNascimento) => {
     return idade;
 };
 
-export const calcularTotaisRobotica = (agendamentos = []) => {
+export const calcularTotaisRobotica = (agendamentos = [], prontuario = []) => {
     const totais = {
-        "ARM": 0, // Armeo
-        "CML": 0, // C-Mill
-        "LKM": 0, // Lokomat
-        "KTS": 0, // Kratos
-        "TMS": 0, // TMS
+        "ARMEO": 0,
+        "C-MILL": 0,
+        "LOKOMAT": 0,
+        "KRATOS": 0,
+        "TMS": 0,
     };
 
-    if (!agendamentos || agendamentos.length === 0) return totais;
+    if (Array.isArray(agendamentos)) {
+        agendamentos.forEach(ag => {
+            const nomeSlot = ag.slot?.nome?.toUpperCase() || "";
+            const siglaSlot = ag.slot?.sigla?.toUpperCase() || "";
+            const presenca = (ag.presenca || "").toLowerCase();
 
-    agendamentos.forEach(ag => {
-        // O backend retorna slot dentro do objeto. 
-        // Verificamos nome e sigla para garantir.
-        const nomeSlot = ag.slot?.nome?.toUpperCase() || "";
-        const siglaSlot = ag.slot?.sigla?.toUpperCase() || "";
-        const presenca = (ag.presenca || "").toLowerCase();
+            if (presenca === "presente") {
+                if (siglaSlot.includes("ARM") || nomeSlot.includes("ARMEO")) {
+                    totais["ARMEO"] = (totais["ARMEO"] || 0) + 1;
+                }
+                if (siglaSlot.includes("CML") || nomeSlot.includes("C-MILL")) {
+                    totais["C-MILL"] = (totais["C-MILL"] || 0) + 1;
+                }
+                if (siglaSlot.includes("LKM") || nomeSlot.includes("LOKOMAT")) {
+                    totais["LOKOMAT"] = (totais["LOKOMAT"] || 0) + 1;
+                }
+                if (siglaSlot.includes("KTS") || nomeSlot.includes("KRATOS")) {
+                    totais["KRATOS"] = (totais["KRATOS"] || 0) + 1;
+                }
+                if (siglaSlot.includes("TMS") || nomeSlot.includes("TMS")) {
+                    totais["TMS"] = (totais["TMS"] || 0) + 1;
+                }
+            }
+        });
+    }
 
-        // Apenas conta se foi 'presente'
-        if (presenca === "presente") {
-            if (siglaSlot.includes("ARM") || nomeSlot.includes("ARMEO")) totais["ARM"]++;
-            if (siglaSlot.includes("CML") || nomeSlot.includes("C-MILL")) totais["CML"]++;
-            if (siglaSlot.includes("LKM") || nomeSlot.includes("LOKOMAT")) totais["LKM"]++;
-            if (siglaSlot.includes("KTS") || nomeSlot.includes("KRATOS")) totais["KTS"]++;
-            if (siglaSlot.includes("TMS") || nomeSlot.includes("TMS")) totais["TMS"]++;
-        }
-    });
+    // Contabilizar Prontuário / Formulários
+    if (Array.isArray(prontuario)) {
+        prontuario.forEach(item => {
+            const respostas = item.respostas || [];
+            
+            const perguntaAlvo = respostas.find(r => r.pergunta === "Terapia Robótica e/ou Eletroterapia");
+
+            if (perguntaAlvo && perguntaAlvo.resposta) {
+                const tecnologiasSelecionadas = perguntaAlvo.resposta.split(',').map(t => t.trim());
+
+                tecnologiasSelecionadas.forEach(tech => {
+                    const techUpper = tech.toUpperCase();
+                    totais[techUpper] = (totais[techUpper] || 0) + 1;
+                });
+            }
+
+            const nomeForm = (item.nome_formulario || "").toUpperCase();
+            if (nomeForm.includes("ARMEO")) totais["ARMEO"] = (totais["ARMEO"] || 0) + 1;
+            if (nomeForm.includes("C-MILL") || nomeForm.includes("CMILL")) totais["C-MILL"] = (totais["C-MILL"] || 0) + 1;
+            if (nomeForm.includes("LOKOMAT")) totais["LOKOMAT"] = (totais["LOKOMAT"] || 0) + 1;
+            if (nomeForm.includes("TMS")) totais["TMS"] = (totais["TMS"] || 0) + 1;
+        });
+    }
 
     return totais;
 };

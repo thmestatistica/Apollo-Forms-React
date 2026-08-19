@@ -108,7 +108,7 @@ export const coletarGAS = (form) => {
     }
 
     const itemEspecialidade = form.find(
-        (respsota) => Number(resposta.perguntaId) === 2204
+        (resposta) => Number(resposta.perguntaId) === 2204
     );
 
     const objetivosMatrix = form.find(

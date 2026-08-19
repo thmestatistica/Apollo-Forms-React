@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }) => {
                 const destino = type === "terapeuta"
                     ? "/forms-terapeuta/tela-inicial"
                     : type === "medico-parceiro"
-                    ? "/forms-medico-parceiro/tela-inicial" 
+                    ? "/forms-medico-parceiro/jornada" 
                     : "/forms-paciente/tela-inicial";
                 const go = () => navigate(destino, { replace: true });
                 if (delayMs > 0) setTimeout(go, delayMs); else go();

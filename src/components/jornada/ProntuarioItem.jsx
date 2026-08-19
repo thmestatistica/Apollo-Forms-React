@@ -24,7 +24,7 @@ const DownloadButton = ({ item, data, paciente }) => {
     );
 };
 
-const ProntuarioItem = React.memo(({ item, agendamentos, pacienteDetalhes, profissionais }) => {
+const ProntuarioItem = React.memo(({ item, agendamentos, pacienteDetalhes, profissionais, disablePDF }) => {
     const [expanded, setExpanded] = useState(false);
 
     const agDetalhe = agendamentos.find((a) => a.id == item.agendamento_id);
@@ -74,13 +74,18 @@ const ProntuarioItem = React.memo(({ item, agendamentos, pacienteDetalhes, profi
                             }
                         </span>
 
-                        <span className="text-gray-400">•</span>
-                        <span className="text-sm text-gray-700">🧩 {slotStr === "—" ? (slotExtra === undefined ? "Não encontrado" : slotExtra) : slotStr} {siglaStr !== "" ? `(${siglaStr})` : null}</span>
+                        {!disablePDF && (
+                            <div>
+                                <span className="text-gray-400">•</span>
+                                <span className="text-sm text-gray-700">🧩 {slotStr === "—" ? (slotExtra === undefined ? "Não encontrado" : slotExtra) : slotStr} {siglaStr !== "" ? `(${siglaStr})` : null}</span>
+                            </div>
+                        )}
 
                     </div>
                 </div>
+
                 <div className="flex flex-row gap-2 items-center">
-                    <DownloadButton item={item} data={dataAg !== "—" ? dataAg : dataStr} paciente={pacienteDetalhes} />
+                    {disablePDF ? null : <DownloadButton item={item} data={dataAg !== "—" ? dataAg : dataStr} paciente={pacienteDetalhes} />}
                     <span
                         className="text-gray-400 text-xl transition-transform"
                         style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}

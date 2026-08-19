@@ -39,7 +39,13 @@ const DIAGNOSTICO_OPCOES = [
   'Neuropatia',
   'Distonia',
   'Ortopedia',
-  'Outros'
+  'Outros',
+  'Amputação',
+  'Doença Neuromuscular',
+  'Encefalite',
+  'Idoso frágil',
+  'Polineuropatia',
+  'Pós Covid'
 ];
 
 // Componente principal responsável pela aba "Método Apollo"

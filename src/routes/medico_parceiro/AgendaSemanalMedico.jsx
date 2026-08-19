@@ -4,6 +4,7 @@ import CardAgendamentoPaciente from "../../components/agenda/CardAgendamentoPaci
 
 import { listar_pacientes } from "../../api/jornada/jornada_utils.js";
 import { listar_agendamentos_filtrados } from "../../api/agenda/agenda_utils.js";
+import CardAgendamentoJornada from "../../components/agenda/CardAgendamentoJornada.jsx";
 
 function AgendaSemanalMedico() {
     // Função para buscar agendamentos filtrados por paciente
@@ -16,7 +17,7 @@ function AgendaSemanalMedico() {
             listarAgendamentos={listarAgendamentos}
             listarPacientes={listar_pacientes}
             medicoParceiro={true}
-            CardComponent={CardAgendamentoPaciente}
+            CardComponent={CardAgendamentoJornada}
             tipo="paciente"
             titulo="🗓️ Agenda Semanal do Paciente"
         />

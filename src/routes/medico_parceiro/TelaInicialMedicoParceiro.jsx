@@ -44,8 +44,7 @@ const TelaInicialMedicoParceiro = () => {
                         Acessos rápidos
                     </h2>
 
-                    <div className="grid md:grid-cols-2 gap-6">
-                        <NavigationButton linkTo="/forms-medico-parceiro/agenda-semanal-medico" title="Agenda semanal" description="Visualize consultas, horários disponíveis e compromissos." icon="📅" />
+                    <div className="grid md:grid-cols-1 gap-6">
                         <NavigationButton linkTo="/forms-medico-parceiro/jornada" title="Jornada do paciente" description="Acompanhe histórico e evolução dos pacientes." icon="👤" />
                     </div>
 

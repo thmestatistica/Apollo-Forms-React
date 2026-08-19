@@ -1,7 +1,48 @@
 import React from 'react';
 import { calcularIdade } from "../../utils/jornada/stats";
 
-const DadosCadastraisSection = ({ pacienteDetalhes }) => (
+const DadosCadastraisSection = ({ pacienteDetalhes, medicoParceiro, stats }) => {
+
+  const equipamentosFiltrados = stats
+    ? Object.entries(stats)
+        .filter(([chave, quantidade]) => {
+          if (typeof quantidade !== 'number' || quantidade <= 1) return false;
+          
+          const chaveUpper = chave.toUpperCase();
+          
+          if (chaveUpper.includes('NENHUM')) return false;
+          if (chave.includes('{') || chave.includes('}') || chave.toLowerCase().includes('valor')) return false;
+          
+          return true;
+        })
+        .map(([chave]) => {
+          let nomeLimpo = chave.replace(/^[\d_]+/, '');
+          nomeLimpo = nomeLimpo.replace(/Label$/i, '').replace(/_/g, '-').trim();
+
+          let nomeFormatado = nomeLimpo;
+          const upper = nomeLimpo.toUpperCase();
+
+          if (upper === 'C-MILL' || upper === 'CMILL') {
+            nomeFormatado = 'C-Mill';
+          } else if (upper === 'TMS') {
+            nomeFormatado = 'TMS';
+          } else if (upper === 'FES') {
+            nomeFormatado = 'FES';
+          } else if (upper === 'TENS') {
+            nomeFormatado = 'TENS';
+          } else if (upper === 'CICLOERGÔMETRO ATIVO DE MI') {
+            nomeFormatado = 'Cicloergômetro ativo de MI';
+          } else if (upper === 'PMS (ESTIMULAÇÃO MAGNÉTICA PERIFÉRICA)') {
+            nomeFormatado = 'PMS (Estimulação Magnética Periférica)';
+          } else {
+            nomeFormatado = nomeLimpo.charAt(0).toUpperCase() + nomeLimpo.slice(1).toLowerCase();
+          }
+          
+          return { key: chave, nome: nomeFormatado };
+        })
+    : [];
+
+  return (
   <div
     className="
       group
@@ -21,7 +62,12 @@ const DadosCadastraisSection = ({ pacienteDetalhes }) => (
         <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Nome:</span> <span>{pacienteDetalhes.nomeFormatado}</span></p>
         <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Data de nascimento:</span> <span>{new Date(pacienteDetalhes.dataNascimento).toLocaleDateString("pt-BR")}</span></p>
         <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Idade:</span> <span>{calcularIdade(pacienteDetalhes.dataNascimento)} anos</span></p>
-        <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Período:</span> <span className="px-2 py-0.5 bg-gray-100 rounded text-sm font-mono">{pacienteDetalhes.periodoAvaliacaoSemanas || "—"} semanas</span></p>
+        <p className="flex justify-between border-b border-gray-50 pb-2">
+          <span className="font-bold text-gray-800">{medicoParceiro ? "Período de Reavaliação:" : "Período:"}</span>
+          <span className="px-2 py-0.5 bg-gray-100 rounded text-sm font-mono">
+              {medicoParceiro && <span>A cada</span>} {pacienteDetalhes.periodoAvaliacaoSemanas || "—"} semanas
+          </span>
+          </p>
       </div>
       <div className="space-y-3">
         <div className="flex flex-col gap-1 border-b border-gray-50 pb-2">
@@ -32,6 +78,16 @@ const DadosCadastraisSection = ({ pacienteDetalhes }) => (
           <span className="font-bold text-gray-800">Objetivo Principal:</span>
           <span className="text-sm bg-gray-50 p-2 rounded border border-gray-100 italic">{pacienteDetalhes.objetivoPrincipal || "—"}</span>
         </div>
+        {equipamentosFiltrados.length > 0 &&
+          <div className="flex flex-wrap gap-2">
+            <span className="font-bold text-gray-800 w-full">Tecnologias Adicionadas em seu Protocolo:</span>
+            {equipamentosFiltrados.map((equipamento) => (
+              <span key={equipamento.key} className="px-2 py-0.5 bg-gray-100 rounded text-sm font-mono">
+                {equipamento.nome}
+              </span>
+            ))}
+          </div>
+          }
       </div>
     </div>
 
@@ -67,6 +123,6 @@ const DadosCadastraisSection = ({ pacienteDetalhes }) => (
       </div>
     )}
   </div>
-);
+)};
 
 export default DadosCadastraisSection;

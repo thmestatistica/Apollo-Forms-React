@@ -9,7 +9,7 @@ import InfoGen from "../info/InfoGen";
 import Pagination from "./Pagination";
 import SingleSelect from "../input/SingleSelect";
 
-const FilesSection = ({ pacienteId, profissionais }) => {
+const FilesSection = ({ pacienteId, profissionais, medicoParceiro }) => {
   const [arquivos, setArquivos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -45,19 +45,41 @@ const FilesSection = ({ pacienteId, profissionais }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pacienteId]);
 
+  const isCategoriaPermitida = (cat) => {
+    if (!cat) return false;
+
+    if (cat === "Referencias") {
+      return false;
+    }
+
+    if (medicoParceiro && cat === "Robótica") {
+      return false;
+    }
+
+    return true;
+  };
+
   const categoriasDisponiveis = useMemo(() => {
-    const cats = new Set(arquivos.map(a => a.categoria).filter(Boolean));
+    const cats = new Set(
+      arquivos
+        .map(a => a.categoria)
+        .filter(isCategoriaPermitida)
+    );
     return Array.from(cats).sort();
-  }, [arquivos]);
+  }, [arquivos, medicoParceiro]);
 
   const optionsCategorias = useMemo(() => [
     { value: "", label: "Todas Categorias" },
     ...categoriasDisponiveis.map(cat => ({ value: cat, label: cat }))
   ], [categoriasDisponiveis]);
 
-  const arquivosFiltrados = arquivos.filter(a => {
-    return !filtroCategoria || a.categoria === filtroCategoria;
-  });
+  const arquivosFiltrados = useMemo(() => {
+    return arquivos.filter(a => {
+      if (!isCategoriaPermitida(a.categoria)) return false;
+
+      return !filtroCategoria || a.categoria === filtroCategoria;
+    });
+  }, [arquivos, filtroCategoria, medicoParceiro]);
 
   const totalPages = Math.ceil(arquivosFiltrados.length / itemsPerPage);
 
@@ -73,7 +95,7 @@ const FilesSection = ({ pacienteId, profissionais }) => {
         <div className="flex items-center gap-1">
           <div className="p-2 bg-apollo-50 rounded-xl">
             <p className="text-3xl font-bold text-apollo-400 uppercase tracking-widest">
-                🗂️
+              🗂️
             </p>
           </div>
           <div>

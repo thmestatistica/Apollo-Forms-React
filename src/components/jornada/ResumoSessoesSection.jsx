@@ -11,11 +11,11 @@ const ResumoSessoesSection = ({ stats }) => {
       </h2>
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="contents *:hover:-translate-y-1 *:transition-transform *:duration-300 *:cursor-default">
-          <DashboardCard title="Armeo" value={stats.ARM} color="bg-blue-500" />
-          <DashboardCard title="C-Mill" value={stats.CML} color="bg-green-500" />
-          <DashboardCard title="Lokomat" value={stats.LKM} color="bg-red-500" />
-          <DashboardCard title="Kratos" value={stats.KTS} color="bg-purple-500" />
-          <DashboardCard title="TMS" value={stats.TMS} color="bg-yellow-500" />
+          <DashboardCard title="Armeo" value={stats["ARMEO"]} color="bg-blue-500" />
+          <DashboardCard title="C-Mill" value={stats["C-MILL"]} color="bg-green-500" />
+          <DashboardCard title="Lokomat" value={stats["LOKOMAT"]} color="bg-red-500" />
+          <DashboardCard title="Kratos" value={stats["KRATOS"]} color="bg-purple-500" />
+          <DashboardCard title="TMS" value={stats["TMS"]} color="bg-yellow-500" />
         </div>
       </div>
     </div>

@@ -11,7 +11,7 @@ import AgendaTable from "./AgendaTable.jsx";
 import { DownloadPDFBotaoAgenda } from "./DownloadPDFBotaoAgenda.jsx";
 import { useJornadaMedicoController } from "../../hooks/useJornadaMedicoController.jsx";
 
-function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, medicoParceiro = false, listarPacientes, CardComponent, titulo = "Agenda Semanal", FiltroComponent, initialPessoaId = null, tipo = "paciente" }) {
+function AgendaSemanalJornada({ listarAgendamentos, listarPessoas, medicoParceiro = true, listarPacientes, CardComponent, titulo = "Agenda Semanal", FiltroComponent, initialPessoaId = null, tipo = "paciente" }) {
     const DAY_COUNT = 6;
     const lastDayIndex = DAY_COUNT - 1;
     const navigate = useNavigate();
@@ -200,50 +200,46 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, medicoParcei
     if (loadingPessoas || loadingAgendamento) return <LoadingGen mensagem="Carregando agenda semanal..." primaryColor="#ffffff" secondaryColor="#ffffff" messageColor="text-apollo-100" />;
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen gap-8 bg-gray-50">
-            <div className={`w-full h-screen flex flex-col md:gap-8 gap-4 bg-linear-to-tr from-apollo-300 to-apollo-400 items-center ${user.role === "medico-parceiro" ? "p-30 py-20" : "md:p-6 p-2"}`}>
-                <div className="bg-white w-full h-full rounded-2xl shadow-xl flex flex-col md:p-8 p-4 overflow-hidden">
-                    <AgendaHeader titulo={titulo} onBack={() => navigate("/forms-terapeuta/tela-inicial")} />
-                    <AgendaControls
-                        pessoas={pessoas}
-                        pessoaId={pessoaId}
-                        setPessoaId={setPessoaId}
-                        FiltroComponent={FiltroComponent}
-                        isMobile={isMobile}
-                        weekDays={weekDays}
-                        displayedDays={displayedDays}
-                        prevDay={prevDay}
-                        nextDay={nextDay}
-                        prevWeek={prevWeek}
-                        nextWeek={nextWeek}
-                        goToToday={goToToday}
-                    />
-                    {!medicoParceiro && 
-                        <DownloadPDFBotaoAgenda
-                            displayedDays={weekDays}
-                            pacienteAgenda={tipo === "paciente" ? true : false}
-                            timeSlots={timeSlots}
-                            agByDateAndHour={agByDateAndHour}
-                            titulo={titulo}
-                        />
-                    }
-                    {agendamentos.length === 0 ? (
-                        <div className="flex">
-                            <InfoGen message="📄 Nenhum agendamento encontrado para este período." />
-                        </div>
-                    ) : (
-                        <AgendaTable
-                            displayedDays={displayedDays}
-                            timeSlots={timeSlots}
-                            agByDateAndHour={agByDateAndHour}
-                            CardComponent={CardComponent}
-                            isMobile={isMobile}
-                        />
-                    )}
-                </div>
+        <div     className="
+        group
+        bg-white border-2 border-gray-100 rounded-2xl p-8
+        shadow-sm hover:shadow-2xl hover:shadow-apollo-200/10
+        hover:border-apollo-200/50 hover:-translate-y-1
+        transition-all duration-300 ease-out
+        ">
+            <div className="flex items-center gap-3 mb-6">
+                <h2 className="font-bold text-2xl text-gray-800 group-hover:text-apollo-600 transition-colors">{titulo}</h2>
             </div>
+            <AgendaControls
+                medicoParceiro={medicoParceiro}
+                pessoas={pessoas}
+                pessoaId={pessoaId}
+                setPessoaId={setPessoaId}
+                FiltroComponent={FiltroComponent}
+                isMobile={isMobile}
+                weekDays={weekDays}
+                displayedDays={displayedDays}
+                prevDay={prevDay}
+                nextDay={nextDay}
+                prevWeek={prevWeek}
+                nextWeek={nextWeek}
+                goToToday={goToToday}
+            />
+            {agendamentos.length === 0 ? (
+                <div className="flex">
+                    <InfoGen message="📄 Nenhum agendamento encontrado para este período." />
+                </div>
+            ) : (
+                <AgendaTable
+                    displayedDays={displayedDays}
+                    timeSlots={timeSlots}
+                    agByDateAndHour={agByDateAndHour}
+                    CardComponent={CardComponent}
+                    isMobile={isMobile}
+                />
+            )}
         </div>
     );
 }
 
-export default AgendaSemanalGenerica;
+export default AgendaSemanalJornada;

@@ -13,26 +13,29 @@ const AgendaControls = ({
     nextDay,
     prevWeek,
     nextWeek,
-    goToToday
+    goToToday,
+    medicoParceiro
 }) => {
     return (
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100 mb-6 shrink-0">
-            <div className="w-full md:w-64">
-                {FiltroComponent ? (
-                    <FiltroComponent
-                        pessoas={pessoas}
-                        pessoaId={pessoaId}
-                        setPessoaId={setPessoaId}
-                    />
-                ) : (
-                    <SingleSelect
-                        options={pessoas.map(p => ({ value: p.id, label: p.nome }))}
-                        value={pessoas.find(p => p.id === pessoaId) ? { value: pessoaId, label: pessoas.find(p => p.id === pessoaId)?.nome } : null}
-                        onChange={opt => setPessoaId(opt?.value ?? null)}
-                        placeholder="Filtrar Paciente"
-                    />
-                )}
-            </div>
+            {!medicoParceiro && 
+                <div className="w-full md:w-64">
+                    {FiltroComponent ? (
+                        <FiltroComponent
+                            pessoas={pessoas}
+                            pessoaId={pessoaId}
+                            setPessoaId={setPessoaId}
+                        />
+                    ) : (
+                        <SingleSelect
+                            options={pessoas.map(p => ({ value: p.id, label: p.nome }))}
+                            value={pessoas.find(p => p.id === pessoaId) ? { value: pessoaId, label: pessoas.find(p => p.id === pessoaId)?.nome } : null}
+                            onChange={opt => setPessoaId(opt?.value ?? null)}
+                            placeholder="Filtrar Paciente"
+                        />
+                    )}  
+                </div>
+            }
             <div className="font-bold text-gray-700 text-lg">
                 {!isMobile ? (
                     <span>📅 {weekDays[0].toLocaleDateString()} <span className="text-gray-400 font-normal mx-2">até</span> {weekDays[weekDays.length - 1].toLocaleDateString()}</span>

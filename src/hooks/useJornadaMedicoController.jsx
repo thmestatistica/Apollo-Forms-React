@@ -1,29 +1,37 @@
 import { useState, useEffect, useCallback } from 'react';
 
-// Imports das funções utilitárias e de API
-import { listar_pacientes, listar_agendamentos_paciente, listar_respostas_prontuario, buscar_profissionais, buscar_profissionais_stockcare, buscar_agendamentos_stockcare } from "../api/jornada/jornada_utils";
+import { 
+    listar_pacientes, 
+    listar_agendamentos_paciente, 
+    listar_respostas_prontuario, 
+    buscar_profissionais_stockcare, 
+    buscar_agendamentos_stockcare 
+} from "../api/jornada/jornada_utils";
+
+import { obter_pacientes_controle_do_medico } from "../api/stockcare/controle_visualizacao";
 import { calcularTotaisRobotica } from "../utils/jornada/stats";
 import { formatarNome, processarProntuario } from "../utils/jornada/format";
 import { useAuth } from './useAuth';
 
-// 🔥 CACHE GLOBAL (Fora do Hook): 
-// Sobrevive à desmontagem do componente visual.
-// Isso garante o "Zero Loading" ao voltar para a tela.
+// 🔥 CACHE GLOBAL (Fora do Hook)
 const globalCache = {
     pacientes: null,
-    dadosPorId: {} // { [id]: { agendamentos, stats, prontuario } }
+    dadosPorId: {}
 };
 
 export const useJornadaMedicoController = () => {
-    // --- Estados de Dados ---
     const [pacientes, setPacientes] = useState([]);
     const [pacientesAll, setPacientesAll] = useState([]);
     const [pacientesProfissional, setPacientesProfissional] = useState([]);
+    
+    const [pacientesBloqueadosIds, setPacientesBloqueadosIds] = useState([]);
+    const [pacientesAdicionadosIds, setPacientesAdicionadosIds] = useState([]);
+
     const [agendamentos, setAgendamentos] = useState([]);
     const [pacienteDetalhes, setPacienteDetalhes] = useState([]);
     const [stats, setStats] = useState(null);
     const [prontuario, setProntuario] = useState([]);
-    const [profissionais, setProfissionais] = useState([])
+    const [profissionais, setProfissionais] = useState([]);
     const [tipoOrdenacao, setTipoOrdenacao] = useState('agendamento');
 
     const [pacienteSelecionadoId, setPacienteSelecionadoId] = useState();
@@ -34,17 +42,30 @@ export const useJornadaMedicoController = () => {
 
     const { user } = useAuth();
 
+    const idUsuarioLogado = user?.id || user?.usuario?.id_usuario;
     const USUARIO_APOLLO = user?.usuario?.id_usuario === 109 && user?.usuario?.id_papel_usuario === 7;
 
-    /*useEffect(() => {
+    useEffect(() => {
         const loadProfissionais = async () => {
-
             try {
                 const dados = await buscar_profissionais_stockcare();
                 globalCache.profissionais = dados;
 
+                const PAPEIS_PERMITIDOS = [1, 3];
+
+                const profissionaisFiltrados = (Array.isArray(dados) ? dados : []).filter(p => {
+                    const papelValido = PAPEIS_PERMITIDOS.includes(p.id_papel_usuario);
+
+                    const nomeUpper = (p.nome || "").toUpperCase();
+                    const naoETeste = !nomeUpper.includes("TESTE");
+                    const naoEOttobock = !nomeUpper.includes("OTT");
+                    const naoEAdmin = !nomeUpper.includes("ADMIN");
+
+                    return papelValido && naoETeste && naoEOttobock && naoEAdmin;
+                });
+
                 const profissionaisMap = Object.fromEntries(
-                    dados.map(p => [p.id_usuario, p.nome])
+                    profissionaisFiltrados.map(p => [p.id_usuario, p.nome])
                 );
 
                 setProfissionais(profissionaisMap);
@@ -54,7 +75,7 @@ export const useJornadaMedicoController = () => {
         };
 
         loadProfissionais();
-    }, [user]);*/
+    }, [user]);
 
     useEffect(() => {
         const loadPacientes = async () => {
@@ -90,11 +111,27 @@ export const useJornadaMedicoController = () => {
     }, []);
 
     useEffect(() => {
-        const loadPacientesDoProfissional = async () => {
-            if (!user?.id) return;
+        const loadPacientesControle = async () => {
+            if (!idUsuarioLogado) return;
 
             try {
-                const res = await buscar_agendamentos_stockcare({ usuarioId: user.id });
+                const res = await obter_pacientes_controle_do_medico(idUsuarioLogado);
+                setPacientesBloqueadosIds(res?.ids_pacientes_bloqueados || []);
+                setPacientesAdicionadosIds(res?.ids_pacientes_adicionados || []);
+            } catch (e) {
+                console.error("Erro ao carregar controles de pacientes do médico", e);
+            }
+        };
+
+        loadPacientesControle();
+    }, [idUsuarioLogado]);
+
+    useEffect(() => {
+        const loadPacientesDoProfissional = async () => {
+            if (!idUsuarioLogado) return;
+
+            try {
+                const res = await buscar_agendamentos_stockcare({ usuarioId: idUsuarioLogado });
                 const listaAgendamentos = Array.isArray(res) ? res : (res?.data || []);
 
                 setAgendamentos(listaAgendamentos);
@@ -107,7 +144,7 @@ export const useJornadaMedicoController = () => {
         };
 
         loadPacientesDoProfissional();
-    }, [user?.id]);
+    }, [idUsuarioLogado]);
 
     useEffect(() => {
         if (!pacientesAll.length) {
@@ -115,23 +152,20 @@ export const useJornadaMedicoController = () => {
             return;
         }
 
-        if (USUARIO_APOLLO) {
-            setPacientes(pacientesAll);
-            return;
-        }
+        // Se for o usuário APOLLO, carrega todos. Senão, carrega quem tem agendamento OU quem foi adicionado.
+        let basePacientes = USUARIO_APOLLO 
+            ? pacientesAll 
+            : pacientesAll.filter(p => 
+                pacientesProfissional.includes(p.id) || pacientesAdicionadosIds.includes(p.id)
+            );
 
-        if (!pacientesProfissional.length) {
-            setPacientes([]);
-            return;
-        }
-
-        const filtrados = pacientesAll.filter(p =>
-            pacientesProfissional.includes(p.id)
+        // Remove os pacientes cujos IDs estão na lista de bloqueados
+        const filtradosSemBloqueados = basePacientes.filter(
+            p => !pacientesBloqueadosIds.includes(p.id)
         );
 
-        setPacientes(filtrados);
-
-    }, [pacientesAll, pacientesProfissional, USUARIO_APOLLO]);
+        setPacientes(filtradosSemBloqueados);
+    }, [pacientesAll, pacientesProfissional, pacientesBloqueadosIds, pacientesAdicionadosIds, USUARIO_APOLLO]);
 
     useEffect(() => {
         if (!pacienteSelecionadoId) {
@@ -165,10 +199,11 @@ export const useJornadaMedicoController = () => {
                 ]);
 
                 const sortedHist = (histRaw || []).sort((a, b) => new Date(b.inicio).getTime() - new Date(a.inicio).getTime());
-                const statsCalc = calcularTotaisRobotica(sortedHist);
 
                 // 🔥 Passando o tipo de ordenação atual aqui
                 const processedForms = processarProntuario(formsRaw, sortedHist, tipoOrdenacao);
+
+                const statsCalc = calcularTotaisRobotica(sortedHist, processedForms);
 
                 setAgendamentos(sortedHist);
                 setStats(statsCalc);
@@ -189,9 +224,7 @@ export const useJornadaMedicoController = () => {
         };
 
         loadDetalhes();
-
-        // 🔥 Adicionado 'tipoOrdenacao' como dependência para disparar o recarregamento ao mudar o filtro
-    }, [pacienteSelecionadoId, pacientes, tipoOrdenacao]);
+    }, [pacienteSelecionadoId, pacientes, tipoOrdenacao, pacientesAll, USUARIO_APOLLO]);
 
     const recarregarProntuario = useCallback(async () => {
         if (!pacienteSelecionadoId) return;
