@@ -28,8 +28,8 @@ export const listar_agendamentos = async (filters = {}) => {
     if (filters.endDate) {
       params.endDate = filters.endDate;
     }
-    
-    if(filters.pacienteId) {
+
+    if (filters.pacienteId) {
       params.pacienteId = filters.pacienteId;
     }
 
@@ -48,7 +48,7 @@ export const listar_agendamentos = async (filters = {}) => {
     }
 
     // console.log("Listando agendamentos com parâmetros:", params);
-    
+
     // Requisição GET com query params
     const response = await axiosInstance.get("/agendamentos", {
       params,
@@ -118,49 +118,59 @@ export const listar_agendamentos_filtrados = async (filters = {}) => {
  * @returns {Promise<Array|null>} Uma lista de objetos de agendamento ou null em caso de erro.
  */
 export const agendamentos_pendentes = async (profissionalId) => {
-    // 1. Validação para evitar chamadas com ID inválido.
-    if (!profissionalId || typeof profissionalId !== 'number') {
-        console.error("ID do profissional inválido ou não fornecido.");
-        return null;
+  // 1. Validação para evitar chamadas com ID inválido.
+  if (!profissionalId || typeof profissionalId !== 'number') {
+    console.error("ID do profissional inválido ou não fornecido.");
+    return null;
+  }
+
+  try {
+    // 2. Busca os dados do profissional, que contêm os IDs dos agendamentos.
+    const profissionalData = await axiosInstance.get(`/pacientes/profissionais/${profissionalId}`);
+
+    // Se o profissional não for encontrado ou não tiver agendamentos, retorna uma lista vazia.
+    if (!profissionalData?.data || !profissionalData.data.ag_presenca_ids) {
+      console.warn(`Profissional com ID ${profissionalId} não encontrado ou sem agendamentos pendentes.`);
+      return [];
     }
 
-    try {
-        // 2. Busca os dados do profissional, que contêm os IDs dos agendamentos.
-        const profissionalData = await axiosInstance.get(`/pacientes/profissionais/${profissionalId}`);
+    const agendamentoIds = Object.values(profissionalData.data.ag_presenca_ids);
 
-        // Se o profissional não for encontrado ou não tiver agendamentos, retorna uma lista vazia.
-        if (!profissionalData?.data || !profissionalData.data.ag_presenca_ids) {
-            console.warn(`Profissional com ID ${profissionalId} não encontrado ou sem agendamentos pendentes.`);
-            return [];
-        }
-
-        const agendamentoIds = Object.values(profissionalData.data.ag_presenca_ids);
-
-        // Se não houver IDs, não há o que buscar.
-        if (agendamentoIds.length === 0) {
-            return [];
-        }
-
-        // 3. Cria um array de promessas para buscar todos os agendamentos em paralelo.
-        const promessasDeAgendamentos = agendamentoIds.map(id =>
-          axiosInstance.get(`/agendamentos/${id}`).then(res => res.data)
-        );
-
-        // 4. Executa todas as promessas em paralelo e aguarda a conclusão de todas.
-        const agendamentosResolvidos = await Promise.all(promessasDeAgendamentos);
-
-        // Filtra qualquer resultado nulo que possa ter ocorrido se um agendamento individual não for encontrado.
-        return agendamentosResolvidos.filter(ag => ag != null);
-
-    } catch (err) {
-        console.error(`Erro ao processar agendamentos pendentes para o profissional ${profissionalId}:`, {
-            message: err.message,
-            code: err.code,
-            responseStatus: err.response?.status,
-            responseData: err.response?.data,
-        });
-        return null; // Retorna null para indicar que ocorreu um erro na operação.
+    // Se não houver IDs, não há o que buscar.
+    if (agendamentoIds.length === 0) {
+      return [];
     }
+
+    // 3. Cria um array de promessas para buscar todos os agendamentos em paralelo.
+    const promessasDeAgendamentos = agendamentoIds.map(id =>
+      axiosInstance
+        .get(`/agendamentos/${id}`)
+        .then(res => res.data)
+        .catch(error => {
+          if (error.response?.status === 404) {
+            return null;
+          }
+
+          throw error;
+        })
+    );
+
+    const agendamentosResolvidos = (
+      await Promise.all(promessasDeAgendamentos)
+    ).filter(Boolean);
+
+    // Filtra qualquer resultado nulo que possa ter ocorrido se um agendamento individual não for encontrado.
+    return agendamentosResolvidos.filter(ag => ag != null);
+
+  } catch (err) {
+    console.error(`Erro ao processar agendamentos pendentes para o profissional ${profissionalId}:`, {
+      message: err.message,
+      code: err.code,
+      responseStatus: err.response?.status,
+      responseData: err.response?.data,
+    });
+    return null; // Retorna null para indicar que ocorreu um erro na operação.
+  }
 }
 
 
@@ -171,7 +181,7 @@ export const carregar_escalas_pendentes = async (pacienteId, especialidade) => {
     return null;
   }
 
-  if(!especialidade || typeof especialidade !== "string") {
+  if (!especialidade || typeof especialidade !== "string") {
     console.error("Especialidade inválida ou não fornecida.");
     return null;
   }
