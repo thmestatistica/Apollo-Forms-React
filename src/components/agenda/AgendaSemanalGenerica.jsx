@@ -17,7 +17,6 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, medicoParcei
     const navigate = useNavigate();
 
     const { user } = useAuth();
-
     const [agendamentos, setAgendamentos] = useState([]);
     const [loadingAgendamento, setLoadingAgendamento] = useState(false);
     const [pessoas, setPessoas] = useState([]);
@@ -34,8 +33,7 @@ function AgendaSemanalGenerica({ listarAgendamentos, listarPessoas, medicoParcei
         return monday;
     });
 
-    const { pacientes: pacientesMedico } = useJornadaMedicoController();
-
+    const { pacientes: pacientesMedico } = useJornadaMedicoController();    
     // Buscar pessoas
     useEffect(() => {
         const carregarPessoas = async () => {

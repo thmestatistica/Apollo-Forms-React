@@ -85,7 +85,7 @@ const AgendaDocumento = ({ pacienteAgenda, displayedDays, timeSlots, agByDateAnd
                 timeSlots={timeSlots}
                 agByDateAndHour={agByDateAndHour}
                 getAgendamentoText={(ag) => {
-                    const paciente = ag.paciente?.nome ?? "Paciente";
+                    const paciente = ag.paciente?.nome_social_apelido ?? ag.paciente?.nome ?? "Paciente";
                     let horario = "";
 
                     if (pacienteAgenda) {

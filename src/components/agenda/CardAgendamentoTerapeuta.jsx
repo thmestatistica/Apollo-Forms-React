@@ -27,7 +27,7 @@ const CardAgendamentoTerapeuta = ({ agendamento, isMobile }) => {
         const present = String(pres).toLowerCase() === 'presente';
         presEmoji = present ? '✅' : '❌';
     }
-    let pacienteNome = agendamento?.paciente?.nome || 'Paciente';
+    let pacienteNome = agendamento?.paciente?.nome_social_apelido || agendamento?.paciente?.nome || 'Paciente';
     if (isMobile && typeof abreviarNome === 'function') {
         pacienteNome = pacienteNome && typeof pacienteNome === 'string' ? (abreviarNome(pacienteNome, 2) || 'Paciente') : 'Paciente';
     }

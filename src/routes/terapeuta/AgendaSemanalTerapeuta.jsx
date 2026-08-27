@@ -1,6 +1,6 @@
 import { useAuth } from "../../hooks/useAuth.jsx";
 
-import { listar_agendamentos_filtrados } from "../../api/agenda/agenda_utils.js";
+import { listar_agendamentos } from "../../api/agenda/agenda_utils.js";
 import { listar_profissionais } from "../../api/profissionais/profissionais_utils.js";
 
 import SingleSelect from "../../components/input/SingleSelect.jsx";
@@ -28,8 +28,8 @@ function AgendaSemanalTerapeuta() {
     const listarAgendamentosAdaptado = async (params) => {
         const { startDate, endDate, pessoaId, usuarioId: usuarioIdParam } = params || {};
         const usuarioId = pessoaId ?? usuarioIdParam ?? user?.id ?? null;
-        const resp = await listar_agendamentos_filtrados({ startDate, endDate, usuarioId });
-        return resp || [];
+        const resp = await listar_agendamentos({ startDate, endDate, usuarioId });
+        return resp["agendamentos"] || [];
     };
 
     // Filtro customizado exibido apenas para admins selecionados
