@@ -9,8 +9,8 @@ export const processarFuglMeyerSuperior = (respostas) => {
         "doi": "10.1016/j.apmr.2012.06.017",
         "nome_curto": "Fugl-Meyer - Superiores",
         "calculo": "Escore = soma das perguntas marcadas na tabela",
-        "calculo_processado": "Padronização Radar = (base / 128) × 10",
-        "interpretacao": "O escore bruto é a soma da pontuação individual de cada pergunta com resposta unica, perguntas com multiplas respostas devem ter seus valores somados antes de serem contabilizadas. Valor mínimo = 0; Valor máximo = 128. O escore padronizado lineariza a relação de tal que forma que uma resposta máxima (128 no escore bruto) seja um valor no radar igual a 10. O valor mínimo fica com 0 e qualquer outra pontuação está interpolada linearmente"
+        "calculo_processado": "Padronização Radar = (base / 126) × 10",
+        "interpretacao": "O escore bruto é a soma da pontuação individual de cada pergunta com resposta unica, perguntas com multiplas respostas devem ter seus valores somados antes de serem contabilizadas. Valor mínimo = 0; Valor máximo = 126. O escore padronizado lineariza a relação de tal que forma que uma resposta máxima (126 no escore bruto) seja um valor no radar igual a 10. O valor mínimo fica com 0 e qualquer outra pontuação está interpolada linearmente"
     };
 };
 
