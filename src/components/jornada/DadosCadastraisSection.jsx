@@ -1,5 +1,6 @@
 import React from 'react';
 import { calcularIdade } from "../../utils/jornada/stats";
+import { formatarData } from '../../utils/format/formatar_utils';
 
 const DadosCadastraisSection = ({ pacienteDetalhes, medicoParceiro, stats }) => {
 
@@ -60,7 +61,7 @@ const DadosCadastraisSection = ({ pacienteDetalhes, medicoParceiro, stats }) => 
     <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12 text-gray-600">
       <div className="space-y-3">
         <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Nome:</span> <span>{pacienteDetalhes.nomeFormatado}</span></p>
-        <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Data de nascimento:</span> <span>{new Date(pacienteDetalhes.dataNascimento).toLocaleDateString("pt-BR")}</span></p>
+        <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Data de nascimento:</span> <span>{formatarData(pacienteDetalhes.dataNascimento)}</span></p>
         <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Idade:</span> <span>{calcularIdade(pacienteDetalhes.dataNascimento)} anos</span></p>
         <p className="flex justify-between border-b border-gray-50 pb-2">
           <span className="font-bold text-gray-800">{medicoParceiro ? "Período de Reavaliação:" : "Período:"}</span>
