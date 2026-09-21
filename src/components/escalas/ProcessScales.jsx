@@ -15,7 +15,7 @@ import { processarADDENBROK } from './processors/addenbrock.js';
 import { processarFAC } from './processors/fac.js';
 import { processarGRBASI } from './processors/grbasi.js';
 import { processarSUNNYBROOK } from './processors/sunnybrook.js'
-import { processarTOScales } from './processors/toscales.js'
+import { processarTOScales, processarTOScalesAntigo } from './processors/toscales.js'
 import { processarGASantiga, processarGAS } from './processors/gas.js'
 import { processarIPAQ } from './processors/ipaq.js';
 import { processarSARA } from './processors/sara.js';
@@ -38,8 +38,12 @@ export const scaleProcessors = {
     29: processarGAD7,
     //30: processarLawtonBrody,
     31: processarPHQ9,
-    32: processarTOScales,
-    61: processarTOScales,
+    
+    // AV Terapia Ocupacional
+    32: processarTOScalesAntigo,
+    61: processarTOScalesAntigo,
+    118: processarTOScales,
+
     33: processarMIFMobilidade,
     34: processarMIFAutocuidados,
     35: processarMIFControleEsfincteres,
