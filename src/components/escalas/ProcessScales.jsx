@@ -63,7 +63,8 @@ export const scaleProcessors = {
     68: processarGRBASI,
     69: processarSARA,
     50: processarIPAQ,
-    51: processarWISCI,
+    // Liberando WISCI para a edição comum por um tempo (22/09/2026)
+    //51: processarWISCI,
     66: processarFMS,
     67: processarGMFM,
     54: processarParkinsonUPDRS,
