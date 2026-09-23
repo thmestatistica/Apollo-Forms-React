@@ -436,12 +436,17 @@ export const upsert_perguntas_form = async (formId, perguntas = []) => {
  * Endpoint esperado: GET /forms/:id/respostas/ultimo?paciente_id=...
  * Retorna um objeto mapeando a 'chave_pergunta' ao seu respectivo valor.
  */
-export const carregar_ultimas_respostas_form = async (formId, pacienteId) => {
+export const carregar_ultimas_respostas_form = async (formId, pacienteId, filtro = {}) => {
   if (!formId || !pacienteId) return {};
   try {
-    const { data } = await axiosInstanceForms.get(`/forms/${formId}/respostas/ultimo`, {
-      params: { paciente_id: pacienteId }
-    });
+    const params = { paciente_id: pacienteId };
+
+    if (filtro?.chave && filtro?.valor !== undefined && filtro?.valor !== null && filtro?.valor !== "") {
+      params.chave_pergunta_filtro = filtro.chave;
+      params.valor_filtro = filtro.valor;
+    }
+
+    const { data } = await axiosInstanceForms.get(`/forms/${formId}/respostas/ultimo`, { params });
     return data ?? {};
   } catch (err) {
     console.error("Erro ao carregar últimas respostas do formulário:", {

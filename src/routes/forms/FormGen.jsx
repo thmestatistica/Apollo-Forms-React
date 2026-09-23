@@ -23,6 +23,7 @@ import { createPayloadForScore, createScore } from "../../api/scores/scores_util
 import { carregar_ultimas_respostas_form } from "../../api/forms/forms_utils.js";
 
 const CACHE_DURATION = 3 * 24 * 60 * 60 * 1000; // 3 dias em milisegundos
+const REGEX_CAMPO_ESPECIALIDADE = /especialidade/i;
 
 const IDS_FORMS_DEPENDENCIAS_IDADE_SEXO = [63, 79]; // IDs de formulários que requerem idade e sexo do paciente
 
@@ -143,6 +144,14 @@ const FormularioGenerico = () => {
         fetchFormulario();
     }, [cacheKey, id_form, location, user]);
 
+    const campoEspecialidade = useMemo(() => {
+        if (!formulario?.campos) return null;
+        return formulario.campos.find(
+            (campo) =>
+                campo?.tipo_resposta_esperada === "SELECAO_UNICA" &&
+                REGEX_CAMPO_ESPECIALIDADE.test(campo?.label || "")
+        ) || null;
+    }, [formulario?.campos]);
 
     /**
      * Função para buscar as respostas do último formulário e injetar na tela
@@ -158,10 +167,30 @@ const FormularioGenerico = () => {
             return;
         }
 
+        // Se o formulário tem campo de especialidade, exige que já tenha sido selecionado
+        // para buscar o histórico da especialidade correta (não da última sessão qualquer)
+        let filtroEspecialidade = null;
+        let valorEspecialidadeAtual = null;
+
+        if (campoEspecialidade) {
+            valorEspecialidadeAtual = cachedValues?.[campoEspecialidade.nome] ?? initialValues?.[campoEspecialidade.nome];
+
+            if (!valorEspecialidadeAtual) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Selecione a especialidade',
+                    text: 'Escolha a especialidade antes de copiar o último preenchimento, para buscarmos o histórico correto.',
+                    confirmButtonColor: '#7C3AED'
+                });
+                return;
+            }
+
+            filtroEspecialidade = { chave: campoEspecialidade.nome, valor: valorEspecialidadeAtual };
+        }
+
         try {
             setLoadingAutofill(true);
-            const response = await carregar_ultimas_respostas_form(Number(id_form), paciente_id);
-            console.log("Resposta da API de últimas respostas:", response);
+            const response = await carregar_ultimas_respostas_form(Number(id_form), paciente_id, filtroEspecialidade);
 
             if (response && response.ok === false) {
                 throw new Error("Resposta da API mal sucedida.");
@@ -169,26 +198,27 @@ const FormularioGenerico = () => {
 
             const respostasAnteriores = (response && response.data !== undefined) ? response.data : response;
 
-            // Verifica se é null, undefined, ou um objeto/array vazio ({})
-            const semDados = 
-                !respostasAnteriores || 
+            const semDados =
+                !respostasAnteriores ||
                 (typeof respostasAnteriores === 'object' && Object.keys(respostasAnteriores).length === 0);
 
             if (semDados) {
                 Swal.fire({
                     icon: 'info',
                     title: 'Nenhum registro',
-                    text: 'Nenhum histórico de preenchimento anterior deste formulário foi encontrado para este paciente.',
+                    text: 'Nenhum histórico de preenchimento anterior deste formulário foi encontrado para este paciente com a especialidade selecionada.',
                     confirmButtonColor: '#7C3AED'
                 });
                 return;
             }
 
-            // Atualiza as respostas cacheadas locais
-            setCachedValues(respostasAnteriores);
-            // Salva no localStorage para consistência e persistência
-            saveFormCache(cacheKey, respostasAnteriores);
-            // Força a desmontagem e montagem limpa de todos os campos com a nova versão
+            // Preserva a especialidade que o usuário já tinha escolhido, mesmo depois do autopreenchimento
+            const respostasFinal = campoEspecialidade
+                ? { ...respostasAnteriores, [campoEspecialidade.nome]: valorEspecialidadeAtual }
+                : respostasAnteriores;
+
+            setCachedValues(respostasFinal);
+            saveFormCache(cacheKey, respostasFinal);
             setFormVersion(prev => prev + 1);
 
             Swal.fire({
@@ -444,11 +474,11 @@ const FormularioGenerico = () => {
 
                 let resultado;
 
-                
-                if(IDS_FORMS_DEPENDENCIAS_IDADE_SEXO.includes(pendEscala.formularioId ?? Number(id_form))) {
+
+                if (IDS_FORMS_DEPENDENCIAS_IDADE_SEXO.includes(pendEscala.formularioId ?? Number(id_form))) {
                     // console.log("Processando com idade e sexo:", pendencia["Idade"], pendencia["SexoBiologico"]);
                     resultado = processor(respostasFormatadas, pendencia["Idade"], pendencia["SexoBiologico"]);
-                    
+
                 } else {
                     resultado = processor(respostasFormatadas);
                 }
@@ -629,7 +659,7 @@ const FormularioGenerico = () => {
                     <h1 className="text-2xl font-semibold text-gray-800">
                         {formulario.titulo}
                     </h1>
-                    
+
                     {/* Botão de Autopreenchimento */}
                     {paciente_id && (
                         <button

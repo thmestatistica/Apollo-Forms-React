@@ -116,7 +116,7 @@ export const coletarGAS = (form) => {
     );
 
     const itemJustificativa = form.find(
-        (resposta) => Number(resposta.perguntaId) === 2205
+        (resposta) => Number(resposta.perguntaId) === 2422
     );
 
     const especialidade = itemEspecialidade?.resposta;
