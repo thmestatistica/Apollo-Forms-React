@@ -17,7 +17,7 @@ import BotaoVerAnexo from "../../components/common/BotaoVerAnexo.jsx";
 const JornadaPage = () => {
   const {
       pacientes, setPacienteSelecionadoId, pacienteDetalhes, pacienteSelecionadoId,
-      agendamentos, stats, prontuario,
+      agendamentos, stats, setStats, prontuario,
       loadingInicial, loadingDados, loadingProntuario,
       recarregarProntuario,
       profissionais, tipoOrdenacao, setTipoOrdenacao
@@ -46,7 +46,7 @@ const JornadaPage = () => {
                 <BotaoVerAnexo pacienteId={pacienteSelecionadoId} />
               </div>
 
-              <DadosCadastraisSection pacienteDetalhes={pacienteDetalhes} />
+              <DadosCadastraisSection pacienteDetalhes={pacienteDetalhes} stats={stats}/>
 
               <ResumoSessoesSection stats={stats} />
 
