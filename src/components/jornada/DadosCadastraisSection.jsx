@@ -63,19 +63,31 @@ const DadosCadastraisSection = ({ pacienteDetalhes, medicoParceiro, stats }) => 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12 text-gray-600">
         <div className="space-y-3">
           <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Nome:</span> <span>{pacienteDetalhes.nomeFormatado || "—"}</span></p>
-          <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Email:</span> <span>{pacienteDetalhes.email || "—"}</span></p>
           <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Sexo biológico:</span> <span>{pacienteDetalhes.sexoBiologico || "—"}</span></p>
           <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Data de nascimento:</span> <span>{formatarData(pacienteDetalhes.dataNascimento) || "—"}</span></p>
           <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Idade:</span> <span>{calcularIdade(pacienteDetalhes.dataNascimento) || "—"} anos</span></p>
-          <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Telefone:</span> <span>{pacienteDetalhes.telefone || "—"}</span></p>
-          <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">CEP:</span> <span>{pacienteDetalhes.cep || "—"}</span></p>
-          {pacienteDetalhes.bairro && pacienteDetalhes.estado && <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Endereço:</span> <span>{pacienteDetalhes.bairro}{pacienteDetalhes.bairro && pacienteDetalhes.estado && ", " }{pacienteDetalhes.estado}</span></p>}
           <p className="flex justify-between border-b border-gray-50 pb-2">
             <span className="font-bold text-gray-800">{medicoParceiro ? "Período de Reavaliação:" : "Período:"}</span>
             <span className="px-2 py-0.5 bg-gray-100 rounded text-sm font-mono">
               {medicoParceiro && <span>A cada</span>} {pacienteDetalhes.periodoAvaliacaoSemanas || "—"} semanas
             </span>
           </p>
+          <div className="flex flex-col gap-1 border-b border-gray-50 pb-2">
+            <span className="font-bold text-gray-800">Observações Adicionais</span>
+            <span className="text-sm bg-gray-50 p-2 rounded border border-gray-100 italic">{pacienteDetalhes.observacoes_adicionais || "—"}</span>
+          </div>
+          <div className="flex flex-col gap-1 border-b border-gray-50 pb-2">
+            <span className="font-bold text-gray-800">Frequências semanais por especialidade:</span>
+
+            <span className="text-sm bg-gray-50 p-2 rounded border border-gray-100 italic">
+              {pacienteDetalhes.frequencias_semanais &&
+                Object.keys(pacienteDetalhes.frequencias_semanais).length
+                ? Object.entries(pacienteDetalhes.frequencias_semanais)
+                  .map(([especialidade, frequencia]) => `${especialidade}: ${frequencia}x`)
+                  .join(", ")
+                : "—"}
+            </span>
+          </div>
         </div>
         <div className="space-y-3">
           <div className="flex flex-col gap-1 border-b border-gray-50 pb-2">
@@ -86,29 +98,35 @@ const DadosCadastraisSection = ({ pacienteDetalhes, medicoParceiro, stats }) => 
             <span className="font-bold text-gray-800">Diagnóstico Principal:</span>
             <span className="text-sm bg-gray-50 p-2 rounded border border-gray-100 italic">{pacienteDetalhes.diagnosticoPrincipal || "—"}</span>
           </div>
-          {pacienteDetalhes.diagnostico_funcional?.length > 0 && (
-            <div className="flex flex-col gap-1 border-b border-gray-50 pb-2">
-              <span className="font-bold text-gray-800">Diagnóstico Funcional:</span>
-              <span className="text-sm bg-gray-50 p-2 rounded border border-gray-100 italic">
-                {pacienteDetalhes.diagnostico_funcional?.length
-                  ? pacienteDetalhes.diagnostico_funcional.join(", ")
-                  : "—"}</span>
-            </div>
-          )}
+          <div className="flex flex-col gap-1 border-b border-gray-50 pb-2">
+            <span className="font-bold text-gray-800">Diagnóstico Secundario:</span>
+            <span className="text-sm bg-gray-50 p-2 rounded border border-gray-100 italic">
+              {pacienteDetalhes.diagnostico_secundario?.length
+                ? pacienteDetalhes.diagnostico_secundario.join(", ")
+                : "—"}</span>
+          </div>
+          <div className="flex flex-col gap-1 border-b border-gray-50 pb-2">
+            <span className="font-bold text-gray-800">Diagnóstico Funcional:</span>
+            <span className="text-sm bg-gray-50 p-2 rounded border border-gray-100 italic">
+              {pacienteDetalhes.diagnostico_funcional?.length
+                ? pacienteDetalhes.diagnostico_funcional.join(", ")
+                : "—"}</span>
+          </div>
           <div className="flex flex-col gap-1 border-b border-gray-50 pb-2">
             <span className="font-bold text-gray-800">Objetivo Principal:</span>
             <span className="text-sm bg-gray-50 p-2 rounded border border-gray-100 italic">{pacienteDetalhes.objetivoPrincipal || "—"}</span>
           </div>
-          {equipamentosFiltrados.length > 0 &&
-            <div className="flex flex-wrap gap-2">
-              <span className="font-bold text-gray-800 w-full">Tecnologias Adicionadas em seu Protocolo:</span>
-              {equipamentosFiltrados.map((equipamento) => (
+          <div className="flex flex-wrap gap-2">
+            <span className="font-bold text-gray-800 w-full">Tecnologias Adicionadas em seu Protocolo:</span>
+            {equipamentosFiltrados.length > 0 ?
+              equipamentosFiltrados.map((equipamento) => (
                 <span key={equipamento.key} className="px-2 py-0.5 bg-gray-100 rounded text-sm font-mono">
                   {equipamento.nome}
                 </span>
-              ))}
-            </div>
-          }
+              )) : (
+                <span className="text-sm bg-gray-50 p-2 rounded border border-gray-100 italic">—</span>
+              )}
+          </div>
         </div>
       </div>
 
