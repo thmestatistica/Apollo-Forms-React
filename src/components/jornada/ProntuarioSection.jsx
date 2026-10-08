@@ -71,7 +71,7 @@ const ProntuarioSection = ({ prontuario, agendamentos, loadingProntuario, onRelo
     <div className="flex flex-col gap-6 animate-fade-in-up delay-300 pb-10">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <h2 className="font-bold text-2xl text-gray-800 flex items-center gap-3">
-          📋 Prontuário Eletrônico
+          📋 Prontuário Eletrônico - {pacienteDetalhes.nome}
         </h2>
 
         <button

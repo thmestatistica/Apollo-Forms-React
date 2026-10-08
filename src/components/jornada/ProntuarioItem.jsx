@@ -53,9 +53,12 @@ const ProntuarioItem = React.memo(({ item, agendamentos, pacienteDetalhes, profi
         <div className="border border-gray-200 rounded-lg bg-white hover:shadow-md transition-shadow cursor-pointer overflow-hidden">
             <div className="p-4 flex justify-between items-center bg-gray-50" onClick={() => setExpanded(!expanded)}>
                 <div className="flex flex-col gap-1">
+                    <div>
                     <div className="text-xs flex gap-2 text-gray-500 font-bold uppercase tracking-wide items-center">
                         <p>Registrado em {dataStr} às {horaStr} | </p><p className="bg-slate-300 py-1 px-3 text-apollo-200 rounded-md">id: {item.sessao_raw?.sessao_resposta_id || "Id não encontrado"}</p>
                     </div>
+                        <p className="text-xs text-slate-400">{pacienteDetalhes.nome}</p>
+                        </div>
                     <div className="flex flex-wrap items-center gap-2">
                         {dataAg !== "—" && horarioStr !== "—" ? (
                             <span className="text-sm text-gray-700">🗓️ {dataAg} : {horarioStr} |</span>
@@ -85,6 +88,7 @@ const ProntuarioItem = React.memo(({ item, agendamentos, pacienteDetalhes, profi
 
                     </div>
                 </div>
+
 
                 <div className="flex flex-row gap-2 items-center">
                     {disablePDF ? null : <DownloadButton item={item} data={dataAg !== "—" ? dataAg : dataStr} paciente={pacienteDetalhes} />}
