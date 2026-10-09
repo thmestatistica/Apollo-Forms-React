@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../hooks/useAuth"; // Importe useRef
-import { enviar_upload_arquivo } from "../../api/forms/upload_utils";
+import { enviar_upload_arquivo, importar_lokomat_xlsx } from "../../api/forms/upload_utils";
 import axiosInstance from "../../api/axiosInstance";
 import SingleSelect from "../../components/input/SingleSelect";
 import { ChevronLeftIcon, CloudArrowUpIcon } from "@heroicons/react/24/outline";
@@ -25,6 +25,9 @@ const UploadArquivos = () => {
     arquivo: [],
   });
 
+  // Fluxo Lokomat: só .xlsx + importação das linhas
+  const isLokomat = formData.categoria === "Robótica" && formData.subCategoria === "Lokomat";
+
   // Opções para categorias e subcategorias conforme a hierarquia de pastas do Drive
   const categoriasOptions = [
     { value: "Robótica", label: "Robótica" },
@@ -41,7 +44,7 @@ const UploadArquivos = () => {
       { value: "Lokomat", label: "Lokomat" },
     ],
     Tecnologia: [
-      { value: "Baiobit", label: "Baiobit"}
+      { value: "Baiobit", label: "Baiobit" }
     ]
   };
 
@@ -74,25 +77,40 @@ const UploadArquivos = () => {
       return;
     }
 
-    setLoadingUpload(true); // Ativa o loading para o upload
-    const uploadPromises = formData.arquivo.map(async (file) => {
-      const resultado = await enviar_upload_arquivo(file, {
-        pacienteId: formData.pacienteId,
-        profissionalId: user?.profissionalId, // Obtido do contexto de autenticação
-        categoria: formData.categoria,
-        subCategoria: formData.subCategoria,
-      });
-      return { file, ok: resultado.ok, error: resultado.error };
-    });
+    setLoadingUpload(true);
+    const params = {
+      pacienteId: formData.pacienteId,
+      profissionalId: user?.profissionalId,
+      categoria: formData.categoria,
+      subCategoria: formData.subCategoria,
+    };
 
-    const results = await Promise.all(uploadPromises);
+    const results = [];
+    for (const file of formData.arquivo) {
+      let resumo = null;
+      // Se for lokomat ele envia o conteúdo dentro do xlsx para o banco e valida se existem novos registros a serem feitos
+      if (isLokomat) {
+        const imp = await importar_lokomat_xlsx(file, params);
+        if (!imp.ok) {
+          results.push({ file, ok: false, error: imp.error, mensagem: imp.mensagem });
+          continue; // planilha inválida: nada vai para o Drive
+        }
+        resumo = imp.data; // { total, criados, ignorados }
+      }
+      const r = await enviar_upload_arquivo(file, params);
+      results.push({ file, ok: r.ok, error: r.error, resumo });
+    }
     setLoadingUpload(false); // Desativa o loading após o upload
 
     const successfulUploads = results.filter(res => res.ok);
     const failedUploads = results.filter(res => !res.ok);
 
     if (successfulUploads.length > 0 && failedUploads.length === 0) {
-      Swal.fire("Sucesso!", `${successfulUploads.length} arquivo(s) enviado(s) e organizado(s) no Drive.`, "success");
+      const resumos = successfulUploads.map((r) => r.resumo).filter(Boolean);
+      const extra = resumos.length
+        ? ` Lokomat: ${resumos.reduce((a, r) => a + r.criados, 0)} sessão(ões) nova(s), ${resumos.reduce((a, r) => a + r.ignorados, 0)} já existia(m).`
+        : "";
+      Swal.fire("Sucesso!", `${successfulUploads.length} arquivo(s) enviado(s) e organizado(s) no Drive.${extra}`, "success");
       setFormData({ pacienteId: "", categoria: "", subCategoria: "", arquivo: [] });
       // Reinicia o input de arquivo
       if (fileInputRef.current) {
@@ -148,7 +166,7 @@ const UploadArquivos = () => {
       <div className="flex flex-col items-center justify-center h-screen w-full bg-linear-to-tr from-apollo-300 to-apollo-400">
         <div className="w-full min-h-screen flex flex-col md:gap-8 gap-4 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-6 p-2 items-center">
           <div className="bg-white w-full min-h-[75dvh] rounded-2xl shadow-xl flex flex-col md:p-8 p-4">
-              <LoadingGen mensagem="Carregando lista de pacientes..." />
+            <LoadingGen mensagem="Carregando lista de pacientes..." />
           </div>
         </div>
       </div>
@@ -159,7 +177,7 @@ const UploadArquivos = () => {
     <div className="flex flex-col items-center justify-center min-h-screen gap-8 bg-gray-50">
       <div className="w-full min-h-screen flex flex-col md:gap-8 gap-4 bg-linear-to-tr from-apollo-300 to-apollo-400 md:p-6 p-2 items-center">
         <div className="bg-white w-full min-h-[85dvh] rounded-2xl shadow-xl flex flex-col md:p-8 p-4">
-          
+
           {/* Cabeçalho Unificado */}
           <div className="flex flex-col md:flex-row justify-between items-center border-b border-gray-100 pb-6 gap-6 shrink-0">
             <div className="flex flex-col items-center md:items-start">
@@ -171,8 +189,8 @@ const UploadArquivos = () => {
                 Selecione o paciente e organize os arquivos por categorias.
               </p>
             </div>
-            
-            <button 
+
+            <button
               onClick={() => window.history.back()}
               className="bg-white border border-red-100 text-red-500 font-bold py-2.5 px-5 rounded-xl transition-all shadow-sm hover:bg-red-50 hover:border-red-200 active:scale-95 flex items-center gap-2 text-sm cursor-pointer"
             >
@@ -182,7 +200,7 @@ const UploadArquivos = () => {
 
           <div className="mt-8 w-full flex-1 animate-fade-in">
             <form onSubmit={handleUpload} className="flex flex-col mx-auto w-full gap-8 bg-gray-50/50 p-6 md:p-10 rounded-3xl border border-gray-100 h-fit">
-              
+
               <div className="flex flex-col gap-6">
                 <div className="flex flex-col gap-2">
                   <label className="block text-xs font-bold text-gray-400 uppercase ml-1 tracking-wider">Paciente Destinatário</label>
@@ -217,7 +235,7 @@ const UploadArquivos = () => {
                 </div>
               </div>
 
-            <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2">
                 <label className="block text-xs font-bold text-gray-400 uppercase ml-1 tracking-wider">Arquivo</label>
                 <div className="relative">
                   <input
@@ -225,7 +243,7 @@ const UploadArquivos = () => {
                     ref={fileInputRef} // Atribui a ref ao input
                     multiple // Permite múltiplos arquivos
                     onChange={handleFileChange}
-                    className="block w-full min-h-[120px] text-sm text-gray-500 border-2 border-dashed border-gray-200 rounded-xl p-8 bg-white hover:border-apollo-200 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-apollo-50 file:text-apollo-600 hover:file:bg-apollo-100 cursor-pointer"
+                    className="block w-full min-h-[120px] text-sm text-gray-500 border-2 border-dashed border-gray-200 rounded-xl p-8 hover:border-apollo-200 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-apollo-50 file:text-apollo-600 hover:file:bg-apollo-100 cursor-pointer"
                   />
                   {formData.arquivo.length > 0 && (
                     <div className="absolute top-2 right-2 flex flex-col gap-1 bg-white p-2 rounded-lg shadow-md text-sm text-gray-700 max-h-[100px] overflow-y-auto">
@@ -245,15 +263,15 @@ const UploadArquivos = () => {
                     </div>
                   )}
                 </div>
-            </div>
-            <button
+              </div>
+              <button
                 type="submit"
                 className="w-full bg-apollo-200 hover:bg-apollo-300 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-apollo-200/20 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer text-lg"
                 disabled={loadingUpload}
-            >
+              >
                 {loadingUpload ? <span className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full"></span> : <CloudArrowUpIcon className="w-7 h-7" />}
                 {loadingUpload ? "Processando..." : "Enviar para o Drive"}
-            </button>
+              </button>
             </form>
           </div>
         </div>

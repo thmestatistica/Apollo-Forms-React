@@ -56,6 +56,33 @@ export const enviar_upload_arquivo = async (arquivo, { pacienteId, profissionalI
 };
 
 /**
+ * Envia o .xlsx do Lokomat; o backend cria um registro por sessão nova.
+ * Endpoint: POST /lokomat/importar-xlsx
+ * Retorna data = { total, criados, ignorados }
+ */
+export const importar_lokomat_xlsx = async (arquivo, { pacienteId, profissionalId } = {}) => {
+  try {
+    const formData = new FormData();
+    formData.append("file", arquivo);
+    formData.append("paciente_id", String(pacienteId));
+    formData.append("profissional_id", String(profissionalId));
+
+    const { data } = await axiosInstanceForms.post("/lokomat/importar-xlsx", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return { ok: true, data };
+  } catch (err) {
+    const detail = err?.response?.data?.detail;
+    const mensagem =
+      typeof detail === "string"
+        ? detail
+        : [detail?.message, ...(detail?.erros || [])].filter(Boolean).join("\n") || err.message;
+    console.error("Erro ao importar Lokomat:", mensagem);
+    return { ok: false, error: err, mensagem };
+  }
+};
+
+/**
  * Busca todos os arquivos relacionados a um paciente no backend.
  * Endpoint: GET /upload/patient/:paciente_id
  * 
