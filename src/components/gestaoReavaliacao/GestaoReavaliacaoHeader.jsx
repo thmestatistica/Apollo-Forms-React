@@ -5,6 +5,7 @@ import {
   MagnifyingGlassIcon,
   RectangleGroupIcon
 } from '@heroicons/react/24/outline';
+import { FaBorderNone } from "react-icons/fa6";
 
 const GestaoReavaliacaoHeader = ({ activeTab, onTabChange, canSeeTab, onBack }) => {
 
@@ -30,6 +31,13 @@ const GestaoReavaliacaoHeader = ({ activeTab, onTabChange, canSeeTab, onBack }) 
       icon: MagnifyingGlassIcon,
       activeColorClass: 'bg-sky-600 text-white shadow-md',
       iconClass: 'w-5 h-5 sm:w-6 sm:h-6'
+    },
+    {
+      id: 'inativacao',
+      label: 'Inativação',
+      icon: FaBorderNone,
+      activeColorClass: 'bg-rose-700 text-white shadow-md',
+      iconClass: 'w-5 h-5 sm:w-6 sm:h-6'
     }
   ];
 
@@ -44,7 +52,7 @@ const GestaoReavaliacaoHeader = ({ activeTab, onTabChange, canSeeTab, onBack }) 
       case 2:
         return 'grid-cols-1 sm:grid-cols-2';
       default:
-        return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
+        return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4';
     }
   };
 

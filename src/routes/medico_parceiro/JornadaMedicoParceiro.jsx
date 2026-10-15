@@ -129,7 +129,7 @@ const JornadaMedicoParceiro = () => {
         return isAtivo && temAgendamentoOuAdicionado && naoEstaBloqueado;
       });
 
-      console.log("Qtd pacientes do médico selecionado:", filtrados.length);
+      //console.log("Qtd pacientes do médico selecionado:", filtrados.length);
 
       setPacientesDoMedicoSelecionado(filtrados);
     } catch (e) {

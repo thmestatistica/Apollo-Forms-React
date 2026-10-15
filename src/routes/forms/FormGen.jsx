@@ -495,10 +495,10 @@ const FormularioGenerico = () => {
                 });*/
 
 
-                console.log("RESULTADO", resultado)
+                //console.log("RESULTADO", resultado)
 
                 if (Array.isArray(resultado)) {
-                    console.log("Array");
+                    //console.log("Array");
 
                     for (const item of resultado) {
                         const scorePayload = await createPayloadForScore(pendEscala, payloadRespostas, item);
@@ -508,7 +508,7 @@ const FormularioGenerico = () => {
                         }
                     }
                 } else {
-                    console.log("Unica");
+                    //console.log("Unica");
                     const scorePayload = await createPayloadForScore(pendEscala, payloadRespostas, resultado);
                     const result = await createScore(scorePayload);
                     if (result.ok) {
@@ -628,8 +628,8 @@ const FormularioGenerico = () => {
         if (scaleProcessors[pendEscala?.id]) {
             const resultado = scaleProcessors[pendEscala.id](respostasForm);
 
-            console.log("Respostas:", respostasForm);
-            console.log("Resultado processado:", resultado);
+            //console.log("Respostas:", respostasForm);
+            //console.log("Resultado processado:", resultado);
         }
 
         clearFormCache(cacheKey);

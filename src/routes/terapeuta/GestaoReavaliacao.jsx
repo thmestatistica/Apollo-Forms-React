@@ -5,6 +5,7 @@ import GestaoReavaliacaoHeader from '../../components/gestaoReavaliacao/GestaoRe
 import GerenciarTab from '../../components/gestaoReavaliacao/GerenciarTab';
 import MetodoTab from '../../components/gestaoReavaliacao/MetodoTab';
 import NavegadorTab from '../../components/gestaoReavaliacao/NavegadorTab';
+import InativacaoTab from '../../components/gestaoReavaliacao/InativacaoTab';
 
 // --- LISTA DE IDs PERMITIDOS ---
 // Base global para permissões: quem está aqui vê todas as abas.
@@ -17,6 +18,7 @@ const PERMITIDOS_GERADOR = IDS_PERMITIDOS.concat([13, 15, 40]); // Exemplo: só 
 const PERMITIDOS_ADMIN = IDS_PERMITIDOS.concat([13, 15, 40]); 
 const PERMITIDOS_METODO = IDS_PERMITIDOS;
 const PERMITIDOS_NAVEGADOR = IDS_PERMITIDOS;
+const PERMITIDOS_INATIVACAO = IDS_PERMITIDOS;
 
 const GestaoReavaliacao = () => {
     const navigate = useNavigate();
@@ -54,11 +56,12 @@ const GestaoReavaliacao = () => {
         if (tabKey === 'gestao') return PERMITIDOS_GERADOR.includes(profissionalId) || PERMITIDOS_ADMIN.includes(profissionalId);
         if (tabKey === 'metodo') return PERMITIDOS_METODO.includes(profissionalId);
         if (tabKey === 'navegador') return PERMITIDOS_NAVEGADOR.includes(profissionalId);
+        if (tabKey === 'inativacao') return PERMITIDOS_INATIVACAO.includes(profissionalId);
         return false;
     }, [accessMode, user]);
 
     useEffect(() => {
-        const ordemTabs = ['gestao', 'metodo', 'navegador'];
+        const ordemTabs = ['gestao', 'metodo', 'navegador', 'inativacao'];
         if (!canSeeTab(activeTab)) {
             const primeiraPermitida = ordemTabs.find((tab) => canSeeTab(tab));
             if (primeiraPermitida) setActiveTab(primeiraPermitida);
@@ -88,6 +91,8 @@ const GestaoReavaliacao = () => {
                     {activeTab === 'metodo' && <MetodoTab dataManual={dataManual} />}
 
                     {activeTab === 'navegador' && <NavegadorTab />}
+
+                    {activeTab === 'inativacao' && <InativacaoTab />}
                 </div>
             </div>
         </div>

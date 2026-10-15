@@ -4,8 +4,6 @@ import { formatarData } from '../../utils/format/formatar_utils';
 
 const DadosCadastraisSection = ({ pacienteDetalhes, medicoParceiro, stats }) => {
 
-  console.log("detalhes", pacienteDetalhes)
-
   const equipamentosFiltrados = stats
     ? Object.entries(stats)
       .filter(([chave, quantidade]) => {

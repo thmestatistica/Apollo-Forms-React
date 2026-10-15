@@ -249,7 +249,7 @@ export default function EscalaPDF({ perguntas = [], info = [], calculoFake = [] 
 
   const respostasTipo = ["TEXTO_LIVRE", "DATA", "TEXTO_TOPICO", "CONDICIONAL"];
 
-  console.log("FAKE", calculoFake);
+  //console.log("FAKE", calculoFake);
 
   return (
     <Document title={`${calculoFake.nome_curto}_Ref`} >

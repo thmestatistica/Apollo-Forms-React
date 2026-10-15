@@ -11,7 +11,7 @@ import { scaleProcessors } from '../../components/escalas/ProcessScales'
 
 const PDFPreview = () => {
     const { id_form } = useParams();
-    console.log("PARAM", id_form)
+    //console.log("PARAM", id_form)
     const [perguntas, setPerguntas] = useState([]);
     const [info, setInfo] = useState([]);
     const [loading, setLoading] = useState(true);
