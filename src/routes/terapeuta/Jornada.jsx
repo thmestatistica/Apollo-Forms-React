@@ -13,6 +13,7 @@ import JornadaEmptyState from "../../components/jornada/JornadaEmptyState.jsx";
 import JornadaLoadingSkeleton from "../../components/jornada/JornadaLoadingSkeleton.jsx";
 import FilesSection from "../../components/jornada/FilesSection.jsx";
 import BotaoVerAnexo from "../../components/common/BotaoVerAnexo.jsx";
+import { useEffect } from "react";
 
 const JornadaPage = () => {
   const {
@@ -22,6 +23,10 @@ const JornadaPage = () => {
       recarregarProntuario,
       profissionais, tipoOrdenacao, setTipoOrdenacao
   } = useJornadaController();
+
+  useEffect(() => {
+    recarregarProntuario();
+  }, [pacienteSelecionadoId]);
 
   if (loadingInicial) return <LoadingGen primaryColor="#ffffff" secondaryColor="#ffffff" messageColor="text-apollo-100" />;
 

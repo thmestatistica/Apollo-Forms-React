@@ -97,7 +97,6 @@ const ProntuarioItem = React.memo(({ item, agendamentos, pacienteDetalhes, profi
             const response = await atualizar_status_resposta(sessaoRespostaId, novoStatus);
             if (response) {
                 setStatus(novoStatus);
-                onStatusChange?.(sessaoRespostaId, novoStatus);
             }
         } catch (err) {
             console.error("Erro ao atualizar status do registro:", err);
