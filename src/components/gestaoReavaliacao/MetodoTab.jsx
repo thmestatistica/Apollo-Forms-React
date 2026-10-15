@@ -26,6 +26,10 @@ import { Modal } from '../modal/Modal';
 import MultiSelect from '../input/MultiSelect';
 import { INCLUIR_TESTES_GESTAO, isNomeIgnorado } from '../../utils/gestao/gestaoReavaliacaoUtils';
 
+import { pdf } from '@react-pdf/renderer';
+import { exportarAssociacoesFormularios } from '../../utils/exportacao/exportar_excel';
+import MetodoApolloPDF from './MetodoApolloPDF';
+
 // Lista fixa de diagnósticos macros para associação
 const DIAGNOSTICO_OPCOES = [
   'AVC',
@@ -54,7 +58,7 @@ const MetodoTab = () => {
   const { pacientes, avaliarPossiveisSugestoesPaciente } = useReavaliacao();
 
   // Estado para controlar qual aba está ativa (sem avaliação, pendência, associação)
-  const [activeMetodoTab, setActiveMetodoTab] = useState('sem-avaliacao');
+  const [activeMetodoTab, setActiveMetodoTab] = useState('associacao');
   // Estado para armazenar pendências sem avaliação
   const [pendenciasSemAvaliacao, setPendenciasSemAvaliacao] = useState({});
   // Estado de loading e erro para pendências sem avaliação
@@ -101,8 +105,8 @@ const MetodoTab = () => {
 
   // Loading geral apenas para a aba ativa, evitando bloquear a página inteira
   const metodoCarregando = useMemo(() => {
-    if (activeMetodoTab === 'sem-avaliacao') return loadingSemAvaliacao;
-    if (activeMetodoTab === 'sem-pendencia-escala') return loadingPendenciasEscala;
+    /*if (activeMetodoTab === 'sem-avaliacao') return loadingSemAvaliacao;
+    if (activeMetodoTab === 'sem-pendencia-escala') return loadingPendenciasEscala;*/
     if (activeMetodoTab === 'associacao') return loadingAssociacao;
     return false;
   }, [activeMetodoTab, loadingSemAvaliacao, loadingPendenciasEscala, loadingAssociacao]);
@@ -220,8 +224,8 @@ const MetodoTab = () => {
           // Extrai IDs de profissionais das sessões
           const profissionaisFromSessoes = Array.isArray(verificado?.sessoes)
             ? verificado.sessoes
-                .map((sessao) => sessao?.profissional_id ?? sessao?.profissionalId)
-                .filter((id) => id != null)
+              .map((sessao) => sessao?.profissional_id ?? sessao?.profissionalId)
+              .filter((id) => id != null)
             : [];
 
           // Junta todos IDs únicos
@@ -362,15 +366,15 @@ const MetodoTab = () => {
     const listaDiag = Array.isArray(escala?.listaDiagnosticos)
       ? escala.listaDiagnosticos
       : String(escala?.listaDiagnosticos || '')
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean);
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
     const listaEsp = Array.isArray(escala?.especialidade)
       ? escala.especialidade
       : String(escala?.especialidade || '')
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean);
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
 
     setAssociacaoFormSelecionado(form);
     setAssociacaoEscalaSelecionada(escala || null);
@@ -638,15 +642,15 @@ const MetodoTab = () => {
       const listaDiag = Array.isArray(escala?.listaDiagnosticos)
         ? escala.listaDiagnosticos
         : String(escala?.listaDiagnosticos || '')
-            .split(',')
-            .map((s) => s.trim())
-            .filter(Boolean);
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
       const listaEsp = Array.isArray(escala?.especialidade)
         ? escala.especialidade
         : String(escala?.especialidade || '')
-            .split(',')
-            .map((s) => s.trim())
-            .filter(Boolean);
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
       return listaDiag.length === 0 || listaEsp.length === 0;
     });
   }, [formulariosAtivos, escalasAssociadas]);
@@ -664,12 +668,12 @@ const MetodoTab = () => {
         if (!termo) return true;
         const nome = String(
           form?.nomeEscala ??
-            form?.nome_formulario ??
-            form?.nomeFormulario ??
-            form?.formulario_nome ??
-            form?.titulo ??
-            form?.nome ??
-            ''
+          form?.nome_formulario ??
+          form?.nomeFormulario ??
+          form?.formulario_nome ??
+          form?.titulo ??
+          form?.nome ??
+          ''
         ).toLowerCase();
         return nome.includes(termo);
       })
@@ -682,6 +686,65 @@ const MetodoTab = () => {
         return nomeA.localeCompare(nomeB, 'pt-BR', { sensitivity: 'base' });
       });
   }, [formulariosAtivos, idsFormulariosSemAssociacao, buscaAssociacao]);
+
+  const parseLista = (valor) =>
+    Array.isArray(valor)
+      ? valor
+      : String(valor || '').split(',').map((s) => s.trim()).filter(Boolean);
+
+  const linhasExportacaoAssociacao = useMemo(() => {
+    return formulariosAssociacaoOrdenados.map((form) => {
+      const formId = form?.id ?? form?.formularioId ?? form?.formId;
+      const escala = (escalasAssociadas || []).find((esc) => Number(esc?.formularioId) === Number(formId));
+      const diagnosticos = parseLista(escala?.listaDiagnosticos);
+      const especialidades = parseLista(escala?.especialidade);
+      const completa = Boolean(escala) && diagnosticos.length > 0 && especialidades.length > 0;
+
+      return {
+        formulario:
+          form?.nome_formulario ?? form?.nomeEscala ?? form?.nomeFormulario ?? form?.titulo ?? form?.nome ?? `Formulário ${formId ?? '—'}`,
+        tipo: form?.tipo_formulario ?? form?.tipoFormulario ?? form?.tipo ?? '-',
+        associacao: completa ? 'Completa' : 'Incompleta',
+        especialidades,
+        diagnosticos
+      };
+    });
+  }, [formulariosAssociacaoOrdenados, escalasAssociadas]);
+
+  const resumoExportacao = useMemo(() => {
+    const completas = linhasExportacaoAssociacao.filter((l) => l.associacao === 'Completa').length;
+    return {
+      total: linhasExportacaoAssociacao.length,
+      completas,
+      incompletas: linhasExportacaoAssociacao.length - completas
+    };
+  }, [linhasExportacaoAssociacao]);
+
+  const [gerandoPdf, setGerandoPdf] = useState(false);
+
+  const handleExportarExcel = () => {
+    exportarAssociacoesFormularios({ linhas: linhasExportacaoAssociacao });
+  };
+
+  const handleExportarPdf = async () => {
+    setGerandoPdf(true);
+    try {
+      const blob = await pdf(
+        <MetodoApolloPDF linhas={linhasExportacaoAssociacao} resumo={resumoExportacao} />
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `metodo_apollo_associacoes_${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Erro', 'Não foi possível gerar o PDF.', 'error');
+    } finally {
+      setGerandoPdf(false);
+    }
+  };
 
   const totalPaginasComPendencia = Math.max(1, Math.ceil(pendenciasComResumo.length / ITENS_POR_PAGINA_PENDENCIA));
   const totalPaginasSemPendencia = Math.max(1, Math.ceil(pacientesSemPendenciaOrdenados.length / ITENS_POR_PAGINA_PENDENCIA));
@@ -734,11 +797,29 @@ const MetodoTab = () => {
   return (
     <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden w-full animate-fade-in flex flex-col">
       {/* Cabeçalho do método Apollo */}
-      <div className="bg-emerald-50/50 p-6 border-b border-emerald-100">
-        <h2 className="text-emerald-800 font-bold flex items-center gap-2 text-xl">
-          <CheckBadgeIcon className="w-6 h-6" /> Método Apollo
-        </h2>
-        <p className="text-emerald-600 text-sm mt-2">Fluxos e integrações do método.</p>
+      <div className='flex w-full justify-between bg-emerald-50/50'>
+        <div className="p-6 border-b border-emerald-100">
+          <h2 className="text-emerald-800 font-bold flex items-center gap-2 text-xl">
+            <CheckBadgeIcon className="w-6 h-6" /> Método Apollo
+          </h2>
+          <p className="text-emerald-600 text-sm mt-2">Fluxos e integrações do método.</p>
+        </div>
+        <div className='flex gap-3 flex-col p-3'>
+          <button
+            onClick={handleExportarPdf}
+            disabled={gerandoPdf || linhasExportacaoAssociacao.length === 0}
+            className='flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-[11px] sm:text-sm font-bold transition-all cursor-pointer w-full bg-rose-500 text-white disabled:opacity-60'
+          >
+            {gerandoPdf ? 'Gerando PDF...' : 'Exportar em PDF'}
+          </button>
+          <button
+            onClick={handleExportarExcel}
+            disabled={linhasExportacaoAssociacao.length === 0}
+            className='flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-[11px] sm:text-sm font-bold transition-all cursor-pointer w-full bg-emerald-500 text-white disabled:opacity-60'
+          >
+            Exportar em Excel
+          </button>
+        </div>
       </div>
 
       {/* Exibe loading geral se qualquer operação principal estiver carregando */}
@@ -778,15 +859,15 @@ const MetodoTab = () => {
 
           {/* Abas de navegação do método Apollo */}
           <div className="bg-gray-100 p-1 rounded-xl shadow-inner w-full">
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-1">
-              {/* Botão para aba de pendências sem avaliação */}
+            <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-1 gap-1">
+              {/* Botão para aba de pendências sem avaliação}
               <button
                 onClick={() => setActiveMetodoTab('sem-avaliacao')}
                 className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-[11px] sm:text-sm font-bold transition-all cursor-pointer w-full ${activeMetodoTab === 'sem-avaliacao' ? 'bg-rose-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
               >
                 <ExclamationTriangleIcon className="w-4 h-4 sm:w-5 sm:h-5" /> Sem Avaliação
               </button>
-              {/* Botão para aba de pendências de escala */}
+              {/* Botão para aba de pendências de escala}
               <button
                 onClick={() => setActiveMetodoTab('sem-pendencia-escala')}
                 className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-[11px] sm:text-sm font-bold transition-all cursor-pointer w-full ${activeMetodoTab === 'sem-pendencia-escala' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
@@ -1009,15 +1090,15 @@ const MetodoTab = () => {
                               const listaDiag = Array.isArray(escala?.listaDiagnosticos)
                                 ? escala.listaDiagnosticos
                                 : String(escala?.listaDiagnosticos || '')
-                                    .split(',')
-                                    .map((s) => s.trim())
-                                    .filter(Boolean);
+                                  .split(',')
+                                  .map((s) => s.trim())
+                                  .filter(Boolean);
                               const listaEsp = Array.isArray(escala?.especialidade)
                                 ? escala.especialidade
                                 : String(escala?.especialidade || '')
-                                    .split(',')
-                                    .map((s) => s.trim())
-                                    .filter(Boolean);
+                                  .split(',')
+                                  .map((s) => s.trim())
+                                  .filter(Boolean);
                               const associacaoCompleta = Boolean(escala) && listaDiag.length > 0 && listaEsp.length > 0;
                               const nomeFormulario =
                                 form?.nome_formulario ??
@@ -1039,11 +1120,10 @@ const MetodoTab = () => {
                                   <td className="p-4 text-slate-500">{tipoFormulario}</td>
                                   <td className="p-4">
                                     <span
-                                      className={`px-2 py-1 rounded-full text-[10px] uppercase font-bold border ${
-                                        associacaoCompleta
-                                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                          : 'bg-rose-50 text-rose-700 border-rose-200'
-                                      }`}
+                                      className={`px-2 py-1 rounded-full text-[10px] uppercase font-bold border ${associacaoCompleta
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                                        }`}
                                     >
                                       {associacaoCompleta ? 'Completa' : 'Incompleta'}
                                     </span>
@@ -1051,9 +1131,8 @@ const MetodoTab = () => {
                                   <td className="p-4 text-center">
                                     <button
                                       onClick={() => abrirModalAssociacao(form, escala)}
-                                      className={`px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all ${
-                                        associacaoCompleta ? 'bg-violet-600 text-white hover:bg-violet-700' : 'bg-rose-600 text-white hover:bg-rose-700'
-                                      }`}
+                                      className={`px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all ${associacaoCompleta ? 'bg-violet-600 text-white hover:bg-violet-700' : 'bg-rose-600 text-white hover:bg-rose-700'
+                                        }`}
                                     >
                                       {associacaoCompleta ? 'Editar associação' : 'Criar associação'}
                                     </button>
@@ -1281,8 +1360,8 @@ const MetodoTab = () => {
                                     {/* Se houver valor em 'aplicado_nao_lancado', não mostrar 'Dias desde última' e tratar como pendência em aberto */}
                                     <td className="p-4 text-center text-slate-600">
                                       {item.abertas === 0 && item.aplicado_nao_lancado > 0 ? '-' : item.abertas === 0 && item.ultimaData
-                                            ? Math.floor((Date.now() - item.ultimaData.getTime()) / (1000 * 60 * 60 * 24))
-                                            : '-'}
+                                        ? Math.floor((Date.now() - item.ultimaData.getTime()) / (1000 * 60 * 60 * 24))
+                                        : '-'}
                                     </td>
                                   </tr>
                                 ))
