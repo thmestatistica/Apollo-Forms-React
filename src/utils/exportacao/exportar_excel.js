@@ -65,3 +65,23 @@ export const exportarPendenciasSemAvaliacao = ({
 
   XLSX.writeFile(wb, `${filePrefix}_${new Date().toISOString().slice(0, 10)}.xlsx`);
 };
+
+export const exportarAssociacoesFormularios = ({ linhas = [] }) => {
+  const cabecalho = ['Formulário', 'Tipo', 'Associação', 'Especialidades associadas', 'Diagnósticos associados'];
+
+  const dados = linhas.map((l) => [
+    l.formulario,
+    l.tipo,
+    l.associacao,
+    l.especialidades.join(', ') || '-',
+    l.diagnosticos.join(', ') || '-'
+  ]);
+
+  const ws = XLSX.utils.aoa_to_sheet([cabecalho, ...dados]);
+  ws['!cols'] = [{ wch: 45 }, { wch: 22 }, { wch: 14 }, { wch: 50 }, { wch: 50 }];
+  ws['!autofilter'] = { ref: `A1:E${dados.length + 1}` };
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Associações');
+  XLSX.writeFile(wb, `metodo_apollo_associacoes_${new Date().toISOString().slice(0, 10)}.xlsx`);
+};

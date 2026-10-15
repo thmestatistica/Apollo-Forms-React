@@ -15,7 +15,7 @@ const IDS_PERMITIDOS = [8, 17, 43, 41];
 // Ajuste estas listas para permitir/ocultar abas específicas.
 const PERMITIDOS_GERADOR = IDS_PERMITIDOS.concat([13, 15, 40]); // Exemplo: só quem tem ID 13 além dos IDs globais pode acessar a aba de geração.
 const PERMITIDOS_ADMIN = IDS_PERMITIDOS.concat([13, 15, 40]); 
-const PERMITIDOS_METODO = IDS_PERMITIDOS;
+const PERMITIDOS_METODO = IDS_PERMITIDOS.concat([15]);
 const PERMITIDOS_NAVEGADOR = IDS_PERMITIDOS;
 
 const GestaoReavaliacao = () => {
