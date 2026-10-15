@@ -704,7 +704,7 @@ const MetodoTab = () => {
         formulario:
           form?.nome_formulario ?? form?.nomeEscala ?? form?.nomeFormulario ?? form?.titulo ?? form?.nome ?? `Formulário ${formId ?? '—'}`,
         tipo: form?.tipo_formulario ?? form?.tipoFormulario ?? form?.tipo ?? '-',
-        associacao: completa ? 'Completa' : 'Incompleta',
+        associacao: completa ? 'Completa' : 'Não associada',
         especialidades,
         diagnosticos
       };
@@ -726,16 +726,20 @@ const MetodoTab = () => {
     exportarAssociacoesFormularios({ linhas: linhasExportacaoAssociacao });
   };
 
-  const handleExportarPdf = async () => {
+  const gerarPdf = async (modo) => {
     setGerandoPdf(true);
     try {
       const blob = await pdf(
-        <MetodoApolloPDF linhas={linhasExportacaoAssociacao} resumo={resumoExportacao} />
+        <MetodoApolloPDF
+          linhas={linhasExportacaoAssociacao}
+          resumo={resumoExportacao}
+          modo={modo}
+        />
       ).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `metodo_apollo_associacoes_${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.download = `metodo_apollo_${modo === 'diagnostico' ? 'diagnosticos' : 'associacoes'}_${new Date().toISOString().slice(0, 10)}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -743,6 +747,28 @@ const MetodoTab = () => {
       Swal.fire('Erro', 'Não foi possível gerar o PDF.', 'error');
     } finally {
       setGerandoPdf(false);
+    }
+  };
+
+  const handleExportarPdf = async () => {
+    const resultado = await Swal.fire({
+      title: 'Exportar PDF',
+      text: 'Como você deseja organizar o relatório?',
+      icon: 'question',
+      showCancelButton: true,
+      showDenyButton: true,
+      confirmButtonText: 'Por formulário',
+      denyButtonText: 'Por diagnóstico macro',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: 'oklch(51.4% 0.222 16.935)',
+      denyButtonColor: 'oklch(45.7% 0.24 277.023)',
+      reverseButtons: true
+    });
+
+    if (resultado.isConfirmed) {
+      await gerarPdf('formulario');
+    } else if (resultado.isDenied) {
+      await gerarPdf('diagnostico');
     }
   };
 
@@ -1125,7 +1151,7 @@ const MetodoTab = () => {
                                         : 'bg-rose-50 text-rose-700 border-rose-200'
                                         }`}
                                     >
-                                      {associacaoCompleta ? 'Completa' : 'Incompleta'}
+                                      {associacaoCompleta ? 'Completa' : 'Não associada'}
                                     </span>
                                   </td>
                                   <td className="p-4 text-center">
