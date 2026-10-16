@@ -57,7 +57,8 @@ function AgendaSemanalJornada({ listarAgendamentos, listarPessoas, medicoParceir
 
                 setPessoas(ativos);
 
-                if (initialPessoaId && ativos.find(p => p.id === initialPessoaId)) {
+                if (initialPessoaId) {
+                    // Sempre usa o paciente selecionado na jornada, mesmo que não esteja na lista de ativos
                     setPessoaId(initialPessoaId);
                 } else {
                     setPessoaId(ativos[0]?.id ?? null);
