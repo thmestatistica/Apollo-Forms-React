@@ -3,6 +3,7 @@
  * @description Modal genérico e responsivo.
  */
 
+import { createPortal } from "react-dom";
 import PropTypes from "prop-types";
 
 export const Modal = ({ isOpen, onClose, children, isBig }) => {
@@ -12,15 +13,11 @@ export const Modal = ({ isOpen, onClose, children, isBig }) => {
     if (e.target === e.currentTarget) onClose();
   };
 
-  return (
+  return createPortal(
     <div
       onClick={handleBackdropClick}
       className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50 p-4"
     >
-      {/* 
-      Modal Pequeno: w-full max-w-2xl max-h-[90vh] 
-      Modal Grande: w-full max-w-[80vw] max-h-[95vh]
-      */}
       <div
         className={`${isBig ? "max-w-[85vw] max-h-[95vh]" : "max-w-2xl max-h-[90vh]"}
           bg-white rounded-2xl shadow-xl
@@ -45,7 +42,8 @@ export const Modal = ({ isOpen, onClose, children, isBig }) => {
 
         <div className="mt-4">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
@@ -53,4 +51,5 @@ Modal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   children: PropTypes.node.isRequired,
+  isBig: PropTypes.bool,
 };

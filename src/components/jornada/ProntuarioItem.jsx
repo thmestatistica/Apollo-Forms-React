@@ -10,6 +10,10 @@ import { Modal } from "../modal/Modal.jsx";
 import { twMerge } from "tailwind-merge";
 import { atualizar_status_resposta, STATUS_RESPOSTA } from "../../api/gestao/gestao_utils.js";
 
+import { useAuth } from "../../hooks/useAuth.jsx";
+
+const USUARIOS_MASTER = [17]
+
 export const STATUS_CONFIG = {
     ATIVO: {
         label: "Ativo",
@@ -61,9 +65,58 @@ const DownloadButton = ({ item, data, paciente }) => {
     );
 };
 
+const ObservacaoInativacaoModal = ({ isOpen, onClose, onConfirm, loading }) => {
+    const [observacao, setObservacao] = useState("");
+
+    useEffect(() => {
+        if (!isOpen) setObservacao("");
+    }, [isOpen]);
+
+    const observacaoValida = observacao.trim().length > 0;
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose}>
+            <div className="flex flex-col gap-3 p-2" onClick={(e) => e.stopPropagation()}>
+                <h3 className="font-bold text-gray-800 text-base">Solicitar inativação</h3>
+                <p className="text-sm text-gray-600">
+                    Informe o motivo pelo qual esta resposta deve ser inativada.
+                </p>
+                <textarea
+                    value={observacao}
+                    onChange={(e) => setObservacao(e.target.value)}
+                    rows={4}
+                    placeholder="Ex.: Registro duplicado, preenchido no paciente errado..."
+                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                />
+                <div className="flex justify-end gap-2">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        disabled={loading}
+                        className="px-4 py-2 rounded-xl text-sm font-bold border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => onConfirm(observacao.trim())}
+                        disabled={!observacaoValida || loading}
+                        className="px-4 py-2 rounded-xl text-sm font-bold bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100 disabled:opacity-60"
+                    >
+                        {loading ? "Enviando..." : "Confirmar"}
+                    </button>
+                </div>
+            </div>
+        </Modal>
+    );
+};
+
 const ProntuarioItem = React.memo(({ item, agendamentos, pacienteDetalhes, profissionais, disablePDF }) => {
     const [expanded, setExpanded] = useState(false);
     const [updating, setUpdating] = useState(false);
+    const [isObservacaoModalOpen, setIsObservacaoModalOpen] = useState(false);
+
+    const { user } = useAuth()
 
     const [status, setStatus] = useState(item?.sessao_raw?.status_registro);
 
@@ -90,20 +143,27 @@ const ProntuarioItem = React.memo(({ item, agendamentos, pacienteDetalhes, profi
     const slotExtra = agendamentos.find(a => a.id == item.sessao_raw?.agendamento_id)?.slot?.nome;
     const sessaoRespostaId = item.sessao_raw?.sessao_resposta_id;
 
-    const alterarStatus = async (novoStatus) => {
-        if (!sessaoRespostaId) return;
+    const alterarStatus = async (novoStatus, observacao = null) => {
+        if (!sessaoRespostaId) return false;
         try {
             setUpdating(true);
-            const response = await atualizar_status_resposta(sessaoRespostaId, novoStatus);
+            const response = await atualizar_status_resposta(sessaoRespostaId, novoStatus, observacao);
             if (response) {
                 setStatus(novoStatus);
+                return true;
             }
+            return false;
         } catch (err) {
             console.error("Erro ao atualizar status do registro:", err);
-            // Em caso de erro, o status local permanece inalterado
+            return false;
         } finally {
             setUpdating(false);
         }
+    };
+
+    const confirmarSolicitacaoInativacao = async (observacao) => {
+        const ok = await alterarStatus(STATUS_RESPOSTA.PENDENTE, observacao);
+        if (ok) setIsObservacaoModalOpen(false);
     };
 
     return (
@@ -152,37 +212,41 @@ const ProntuarioItem = React.memo(({ item, agendamentos, pacienteDetalhes, profi
                     </div>
                 </div>
 
-
                 <div className="flex flex-row flex-wrap gap-2 items-center lg:justify-end">
-                    {status === "ATIVO" && (
-                        <button
-                            type="button"
-                            disabled={updating}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                alterarStatus(STATUS_RESPOSTA.PENDENTE);
-                            }}
-                            title="Pedir para inativar resposta"
-                            className="bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100 hover:border-orange-300 font-bold py-2 px-4 rounded-xl flex items-center gap-2 transition-all active:scale-95 cursor-pointer text-sm shadow-sm disabled:opacity-60"
-                        >
-                            <FaBan />
-                            {updating ? "Enviando..." : "Solicitar inativação"}
-                        </button>
-                    )}
-                    {status === "PENDENTE" && (
-                        <button
-                            type="button"
-                            disabled={updating}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                alterarStatus(STATUS_RESPOSTA.ATIVO);
-                            }}
-                            title="Voltar a ser ativo"
-                            className="bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 font-bold py-2 px-4 rounded-xl flex items-center gap-2 transition-all active:scale-95 cursor-pointer text-sm shadow-sm disabled:opacity-60"
-                        >
-                            <FaRotateLeft />
-                            {updating ? "Desfazendo..." : "Desfazer solicitação"}
-                        </button>
+                    {(Number(item?.sessao_raw?.profissional_id) === Number(user?.profissionalId) || USUARIOS_MASTER.includes(user?.profissionalId)) && (
+                        <div>
+                            {status === "ATIVO" && (
+                                <button
+                                    type="button"
+                                    disabled={updating}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        /*alterarStatus(STATUS_RESPOSTA.PENDENTE);*/
+                                        setIsObservacaoModalOpen(true)
+                                    }}
+                                    title="Pedir para inativar resposta"
+                                    className="bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100 hover:border-orange-300 font-bold py-2 px-4 rounded-xl flex items-center gap-2 transition-all active:scale-95 cursor-pointer text-sm shadow-sm disabled:opacity-60"
+                                >
+                                    <FaBan />
+                                    {updating ? "Enviando..." : "Solicitar inativação"}
+                                </button>
+                            )}
+                            {status === "PENDENTE" && (
+                                <button
+                                    type="button"
+                                    disabled={updating}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        alterarStatus(STATUS_RESPOSTA.ATIVO);
+                                    }}
+                                    title="Voltar a ser ativo"
+                                    className="bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 font-bold py-2 px-4 rounded-xl flex items-center gap-2 transition-all active:scale-95 cursor-pointer text-sm shadow-sm disabled:opacity-60"
+                                >
+                                    <FaRotateLeft />
+                                    {updating ? "Desfazendo..." : "Desfazer solicitação"}
+                                </button>
+                            )}
+                        </div>
                     )}
                     {disablePDF ? null : <DownloadButton item={item} data={dataAg !== "—" ? dataAg : dataStr} paciente={pacienteDetalhes} />}
                     <span
@@ -229,6 +293,12 @@ const ProntuarioItem = React.memo(({ item, agendamentos, pacienteDetalhes, profi
                     )}
                 </div>
             )}
+            <ObservacaoInativacaoModal
+                isOpen={isObservacaoModalOpen}
+                onClose={() => setIsObservacaoModalOpen(false)}
+                onConfirm={confirmarSolicitacaoInativacao}
+                loading={updating}
+            />
         </div>
     );
 });

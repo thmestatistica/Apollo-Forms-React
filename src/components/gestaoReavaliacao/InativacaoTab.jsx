@@ -5,7 +5,7 @@ import { useJornadaController } from '../../hooks/useJornadaController';
 import { formatarData } from '../../utils/format/formatar_utils';
 import { listar_formularios } from '../../api/forms/forms_utils';
 import { FaBan, FaSpinner } from "react-icons/fa";
-import { FaRotateLeft } from 'react-icons/fa6';
+import { FaAngleRight, FaRotateLeft } from 'react-icons/fa6';
 import { atualizar_status_resposta, STATUS_RESPOSTA } from '../../api/gestao/gestao_utils';
 import Swal from 'sweetalert2';
 
@@ -17,6 +17,8 @@ function InativacaoTab() {
 	const [updating, setUpdating] = useState(false);
 	const [pagina, setPagina] = useState(1)
 	const [itensPorPagina, setItensPorPagina] = useState(10)
+
+	const [expandedRowId, setExpandedRowId] = useState(null)
 
 	const {
 		respostasPendentes,
@@ -99,6 +101,10 @@ function InativacaoTab() {
 	}, [paginaAtual, totalPaginas])
 
 	const carregandoAlgo = loadingRespostasPendentes || loadingRespostasInativas
+
+	const toggleExpand = (id) => {
+        setExpandedRowId((prev) => (prev === id ? null : id))
+    }
 
 	const alterarStatus = async (sessaoRespostaId, novoStatus) => {
 		if (!sessaoRespostaId) return;
@@ -233,9 +239,9 @@ function InativacaoTab() {
 							type="button"
 							disabled={updating || aba.loading}
 							onClick={() => alterarStatusEmLote(STATUS_RESPOSTA.ATIVO)}
-							className="bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition-all active:scale-95 cursor-pointer text-sm shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+							className="group bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition-all active:scale-95 cursor-pointer text-sm shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
 						>
-							{updating ? <FaSpinner className="animate-spin" /> : <FaRotateLeft />}
+							{updating ? <FaSpinner className="animate-spin" /> : <FaRotateLeft className="group-hover:-rotate-360 transition-transform duration-500"/>}
 							Reativar todos
 						</button>
 
@@ -264,7 +270,7 @@ function InativacaoTab() {
 					) : (
 						<div className="overflow-x-auto">
 
-							<table className="w-full text-sm text-left">
+							<table className="w-full text-sm text-left table-fixed">
 								<thead className="bg-gray-50 text-gray-500 uppercase text-xs">
 									<tr>
 										<th className="px-4 py-3">ID</th>
@@ -277,6 +283,9 @@ function InativacaoTab() {
 								</thead>
 								<tbody className="divide-y divide-gray-100">
 									{itensPagina.map((item) => {
+										const idSessao = item.sessao_resposta_id
+										const isExpanded = expandedRowId === idSessao
+
 										const paciente = pacientesPorId.get(Number(item.paciente_id))
 
 										const profissionalId = Number(item.profissional_id)
@@ -297,39 +306,66 @@ function InativacaoTab() {
 										)
 
 										return (
-											<tr key={item.sessao_resposta_id} className="hover:bg-gray-50">
-												<td className="px-4 py-3 text-gray-400">{item.sessao_resposta_id}</td>
-												<td className="px-4 py-3">
-													{formulario?.nome_formulario ?? (<FaSpinner className="animate-spin" />)}
-												</td>
-												<td className="px-4 py-3 font-medium text-gray-800">
-													{paciente?.nomeFormatado ?? paciente?.nome ?? `Paciente #${item.paciente_id}`}
-												</td>
-												<td className="px-4 py-3">
-													{nomeProfissional ?? `Profissional #${item.profissional_id}`}
-												</td>
-												<td className="px-4 py-3">{formatarData(item.data_aplicacao_sessao)}</td>
-												<td className='flex gap-2 items-center ml-4'>
-													<button
-														type="button"
-														title="Voltar a ser ativo"
-														disabled={updating}
-														onClick={(e) => { e.stopPropagation(); alterarStatus(item.sessao_resposta_id, STATUS_RESPOSTA.ATIVO) }}
-														className="group bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 font-bold p-3 my-2 rounded-xl flex items-center gap-2 transition-all active:scale-95 cursor-pointer text-sm shadow-sm disabled:opacity-60"
-													>
-														<FaRotateLeft className='group-hover:-rotate-360 transition-all duration-700' />
-													</button>
-													{abaAtiva === "pendentes" && <button
-														type="button"
-														title="Confirmar inativação"
-														disabled={updating}
-														onClick={(e) => { e.stopPropagation(); alterarStatus(item.sessao_resposta_id, STATUS_RESPOSTA.INATIVO) }}
-														className="group bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100 hover:border-orange-300 font-bold p-3 my-2 rounded-xl flex items-center gap-2 transition-all active:scale-95 cursor-pointer text-sm shadow-sm disabled:opacity-60"
-													>
-														<FaBan />
-													</button>}
-												</td>
-											</tr>
+											<React.Fragment key={idSessao}>
+												<tr className="hover:bg-gray-50/80 transition-[background-color]" onClick={() => toggleExpand(idSessao)}>
+													<td className="px-4 py-3 text-gray-400 font-mono text-xs">{idSessao}</td>
+													<td className="px-4 py-3 font-medium text-gray-900">
+														{formulario?.nome_formulario ?? (<FaSpinner className="animate-spin text-gray-400" />)}
+													</td>
+													<td className="px-4 py-3 font-medium text-gray-800">
+														{paciente?.nomeFormatado ?? paciente?.nome ?? `Paciente #${item.paciente_id}`}
+													</td>
+													<td className="px-4 py-3 text-gray-600">
+														{nomeProfissional}
+													</td>
+													<td className="px-4 py-3 text-gray-600">{formatarData(item.data_aplicacao_sessao)}</td>
+													<td className="px-4 py-3">
+														<div className="flex gap-2 items-center">
+															<button
+																type="button"
+																title="Voltar a ser ativo"
+																disabled={updating}
+																onClick={(e) => { e.stopPropagation(); alterarStatus(idSessao, STATUS_RESPOSTA.ATIVO) }}
+																className="group bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 font-bold p-2.5 rounded-xl flex items-center transition-all active:scale-95 cursor-pointer text-sm shadow-sm disabled:opacity-60"
+															>
+																<FaRotateLeft className="group-hover:-rotate-180 transition-transform duration-500" />
+															</button>
+
+															{abaAtiva === "pendentes" && (
+																<button
+																	type="button"
+																	title="Confirmar inativação"
+																	disabled={updating}
+																	onClick={(e) => { e.stopPropagation(); alterarStatus(idSessao, STATUS_RESPOSTA.INATIVO) }}
+																	className="group bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100 hover:border-orange-300 font-bold p-2.5 rounded-xl flex items-center transition-all active:scale-95 cursor-pointer text-sm shadow-sm disabled:opacity-60"
+																>
+																	<FaBan />
+																</button>
+															)}
+
+															<button
+																type="button"
+																title="Expandir detalhes"
+																/*onClick={() => toggleExpand(idSessao)}*/
+																className={`p-2.5 rounded-xl text-gray-500 transition-all shadow-sm cursor-pointer border ${isExpanded ? "bg-apollo-500/30 hover:bg-apollo-500/50 border-apollo-500" : "bg-white hover:bg-gray-100 border-slate-300"}`}
+															>
+																<FaAngleRight className={`transition-all duration-200 ${isExpanded ? "rotate-90 text-teal-800" : "rotate-0"}`} />
+															</button>
+														</div>
+													</td>
+												</tr>
+
+												{isExpanded && (
+													<tr className="bg-slate-50/80 border-b border-gray-100">
+														<td colSpan={6} className="p-4 text-xs text-slate-600">
+															<p className='pb-3 font-bold'>Observação:</p>
+															<div className={`p-3 rounded-xl border border-slate-200 shadow-xs flex flex-wrap gap-4 bg-linear-to-r from-red-400 to-orange-400/50 text-white`}>
+																<p>{item.observacoes_inativacao || "Nenhuma observação de inativação encontrada para essa pendência"}</p>
+															</div>
+														</td>
+													</tr>
+												)}
+											</React.Fragment>
 										)
 									})}
 								</tbody>

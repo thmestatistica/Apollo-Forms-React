@@ -26,13 +26,17 @@ export const buscar_respostas_inativas = async () => {
     }
 };
 
-export const atualizar_status_resposta = async (id, status) => {
+export const atualizar_status_resposta = async (id, status, observacoes_inativacao = null) => {
   try {
-    // Garante o envio do objeto { status_registro: status } se for passada apenas a string
-    const payload = typeof status === 'string' ? { status_registro: status } : status;
+    // Aceita tanto string ("INATIVO") quanto objeto ({ status_registro, observacoes_inativacao })
+    const payload = typeof status === 'string' ? { status_registro: status } : { ...status };
+
+    if (observacoes_inativacao !== null && observacoes_inativacao !== undefined) {
+      payload.observacoes_inativacao = observacoes_inativacao;
+    }
 
     const { data } = await axiosInstanceForms.patch(`/forms/answered/${id}/status`, payload);
-    
+
     return data;
   } catch (error) {
     console.error(`Erro ao atualizar status da resposta ${id}:`, error);
