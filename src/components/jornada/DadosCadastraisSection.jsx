@@ -58,6 +58,16 @@ const DadosCadastraisSection = ({ pacienteDetalhes, medicoParceiro, stats }) => 
         <h2 className="font-bold text-2xl text-gray-800 group-hover:text-apollo-600 transition-colors">Dados Cadastrais</h2>
       </div>
 
+      {pacienteDetalhes.ativo === false && (
+        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl flex items-center gap-3 animate-fade-in">
+          <span className="text-2xl">⚠️</span>
+          <div>
+            <p className="font-bold text-yellow-700 text-sm">Paciente Inativo</p>
+            <p className="text-yellow-600 text-xs">Este paciente está marcado como inativo no sistema. Seus dados estão disponíveis apenas para consulta.</p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12 text-gray-600">
         <div className="space-y-3">
           <p className="flex justify-between border-b border-gray-50 pb-2"><span className="font-bold text-gray-800">Nome:</span> <span>{pacienteDetalhes.nomeFormatado || "—"}</span></p>
