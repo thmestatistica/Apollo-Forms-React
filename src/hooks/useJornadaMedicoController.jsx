@@ -92,7 +92,6 @@ export const useJornadaMedicoController = () => {
 
                 const validos = dados
                     .filter(p => {
-                        if (!p.ativo) return false;
                         const nome = (p.nome || "").toUpperCase();
                         return !invalidos.some(t => nome.includes(t));
                     })

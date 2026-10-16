@@ -117,7 +117,6 @@ const JornadaMedicoParceiro = () => {
       }
 
       const filtrados = (pacientesAll || []).filter(p => {
-        const isAtivo = p.ativo !== false;
         const pacienteId = String(p.id || p.id_paciente);
 
         // O paciente tem agendamento OU foi adicionado na tela
@@ -126,7 +125,7 @@ const JornadaMedicoParceiro = () => {
 
         const naoEstaBloqueado = !idsBloqueados.some(id => String(id) === pacienteId);
 
-        return isAtivo && temAgendamentoOuAdicionado && naoEstaBloqueado;
+        return temAgendamentoOuAdicionado && naoEstaBloqueado;
       });
 
       //console.log("Qtd pacientes do médico selecionado:", filtrados.length);
