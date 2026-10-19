@@ -51,7 +51,7 @@ const JornadaPage = () => {
                 <BotaoVerAnexo pacienteId={pacienteSelecionadoId} />
               </div>
 
-              <DadosCadastraisSection pacienteDetalhes={pacienteDetalhes} stats={stats}/>
+              <DadosCadastraisSection pacienteDetalhes={pacienteDetalhes} />
 
               <ResumoSessoesSection stats={stats} />
 

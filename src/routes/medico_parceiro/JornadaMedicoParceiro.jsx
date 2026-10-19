@@ -250,7 +250,7 @@ const JornadaMedicoParceiro = () => {
                 <BotaoVerAnexo pacienteId={pacienteSelecionadoId} />
               </div>
 
-              <DadosCadastraisSection pacienteDetalhes={pacienteDetalhes} medicoParceiro={true} stats={stats} />
+              <DadosCadastraisSection pacienteDetalhes={pacienteDetalhes} medicoParceiro={true} />
 
               <hr className="border-gray-100" />
 

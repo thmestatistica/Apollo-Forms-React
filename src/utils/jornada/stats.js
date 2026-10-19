@@ -50,19 +50,6 @@ export const calcularTotaisRobotica = (agendamentos = [], prontuario = []) => {
     // Contabilizar Prontuário / Formulários
     if (Array.isArray(prontuario)) {
         prontuario.forEach(item => {
-            const respostas = item.respostas || [];
-            
-            const perguntaAlvo = respostas.find(r => r.pergunta === "Terapia Robótica e/ou Eletroterapia");
-
-            if (perguntaAlvo && perguntaAlvo.resposta) {
-                const tecnologiasSelecionadas = perguntaAlvo.resposta.split(',').map(t => t.trim());
-
-                tecnologiasSelecionadas.forEach(tech => {
-                    const techUpper = tech.toUpperCase();
-                    totais[techUpper] = (totais[techUpper] || 0) + 1;
-                });
-            }
-
             const nomeForm = (item.nome_formulario || "").toUpperCase();
             if (nomeForm.includes("ARMEO")) totais["ARMEO"] = (totais["ARMEO"] || 0) + 1;
             if (nomeForm.includes("C-MILL") || nomeForm.includes("CMILL")) totais["C-MILL"] = (totais["C-MILL"] || 0) + 1;

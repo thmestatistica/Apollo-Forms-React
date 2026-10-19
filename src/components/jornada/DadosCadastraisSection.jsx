@@ -2,46 +2,16 @@ import React from 'react';
 import { calcularIdade } from "../../utils/jornada/stats";
 import { formatarData } from '../../utils/format/formatar_utils';
 
-const DadosCadastraisSection = ({ pacienteDetalhes, medicoParceiro, stats }) => {
-
-  const equipamentosFiltrados = stats
-    ? Object.entries(stats)
-      .filter(([chave, quantidade]) => {
-        if (typeof quantidade !== 'number' || quantidade <= 1) return false;
-
-        const chaveUpper = chave.toUpperCase();
-
-        if (chaveUpper.includes('NENHUM')) return false;
-        if (chave.includes('{') || chave.includes('}') || chave.toLowerCase().includes('valor')) return false;
-
-        return true;
-      })
-      .map(([chave]) => {
-        let nomeLimpo = chave.replace(/^[\d_]+/, '');
-        nomeLimpo = nomeLimpo.replace(/Label$/i, '').replace(/_/g, '-').trim();
-
-        let nomeFormatado = nomeLimpo;
-        const upper = nomeLimpo.toUpperCase();
-
-        if (upper === 'C-MILL' || upper === 'CMILL') {
-          nomeFormatado = 'C-Mill';
-        } else if (upper === 'TMS') {
-          nomeFormatado = 'TMS';
-        } else if (upper === 'FES') {
-          nomeFormatado = 'FES';
-        } else if (upper === 'TENS') {
-          nomeFormatado = 'TENS';
-        } else if (upper === 'CICLOERGÔMETRO ATIVO DE MI') {
-          nomeFormatado = 'Cicloergômetro ativo de MI';
-        } else if (upper === 'PMS (ESTIMULAÇÃO MAGNÉTICA PERIFÉRICA)') {
-          nomeFormatado = 'PMS (Estimulação Magnética Periférica)';
-        } else {
-          nomeFormatado = nomeLimpo.charAt(0).toUpperCase() + nomeLimpo.slice(1).toLowerCase();
-        }
-
-        return { key: chave, nome: nomeFormatado };
-      })
-    : [];
+const DadosCadastraisSection = ({ pacienteDetalhes, medicoParceiro }) => {
+  const tecnologiasAssociadas = (() => {
+    const raw = pacienteDetalhes?.tecnologias_associadas;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string') {
+      return raw.split(',').map(t => t.trim()).filter(Boolean);
+    }
+    return [];
+  })();
 
   return (
     <div
@@ -126,14 +96,21 @@ const DadosCadastraisSection = ({ pacienteDetalhes, medicoParceiro, stats }) => 
           </div>
           <div className="flex flex-wrap gap-2">
             <span className="font-bold text-gray-800 w-full">Tecnologias Adicionadas em seu Protocolo:</span>
-            {equipamentosFiltrados.length > 0 ?
-              equipamentosFiltrados.map((equipamento) => (
-                <span key={equipamento.key} className="px-2 py-0.5 bg-gray-100 rounded text-sm font-mono">
-                  {equipamento.nome}
-                </span>
-              )) : (
-                <span className="text-sm bg-gray-50 p-2 rounded border border-gray-100 italic">—</span>
-              )}
+            {tecnologiasAssociadas.length > 0 ? (
+              tecnologiasAssociadas.map((tecnologia, index) => {
+                const nome = typeof tecnologia === 'object' && tecnologia !== null
+                  ? (tecnologia.nome || tecnologia.label || tecnologia.descricao || JSON.stringify(tecnologia))
+                  : String(tecnologia);
+
+                return (
+                  <span key={index} className="px-2 py-0.5 bg-gray-100 rounded text-sm font-mono">
+                    {nome}
+                  </span>
+                );
+              })
+            ) : (
+              <span className="text-sm bg-gray-50 p-2 rounded border border-gray-100 italic">—</span>
+            )}
           </div>
         </div>
       </div>
