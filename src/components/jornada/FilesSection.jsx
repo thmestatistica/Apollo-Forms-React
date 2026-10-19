@@ -3,16 +3,21 @@ import React, { useState, useEffect, useMemo } from "react";
 import { DocumentIcon, ArrowPathIcon, ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
 
 import { listar_arquivos_paciente } from "../../api/forms/upload_utils";
+import { buscar_profissionais } from "../../api/jornada/jornada_utils";
 
 import LoadingGen from "../info/LoadingGen";
 import InfoGen from "../info/InfoGen";
 import Pagination from "./Pagination";
 import SingleSelect from "../input/SingleSelect";
 
-const FilesSection = ({ pacienteId, profissionais, medicoParceiro }) => {
+// Cache em memória dos profissionais do Journey
+let cacheProfissionaisJourney = null;
+
+const FilesSection = ({ pacienteId, profissionais: profissionaisProp, medicoParceiro }) => {
   const [arquivos, setArquivos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [profissionaisJourney, setProfissionaisJourney] = useState(cacheProfissionaisJourney || {});
 
   const [filtroCategoria, setFiltroCategoria] = useState("");
 
@@ -44,6 +49,57 @@ const FilesSection = ({ pacienteId, profissionais, medicoParceiro }) => {
     setCurrentPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pacienteId]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const carregarProfissionais = async () => {
+      if (cacheProfissionaisJourney) {
+        setProfissionaisJourney(cacheProfissionaisJourney);
+        return;
+      }
+      try {
+        const dados = await buscar_profissionais();
+        const lista = Array.isArray(dados?.profissionais) ? dados.profissionais : Array.isArray(dados) ? dados : [];
+        const mapa = {};
+        lista.forEach(p => {
+          const id = p.id;
+          const nome = p.usuario?.nome || p.nomeCompleto || p.nome;
+          if (id != null) {
+            mapa[id] = nome;
+          }
+        });
+        cacheProfissionaisJourney = mapa;
+        if (isMounted) {
+          setProfissionaisJourney(mapa);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar profissionais do Journey para FilesSection:", err);
+      }
+    };
+
+    carregarProfissionais();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const getNomeProfissional = (profissionalId) => {
+    if (!profissionalId) return 'Apollo';
+
+    const prof = profissionaisJourney?.[profissionalId] ?? 
+                 profissionaisJourney?.[String(profissionalId)] ?? 
+                 profissionaisJourney?.[Number(profissionalId)] ??
+                 profissionaisProp?.[profissionalId] ??
+                 profissionaisProp?.[String(profissionalId)] ??
+                 profissionaisProp?.[Number(profissionalId)];
+
+    if (prof) {
+      if (typeof prof === 'string') return prof;
+      return prof.nomeCompleto || prof.usuario?.nome || prof.nome || 'Apollo';
+    }
+
+    return 'Apollo';
+  };
 
   const isCategoriaPermitida = (cat) => {
     if (!cat) return false;
@@ -168,11 +224,8 @@ const FilesSection = ({ pacienteId, profissionais, medicoParceiro }) => {
                 </div>
 
                 <div className="p-3 bg-gray-50 border-t border-gray-100 mt-auto flex justify-between items-center text-[10px] text-gray-400 font-bold uppercase tracking-tight">
-                  <span className="truncate max-w-[120px]">
-                    Por: {profissionais?.[arquivo.profissional_id]?.nome || 
-                         profissionais?.[arquivo.profissional_id]?.usuario?.nome || 
-                         (typeof profissionais?.[arquivo.profissional_id] === 'string' ? profissionais[arquivo.profissional_id] : 'Apollo')
-                    }
+                  <span className="truncate max-w-[120px]" title={getNomeProfissional(arquivo.profissional_id)}>
+                    Por: {getNomeProfissional(arquivo.profissional_id)}
                   </span>
                   <span>{new Date(arquivo.criado_em).toLocaleDateString('pt-BR')}</span>
                 </div>
