@@ -12,7 +12,7 @@ import { atualizar_status_resposta, STATUS_RESPOSTA } from "../../api/gestao/ges
 
 import { useAuth } from "../../hooks/useAuth.jsx";
 
-const USUARIOS_MASTER = [17]
+const USUARIOS_MASTER = [8, 43, 17, 13, 15, 40, 38, 5, 12, 2];
 
 export const STATUS_CONFIG = {
     ATIVO: {
