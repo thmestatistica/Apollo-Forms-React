@@ -18,7 +18,7 @@ const PERMITIDOS_GERADOR = IDS_PERMITIDOS.concat([13, 15, 40]); // Exemplo: só 
 const PERMITIDOS_ADMIN = IDS_PERMITIDOS.concat([13, 15, 40]); 
 const PERMITIDOS_METODO = IDS_PERMITIDOS.concat([15]);
 const PERMITIDOS_NAVEGADOR = IDS_PERMITIDOS;
-const PERMITIDOS_INATIVACAO = IDS_PERMITIDOS;
+const PERMITIDOS_INATIVACAO = IDS_PERMITIDOS.concat([15]);
 
 const GestaoReavaliacao = () => {
     const navigate = useNavigate();
