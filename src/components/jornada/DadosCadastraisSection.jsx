@@ -136,11 +136,6 @@ const DadosCadastraisSection = ({ pacienteDetalhes, medicoParceiro }) => {
                     CRM: {medico.crm || "—"}
                   </span>
                 </div>
-
-                <div className="mt-3 pt-3 border-t border-gray-50 flex flex-col sm:flex-row sm:justify-between text-sm text-gray-500 gap-1 sm:gap-0">
-                  <span>📞 {medico.telefone || "—"}</span>
-                  <span className="truncate">✉️ {medico.email || "—"}</span>
-                </div>
               </div>
             ))}
           </div>
