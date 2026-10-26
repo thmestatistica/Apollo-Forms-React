@@ -12,6 +12,21 @@ const TERMOS_IGNORADOS_BASE = [
   'terap.disp'
 ];
 
+export const DIAGNOSTICO_OPCOES = [
+  'AVC',
+  'Doença de Parkinson',
+  'TCE',
+  'Dor Crônica',
+  'Doenças Degenerativas',
+  'Lesão Medular',
+  'Doença Oncológica',
+  'Paralisia Cerebral',
+  'Neuropatia',
+  'Distonia',
+  'Ortopedia',
+  'Outros'
+];
+
 const TERMOS_IGNORADOS_TESTE = ['teste', 'testa'];
 
 export const INCLUIR_TESTES_GESTAO = true;

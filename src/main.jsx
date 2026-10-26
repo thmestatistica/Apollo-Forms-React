@@ -45,6 +45,8 @@ import TelaInicialMedicoParceiro from './routes/medico_parceiro/TelaInicialMedic
 import JornadaMedicoParceiro from './routes/medico_parceiro/JornadaMedicoParceiro.jsx'
 import AgendaSemanalMedico from './routes/medico_parceiro/AgendaSemanalMedico.jsx'
 import AgendaSemanalPacienteMedico from './routes/medico_parceiro/AgendaSemanalMedico.jsx'
+import ListagemPendencias from './components/gestaoPendencias/ListagemPendencias.jsx'
+import GestaoPendencias from './routes/terapeuta/GestaoPendencias.jsx'
 
 // --- Configuração simples das Rotas com createBrowserRouter ---
 const router = createBrowserRouter([
@@ -98,6 +100,10 @@ const router = createBrowserRouter([
                         {
                             element: <GestaoReavaliacao />,
                             path: 'gestao' 
+                        },
+                        {
+                            element: <GestaoPendencias />,
+                            path: 'gestao-pendencias'
                         },
                         {
                             element: <EditTela />,

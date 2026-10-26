@@ -19,6 +19,8 @@ import {
   ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
 import ApolloLogo from '../../assets/logo_apollo.png';
+import { FaCut } from 'react-icons/fa';
+import { FaRotateRight } from "react-icons/fa6";
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -83,10 +85,23 @@ const Navbar = () => {
 
         ...(podeAcessarGestao ? [{ 
             name: 'Gestão', 
-            href: '/forms-terapeuta/gestao', 
             icon: ChartBarIcon,
             activeColor: 'bg-teal-100 text-teal-800 border-teal-600',
             baseColor: 'bg-teal-50 text-teal-600 hover:bg-teal-100/80',
+            childActive: 'bg-teal-100 text-teal-900 font-bold border-teal-500',
+            childHover: 'bg-teal-50 text-teal-700 hover:bg-teal-100/80 hover:border-teal-300',
+            children: [
+                {
+                    name: "Gestão Geral",
+                    href: '/forms-terapeuta/gestao',
+                    icon: FaCut 
+                },
+                {
+                    name: "Gestão de Pendências",
+                    href: '/forms-terapeuta/gestao-pendencias',
+                    icon: FaRotateRight
+                }
+            ]
         }] : []),
         
         { 

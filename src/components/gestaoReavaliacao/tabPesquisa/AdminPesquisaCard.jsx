@@ -8,19 +8,16 @@ import GestaoInput from '../shared/GestaoInput';
 import GestaoSelect from '../shared/GestaoSelect';
 
 const AdminPesquisaCard = ({
-  selectedPacienteId,
-  setSelectedPacienteId,
-  editados,
-  setEditados,
-  setGrupoEdicoes,
-  setDiagnosticoPacienteEdicao,
-  setProtocoloPacienteEdicao,
-  carregarDadosAdmin,
-  loadingAdmin,
-  loadingPacientes,
-  pacientesDisponiveis,
-  filtros,
-  setFiltros
+  selectedPacienteId,            // ID do paciente atualmente selecionado
+  setSelectedPacienteId,         // Setter do ID do paciente selecionado
+  editados,                      // Set/Coleção contendo os identificadores dos itens com alterações pendentes
+  setEditados,                   // Setter para limpar ou redefinir as edições pendentes
+  carregarDadosAdmin,            // Função assíncrona que busca os dados no servidor para o paciente
+  loadingAdmin,                  // Indicador de carregamento dos dados do painel
+  loadingPacientes,              // Indicador de carregamento da lista de pacientes
+  pacientesDisponiveis,          // Lista de objetos com os pacientes disponíveis
+  filtros,                       // Objeto contendo os filtros ativos ({ busca, status })
+  setFiltros                     // Setter para atualizar o objeto de filtros
 }) => {
   const handlePacienteChange = async (e) => {
     const novoPacienteId = e.target.value;
@@ -36,9 +33,6 @@ const AdminPesquisaCard = ({
       if (!result.isConfirmed) return;
       setEditados(new Set());
     }
-    setGrupoEdicoes({});
-    setDiagnosticoPacienteEdicao(null);
-    setProtocoloPacienteEdicao('');
     setSelectedPacienteId(novoPacienteId);
     carregarDadosAdmin(true, novoPacienteId);
   };
@@ -54,11 +48,11 @@ const AdminPesquisaCard = ({
   return (
     <GestaoCard
       title="Pesquisa"
-      description="Selecione o paciente para listar as pendencias e filtre por status."
+      description="Selecione o paciente para listar as pendencias."
       icon={MagnifyingGlassIcon}
     >
-      <div className="grid md:grid-cols-4 gap-6 items-end">
-        <GestaoField label="Paciente" icon={UserIcon}>
+      <div className="grid md:grid-cols-3 gap-6 items-end">
+        <GestaoField className="col-span-2" label="Paciente" icon={UserIcon}>
           <GestaoSelect
             value={selectedPacienteId}
             onChange={handlePacienteChange}
@@ -72,7 +66,7 @@ const AdminPesquisaCard = ({
             ))}
           </GestaoSelect>
         </GestaoField>
-        <GestaoField label="Busca" icon={MagnifyingGlassIcon}>
+        {/*<GestaoField label="Busca" icon={MagnifyingGlassIcon}>
           <GestaoInput
             type="text"
             placeholder="Buscar escala ou ID"
@@ -93,7 +87,7 @@ const AdminPesquisaCard = ({
             <option value="NAO_APLICA">Não se Aplica</option>
             <option value="APLICADO_NAO_LANCADO">Aplicado, Não Lançado</option>
           </GestaoSelect>
-        </GestaoField>
+        </GestaoField>*/}
         <div className="w-full">
           <GestaoActionButton
             onClick={handleAtualizar}

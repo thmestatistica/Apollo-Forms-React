@@ -40,20 +40,9 @@ import {
     syncConditionedQuestions,
     validateConditionalRules,
 } from "../../utils/form/conditionalQuestions.js";
+import { OPCOES_ESPECIALIDADES } from "../../utils/_geral/commonUtils.js";
 
 const IDS_COM_ESCORE = Object.keys(scaleProcessors).map(Number);
-
-// --- CONSTANTES (Mantidas iguais) ---
-const OPCOES_ESPECIALIDADES = [
-    { value: 'Fisioterapia', label: 'Fisioterapia' },
-    { value: 'Terapia Ocupacional', label: 'Terapia Ocupacional' },
-    { value: 'Fonoaudiologia', label: 'Fonoaudiologia' },
-    { value: 'Psicologia', label: 'Psicologia' },
-    { value: 'Enfermagem', label: 'Enfermagem' },
-    { value: 'Nutrição', label: 'Nutrição' },
-    { value: 'Condicionamento Físico', label: 'Condicionamento Físico' },
-    { value: 'Teste', label: 'Teste' }
-];
 
 const OPCOES_DIAGNOSTICOS = [
     { value: 'AVC', label: 'AVC' },

@@ -1,7 +1,8 @@
 import React from 'react';
+import { twMerge } from 'tailwind-merge';
 
-const GestaoSectionCard = ({ title, count, countLabel, action, children }) => (
-  <div className="bg-white rounded-xl shadow-md border border-gray-100 flex flex-col min-h-[400px] overflow-hidden w-full">
+const GestaoSectionCard = ({ title, count, countLabel, action, children, style }) => (
+  <div className={twMerge("bg-white rounded-xl shadow-md border border-gray-100 flex flex-col min-h-[400px] overflow-hidden w-full", style)}>
     <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50">
       <div>
         <h2 className="text-xl font-bold text-gray-800 cursor-default">{title}</h2>

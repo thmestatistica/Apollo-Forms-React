@@ -6,12 +6,25 @@
 import { createPortal } from "react-dom";
 import PropTypes from "prop-types";
 
-export const Modal = ({ isOpen, onClose, children, isBig }) => {
+export const Modal = ({ isOpen, onClose, children, isBig, bare }) => {
   if (!isOpen) return null;
 
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) onClose();
   };
+
+  // Modo "bare": só o fundo + conteúdo centralizado, sem card nem botão de fechar
+  if (bare) {
+    return createPortal(
+      <div
+        onClick={handleBackdropClick}
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50 p-4"
+      >
+        {children}
+      </div>,
+      document.body
+    );
+  }
 
   return createPortal(
     <div
@@ -52,4 +65,5 @@ Modal.propTypes = {
   onClose: PropTypes.func.isRequired,
   children: PropTypes.node.isRequired,
   isBig: PropTypes.bool,
+  bare: PropTypes.bool,
 };

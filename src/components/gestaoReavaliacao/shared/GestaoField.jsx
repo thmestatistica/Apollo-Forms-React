@@ -1,7 +1,8 @@
 import React from 'react';
+import { twMerge } from 'tailwind-merge';
 
-const GestaoField = ({ label, icon: Icon, children }) => (
-  <div className="w-full">
+const GestaoField = ({ label, icon: Icon, children, className = "" }) => (
+  <div className={twMerge("w-full", className)}>
     <label className="text-sm font-bold text-gray-500 tracking-wide uppercase mb-2 flex items-center gap-2 ml-1">
       {Icon ? <Icon className="w-4 h-4 text-slate-400" /> : null}
       {label}
