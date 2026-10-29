@@ -26,6 +26,16 @@ export const buscar_respostas_inativas = async () => {
     }
 };
 
+export const buscar_sessoes_paciente = async (pacienteId) => {
+    try {
+        const response = await axiosInstanceForms.get(`/forms/sessions/patient/${pacienteId}`)
+        return response.data
+    } catch (error) {
+        console.error(`Erro ao buscar sessoes: `, error);
+        return [];
+    }
+}
+
 export const atualizar_status_resposta = async (id, status, observacoes_inativacao = null) => {
   try {
     // Aceita tanto string ("INATIVO") quanto objeto ({ status_registro, observacoes_inativacao })

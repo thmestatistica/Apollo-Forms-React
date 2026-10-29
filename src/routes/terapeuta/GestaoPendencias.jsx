@@ -16,7 +16,7 @@ const IDS_PERMITIDOS = [8, 17, 43, 41];
 // --- CONTROLE GLOBAL DE VISIBILIDADE POR ABA ---
 // Ajuste estas listas para permitir/ocultar abas específicas.
 const PERMITIDOS_GERADOR = IDS_PERMITIDOS.concat([13, 15, 40]); // Exemplo: só quem tem ID 13 além dos IDs globais pode acessar a aba de geração.
-const PERMITIDOS_ADMIN = IDS_PERMITIDOS.concat([13, 15, 40]); 
+const PERMITIDOS_ADMIN = IDS_PERMITIDOS.concat([13, 15, 40]);
 const PERMITIDOS_METODO = IDS_PERMITIDOS.concat([15]);
 const PERMITIDOS_NAVEGADOR = IDS_PERMITIDOS;
 const PERMITIDOS_INATIVACAO = IDS_PERMITIDOS;
@@ -78,13 +78,7 @@ const GestaoPendencias = () => {
                         onBack={() => navigate('/forms-terapeuta/tela-inicial')}
                     />
 
-                    {activeTab === 'gestao' && (
-                        <ListagemPendencias />
-                    )}
-
-                    {activeTab === 'lacamento' && (
-                        <LancamentoPendencias />
-                    )}
+                    <ListagemPendencias />
                 </div>
             </div>
         </div>

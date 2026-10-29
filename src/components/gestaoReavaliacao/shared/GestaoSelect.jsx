@@ -1,21 +1,51 @@
-import React from 'react';
-import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import React, { Children, Fragment, isValidElement, useMemo } from 'react';
+import ReactSelect from 'react-select';
+import { defaultSelectStyles } from '../../input/selectStyles';
 
-const GestaoSelect = ({ value, onChange, disabled, placeholder, children }) => (
-  <div className="relative">
-    <select
-      className="w-full appearance-none bg-white border-2 border-gray-200 text-gray-700 text-sm font-semibold rounded-lg py-3 pl-4 pr-10 cursor-pointer outline-none focus:border-indigo-400 hover:border-indigo-200 transition-all shadow-sm disabled:opacity-60"
-      value={value}
-      onChange={onChange}
-      disabled={disabled}
-    >
-      {placeholder != null ? <option value="">{placeholder}</option> : null}
-      {children}
-    </select>
-    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-      <ChevronDownIcon className="w-4 h-4" />
-    </div>
-  </div>
-);
+// Converte as <option> recebidas como children em { value, label, isDisabled }
+const extractOptions = (children) => {
+  const result = [];
+  const walk = (nodes) => {
+    Children.toArray(nodes).forEach((child) => {
+      if (!isValidElement(child)) return;
+      if (child.type === Fragment) return walk(child.props.children);
+      if (child.type === 'option') {
+        const label = Children.toArray(child.props.children).join('');
+        result.push({
+          value: String(child.props.value ?? label),
+          label,
+          isDisabled: !!child.props.disabled,
+        });
+      }
+    });
+  };
+  walk(children);
+  return result;
+};
+
+const GestaoSelect = ({ value, onChange, disabled, placeholder, children }) => {
+  const options = useMemo(() => extractOptions(children), [children]);
+
+  const selectedOption =
+    options.find((opt) => opt.value === String(value ?? '')) || null;
+
+  return (
+    <ReactSelect
+      isMulti={false}
+      isClearable={placeholder != null}
+      closeMenuOnSelect
+      isDisabled={disabled}
+      options={options}
+      value={selectedOption}
+      onChange={(opt) => onChange?.({ target: { value: opt ? opt.value : '' } })}
+      placeholder={placeholder ?? 'Selecione...'}
+      noOptionsMessage={() => 'Nenhum resultado'}
+      className="w-full text-sm"
+      menuPortalTarget={document.body}
+      menuPosition="fixed"
+      styles={defaultSelectStyles}
+    />
+  );
+};
 
 export default GestaoSelect;

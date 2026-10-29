@@ -15,7 +15,7 @@ function AdminPesquisaMetrics({ dadosFiltrados = [] }) {
     })
 
     return (
-        <div className='w-full grid grid-cols-5 gap-3 p-4'>
+        <div className='w-full grid grid-cols-5 gap-3 px-4 pb-4'>
             <IconCard icon={FaBookmark} text="Total de Pendencias" value={metrics?.total} color="purple"/>
             <IconCard icon={FaBookOpen} text="Pendencias Abertas" value={metrics?.aberta} color="orange"/>
             <IconCard icon={FaCheck} text="Pendencias Concluídas" value={metrics?.concluida} color="green"/>

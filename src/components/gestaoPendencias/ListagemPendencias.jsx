@@ -1,29 +1,39 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAdminPacientes } from '../../hooks/useAdminPacientes';
 import { useAdminPendencias } from '../../hooks/useAdminPendencias';
-import { FaCheckSquare, FaRegSquare, FaMinusSquare, FaTrashAlt } from 'react-icons/fa';
-import { FaPencil } from 'react-icons/fa6';
+import { FaBan, FaCalendar, FaClock, FaPlus } from 'react-icons/fa';
 import GestaoSectionCard from '../gestaoReavaliacao/shared/GestaoSectionCard';
 import AdminPesquisaCard from '../gestaoReavaliacao/tabPesquisa/AdminPesquisaCard';
 import AdminPesquisaMetrics from '../gestaoReavaliacao/tabPesquisa/AdminPesquisaMetrics';
-import { twMerge } from 'tailwind-merge';
-import HeaderSelect from './tabela/HeaderSelect';
-import StatusBadge from './tabela/StatusBadge';
-import Paginacao from './tabela/Paginacao';
-import AtualizarSelecionados from './modals/AtualizarSelecionados';
-import { getData, getEscala, useFiltrosColuna } from '../../hooks/gestao/useFiltrosColuna';
-import { useSelecaoLinhas } from '../../hooks/gestao/useSelecaoLinhas';
-import { usePaginacao } from '../../hooks/gestao/usePaginacao';
 import useForms from '../../hooks/useForms';
-import { atualizar_pendencia_admin } from '../../api/pendencias/pendencias_utils';
+import LancarPendencias from './modals/LancarPendencias';
+import TabPendenciasEscala from './tabs/TabPendenciasEscala';
+import { FaRotate, FaSheetPlastic, FaX } from 'react-icons/fa6';
+import TabPendenciasAvReav from './tabs/TabPendenciasAvReav';
+import useAgendamentos from '../../hooks/useAgendamentos';
+import useProfissionais from '../../hooks/useProfissionais';
+import TabRegistrosRecentes from './tabs/TabRegistrosRecentes';
+import TabAgendamentosFuturos from './tabs/TabAgendamentosFuturos';
+
+const TABS_PENDENCIAS = [
+    { id: 'escala', label: 'Pendências de escala', icon: FaSheetPlastic },
+    { id: 'avaliacao', label: 'Pendências de avaliação', icon: FaRotate },
+    { id: 'registro', label: 'Registros recentes', icon: FaClock },
+    { id: 'agendamentos', label: 'Proximos agendamentos', icon: FaCalendar },
+];
 
 const ListagemPendencias = ({ accessMode, allowedPatientIds }) => {
     const [selectedPacienteId, setSelectedPacienteId] = useState('');
-    const [diagnosticoPacienteEdicao, setDiagnosticoPacienteEdicao] = useState(null);
-    const [protocoloPacienteEdicao, setProtocoloPacienteEdicao] = useState('');
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isLancarModalOpen, setIsLancarModalOpen] = useState(false);
+    const [abaAtiva, setAbaAtiva] = useState('escala');
 
-    const { pacientesDisponiveis, loadingPacientes } = useAdminPacientes({
+    const { pacientesDisponiveis,
+        loadingPacientes,
+        carregarPacientesAdmin,
+        answeredLast,
+        loadingAnsweredLast,
+        carregarUltimasRespostas
+    } = useAdminPacientes({
         accessMode,
         allowedPatientIds,
         selectedPacienteId,
@@ -44,61 +54,20 @@ const ListagemPendencias = ({ accessMode, allowedPatientIds }) => {
         allowedPatientIds,
     });
 
-    const {
-        colunaFiltros,
-        setFiltroColuna,
-        limpar: limparFiltrosColuna,
-        temFiltro: temFiltroColuna,
-        opcoes,
-        dadosFiltrados: dadosColuna,
-    } = useFiltrosColuna(dadosFiltrados);
+    const { profissionaisOptions, presencasList, presencasMap, fetchProfissionais, loadingLista } = useProfissionais();
 
-    const { page, setPage, pageSize, setPageSize, dadosPaginados } = usePaginacao(
-        dadosColuna,
-        [selectedPacienteId, filtros, colunaFiltros]
-    );
+    const { agendamentos, agendamentosIdsList, loadingAgendamentos, fetchAgendamentos, reload } = useAgendamentos(selectedPacienteId);
 
-    const {
-        selectedRows,
-        isSelected,
-        toggleRow,
-        toggleTodos,
-        limpar: limparSelecao,
-        todosSelecionados,
-        algunsSelecionados,
-    } = useSelecaoLinhas(dadosColuna);
+    const { formulariosOptions, fetchFormularios } = useForms();
 
-    const {
-        listaFormularios,
-        formulariosOptions,
-        loadingLista,
-        fetchFormularios,
-        reload
-    } = useForms();
-
+    useEffect(() => { fetchProfissionais(); }, [fetchProfissionais]);
+    useEffect(() => { fetchAgendamentos(); }, [fetchAgendamentos]);
     useEffect(() => { fetchFormularios(); }, [fetchFormularios]);
 
-    useEffect(() => {
-        setDiagnosticoPacienteEdicao(null);
-        setProtocoloPacienteEdicao('');
-        limparFiltrosColuna();
-        limparSelecao();
-    }, [selectedPacienteId, limparFiltrosColuna, limparSelecao]);
-
-    const handleSubmit = async (rows, payload) => {
-        try {
-            await Promise.all(
-                rows.map((row) => atualizar_pendencia_admin(row, payload))
-            );
-            await carregarDadosAdmin();
-            limparSelecao();
-            setIsModalOpen(false);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            carregarDadosAdmin(true, selectedPacienteId);
-        }
-    };
+    const agendamentosFiltrados = useMemo(() => {
+        const idsProfissional = new Set(presencasList.map((p) => p.id));
+        return agendamentos.filter((ag) => idsProfissional.has(ag.id));
+    }, [agendamentos, presencasList]);
 
     return (
         <div className="flex flex-col">
@@ -120,160 +89,59 @@ const ListagemPendencias = ({ accessMode, allowedPatientIds }) => {
                     <p>Selecione um paciente primeiro</p>
                 </div>
             ) : (
-                <div>
-                    <AdminPesquisaMetrics dadosFiltrados={dadosFiltrados} />
-                    <GestaoSectionCard>
-                        <div className="mx-4 mt-4 flex items-center justify-between text-sm text-slate-600">
-                            <div className="flex gap-6 items-center">
-                                <span>
-                                    {temFiltroColuna &&
-                                        `${dadosColuna.length} de ${dadosFiltrados.length} pendências com os filtros`}{' '}
-                                    {selectedRows.length > 0 && `(${selectedRows.length} selecionadas)`}
-                                </span>
-                                {selectedRows.length > 0 && (
-                                    <div className="flex gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsModalOpen(true)}
-                                            className="bg-linear-to-r from-blue-700 to-purple-300 px-3 py-1 text-white rounded-md hover:bg-blue-900 flex gap-3 items-center"
-                                        >
-                                            <FaPencil />
-                                            Atualizar selecionados
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="bg-linear-to-r from-purple-300 to-rose-300 px-3 py-1 text-white rounded-md hover:bg-blue-900 flex gap-3 items-center"
-                                        >
-                                            <FaTrashAlt />
-                                            Remover selecionados
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                            {temFiltroColuna && (
-                                <button
-                                    type="button"
-                                    onClick={limparFiltrosColuna}
-                                    className="font-medium bg-blue-700 text-white py-3 px-6 rounded-xl"
-                                >
-                                    Limpar filtros das colunas
-                                </button>
-                            )}
-                        </div>
+                <div className='flex flex-col mt-4'>
+                    {abaAtiva && (
+                        <AdminPesquisaMetrics dadosFiltrados={dadosFiltrados} />
+                    )}
+                    <GestaoSectionCard
+                        showBtn
+                        btnDisabled={abaAtiva !== 'escala' && abaAtiva !== 'avaliacao'}
+                        btnLabel={abaAtiva === 'escala' || abaAtiva === 'avaliacao' ? "Lançar novas pendências" : ""}
+                        btnIcon={abaAtiva === 'escala' || abaAtiva === 'avaliacao' ? FaPlus : FaBan}
+                        onBtnClick={() => setIsLancarModalOpen(true)}
+                        tabs={TABS_PENDENCIAS}
+                        activeTab={abaAtiva}
+                        onTabChange={setAbaAtiva}
+                        tabsStyle="bg-linear-to-r from-blue-100 via-teal-50 to-white"
+                    >
+                        {abaAtiva === 'escala' && (
+                            <TabPendenciasEscala
+                                dadosFiltrados={dadosFiltrados}
+                                selectedPacienteId={selectedPacienteId}
+                                filtros={filtros}
+                                carregarDadosAdmin={carregarDadosAdmin}
+                                formulariosOptions={formulariosOptions}
+                            />
+                        )}
 
-                        <table className="m-4 overflow-hidden rounded-xl">
-                            <thead>
-                                <tr className="bg-linear-to-r from-blue-700 to-purple-300 text-white text-left">
-                                    <th className="py-3">
-                                        <span className="flex items-center justify-center px-3">
-                                            <button
-                                                type="button"
-                                                role="checkbox"
-                                                aria-checked={todosSelecionados ? true : algunsSelecionados ? 'mixed' : false}
-                                                aria-label="Selecionar todas as pendências"
-                                                onClick={toggleTodos}
-                                                className="cursor-pointer text-lg rounded focus-visible:outline-2 focus-visible:outline-white"
-                                            >
-                                                {todosSelecionados ? (
-                                                    <FaCheckSquare />
-                                                ) : algunsSelecionados ? (
-                                                    <FaMinusSquare />
-                                                ) : (
-                                                    <FaRegSquare />
-                                                )}
-                                            </button>
-                                        </span>
-                                    </th>
-                                    <th className="py-3 pr-3">
-                                        <HeaderSelect
-                                            label="Escala"
-                                            value={colunaFiltros.escala}
-                                            onChange={setFiltroColuna('escala')}
-                                            options={opcoes.escala}
-                                        />
-                                    </th>
-                                    <th className="py-3 pr-3">
-                                        <HeaderSelect
-                                            label="Criada em"
-                                            value={colunaFiltros.criadaEm}
-                                            onChange={setFiltroColuna('criadaEm')}
-                                            options={opcoes.criadaEm}
-                                        />
-                                    </th>
-                                    <th className="py-3 pr-3">
-                                        <HeaderSelect
-                                            label="Especialidade"
-                                            value={colunaFiltros.especialidade}
-                                            onChange={setFiltroColuna('especialidade')}
-                                            options={opcoes.especialidade}
-                                        />
-                                    </th>
-                                    <th className="py-3 pr-3">
-                                        <HeaderSelect
-                                            label="Status"
-                                            value={colunaFiltros.status}
-                                            onChange={setFiltroColuna('status')}
-                                            options={opcoes.status}
-                                        />
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {dadosPaginados.map((row, index) => (
-                                    <tr
-                                        key={row.id ?? `${page}-${index}`}
-                                        className={twMerge(
-                                            'border-b border-slate-200 even:bg-indigo-50/60',
-                                            isSelected(row.id) &&
-                                            'bg-linear-to-r from-teal-300/50 border-white text-teal-800 to-blue-300/50 even:bg-blue-100'
-                                        )}
-                                    >
-                                        <td className="py-3 flex items-center justify-center mt-1">
-                                            <button
-                                                type="button"
-                                                role="checkbox"
-                                                aria-checked={isSelected(row.id)}
-                                                aria-label="Selecionar pendência"
-                                                onClick={() => toggleRow(row.id)}
-                                                className="cursor-pointer text-lg text-blue-700 rounded focus-visible:outline-2 focus-visible:outline-blue-700"
-                                            >
-                                                {isSelected(row.id) ? <FaCheckSquare /> : <FaRegSquare />}
-                                            </button>
-                                        </td>
-                                        <td className="capitalize py-3">{getEscala(row)}</td>
-                                        <td className="py-3">{getData(row)}</td>
-                                        <td className="py-3">{row.especialidade}</td>
-                                        <td className="py-3">
-                                            <StatusBadge status={row.status} />
-                                        </td>
-                                    </tr>
-                                ))}
-                                {dadosPaginados.length === 0 && (
-                                    <tr>
-                                        <td colSpan={5} className="py-6 text-center text-slate-500">
-                                            Nenhuma pendência encontrada
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                        {abaAtiva === 'avaliacao' && (
+                            <TabPendenciasAvReav
+                                selectedPacienteId={selectedPacienteId}
+                                dadosAgendamentos={agendamentosFiltrados}
+                            />
+                        )}
 
-                        <Paginacao
-                            page={page}
-                            pageSize={pageSize}
-                            totalItems={dadosColuna.length}
-                            onPageChange={setPage}
-                            onPageSizeChange={setPageSize}
-                        />
+                        {abaAtiva === 'registro' && (
+                            <TabRegistrosRecentes
+                                selectedPacienteId={selectedPacienteId}
+                                dadosSessoes={answeredLast}
+                                profissionaisOptions={profissionaisOptions}
+                            />
+                        )}
+
+                        {abaAtiva === 'agendamentos' && (
+                            <TabAgendamentosFuturos 
+                                selectedPacienteId={selectedPacienteId}
+                                dadosAgendamentos={agendamentos}
+                            />
+                        )}
                     </GestaoSectionCard>
                 </div>
             )}
-            <AtualizarSelecionados
-                open={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                selected={selectedRows}
-                onSubmit={handleSubmit}
-                formulariosOptions={formulariosOptions}
+
+            <LancarPendencias
+                open={isLancarModalOpen}
+                onClose={() => setIsLancarModalOpen(false)}
             />
         </div>
     );

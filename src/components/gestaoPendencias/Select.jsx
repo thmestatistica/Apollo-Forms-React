@@ -1,36 +1,28 @@
-import { FaChevronDown } from "react-icons/fa";
+import ReactSelect from "react-select";
+import { defaultSelectStyles } from "../input/selectStyles";
 import { twMerge } from "tailwind-merge";
 
-const Select = ({ key = '', label, value, onChange, options, placeholder = "Selecione..." }) => {
+const Select = ({ key = '', label, value, onChange, options = [], placeholder = "Selecione...", className = "" }) => {
+    const selectedOption = options.find((opt) => opt.value === value) || null;
+
     return (
-        <div className="flex flex-col gap-1 w-full">
+        <div className={twMerge("flex flex-col gap-1 w-full", className)}>
             <span className="font-semibold text-lg text-apollo-600/60">{label}</span>
-            <div className="relative w-full">
-                <select
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    className={twMerge(
-                        'w-full appearance-none cursor-pointer rounded-md py-2 pl-3 pr-8 text-md font-semibold outline-none',
-                        'border border-slate-500/30 bg-white/10 text-slate-500 transition-colors',
-                        'hover:bg-white/20'
-                    )}
-                >
-                    <option value="" className="text-slate-800">{placeholder}</option>
-                    {options.map((opt) => (
-                        <option key={opt.value} value={opt.value} className="text-slate-800">
-                            {opt.label}
-                        </option>
-                    ))}
-                </select>
-                <FaChevronDown
-                    aria-hidden="true"
-                    className={twMerge(
-                        'pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px]'
-                    )}
-                />
-            </div>
+            <ReactSelect
+                isMulti={false}
+                isClearable
+                closeMenuOnSelect
+                options={options}
+                value={selectedOption}
+                onChange={(opt) => onChange(opt ? opt.value : '')}
+                placeholder={placeholder}
+                className="w-full text-sm"
+                menuPortalTarget={document.body}
+                menuPosition="fixed"
+                styles={defaultSelectStyles}
+            />
         </div>
     );
 };
 
-export default Select
+export default Select;
