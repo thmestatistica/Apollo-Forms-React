@@ -96,11 +96,11 @@ const Navbar = () => {
                     href: '/forms-terapeuta/gestao',
                     icon: FaCut 
                 },
-                {
+                /*{
                     name: "Gestão de Pendências",
                     href: '/forms-terapeuta/gestao-pendencias',
                     icon: FaRotateRight
-                }
+                }*/
             ]
         }] : []),
         
