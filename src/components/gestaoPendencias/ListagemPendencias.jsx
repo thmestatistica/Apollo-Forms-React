@@ -14,6 +14,9 @@ import useAgendamentos from '../../hooks/useAgendamentos';
 import useProfissionais from '../../hooks/useProfissionais';
 import TabRegistrosRecentes from './tabs/TabRegistrosRecentes';
 import TabAgendamentosFuturos from './tabs/TabAgendamentosFuturos';
+import { useAuth } from '../../hooks/useAuth'
+import usePopup from '../../hooks/usePopup';
+import Popup from '../common/Popup';
 
 const TABS_PENDENCIAS = [
     { id: 'escala', label: 'Pendências de escala', icon: FaSheetPlastic },
@@ -23,6 +26,8 @@ const TABS_PENDENCIAS = [
 ];
 
 const ListagemPendencias = ({ accessMode, allowedPatientIds }) => {
+    const { user } = useAuth();
+
     const [selectedPacienteId, setSelectedPacienteId] = useState('');
     const [isLancarModalOpen, setIsLancarModalOpen] = useState(false);
     const [abaAtiva, setAbaAtiva] = useState('escala');
@@ -95,7 +100,7 @@ const ListagemPendencias = ({ accessMode, allowedPatientIds }) => {
                     )}
                     <GestaoSectionCard
                         showBtn
-                        btnDisabled={abaAtiva !== 'escala' && abaAtiva !== 'avaliacao'}
+                        btnDisabled={abaAtiva !== 'escala'}
                         btnLabel={abaAtiva === 'escala' || abaAtiva === 'avaliacao' ? "Lançar novas pendências" : ""}
                         btnIcon={abaAtiva === 'escala' || abaAtiva === 'avaliacao' ? FaPlus : FaBan}
                         onBtnClick={() => setIsLancarModalOpen(true)}
@@ -142,6 +147,8 @@ const ListagemPendencias = ({ accessMode, allowedPatientIds }) => {
             <LancarPendencias
                 open={isLancarModalOpen}
                 onClose={() => setIsLancarModalOpen(false)}
+                pacienteId={selectedPacienteId}
+                carregarDadosAdmin={carregarDadosAdmin}
             />
         </div>
     );

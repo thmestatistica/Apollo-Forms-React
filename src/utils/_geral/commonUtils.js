@@ -59,3 +59,5 @@ export const addDaysToDateValue = (value, daysToAdd) => {
   const day = String(parsed.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
+
+export const getValue = (e) => e?.target?.value ?? e?.value ?? e

@@ -1,14 +1,32 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FaTrashAlt } from 'react-icons/fa';
-import { FaPencil } from 'react-icons/fa6';
-import { atualizar_pendencia_admin } from '../../../api/pendencias/pendencias_utils';
-import { getData, getEscala, useFiltrosColuna } from '../../../hooks/gestao/useFiltrosColuna';
+import { FaPen, FaRegPaperPlane, FaTrashAlt } from 'react-icons/fa';
+import { FaPencil, FaRotateLeft } from 'react-icons/fa6';
+import { atualizar_pendencia_admin, deletar_pendencia_admin } from '../../../api/pendencias/pendencias_utils';
+import { COLUNAS_PENDENCIAS, getData, useFiltrosColuna } from '../../../hooks/gestao/useFiltrosColuna';
 import { usePaginacao } from '../../../hooks/gestao/usePaginacao';
 import { useSelecaoLinhas } from '../../../hooks/gestao/useSelecaoLinhas';
 import AtualizarSelecionados from '../modals/AtualizarSelecionados';
 import Paginacao from '../tabela/Paginacao';
 import StatusBadge from '../tabela/StatusBadge';
 import TabelaGen from '../tabela/TabelaGen';
+import usePopup from '../../../hooks/usePopup';
+import Popup from '../../common/Popup';
+
+export const MAP_CRIACAO = {
+    RETROATIVA: 'Retroativa',
+    MANUAL: 'Manual',
+    AUTOMATICA: 'Automática',
+    DESCONHECIDA: 'Desconhecida',
+};
+
+const COLUNAS_FILTRO = {
+    ...COLUNAS_PENDENCIAS,
+    criacao: {
+        get: (row) => row.tipoCriacao || 'DESCONHECIDA',
+        ordem: 'asc',
+        label: (v) => MAP_CRIACAO[v] ?? v,
+    },
+};
 
 const TabPendenciasEscala = ({
     dadosFiltrados,
@@ -18,6 +36,20 @@ const TabPendenciasEscala = ({
     formulariosOptions,
 }) => {
     const [isEditarModalOpen, setIsEditarModalOpen] = useState(false);
+    const popup = usePopup()
+
+    const formulariosPorId = useMemo(
+        () => new Map((formulariosOptions ?? []).map((f) => [f.value, f.label])),
+        [formulariosOptions]
+    );
+
+    const dadosComEscala = useMemo(
+        () => dadosFiltrados.map((row) => ({
+            ...row,
+            escala: formulariosPorId.get(row.formularioId) ?? '-',
+        })),
+        [dadosFiltrados, formulariosPorId]
+    );
 
     const {
         colunaFiltros,
@@ -26,7 +58,7 @@ const TabPendenciasEscala = ({
         temFiltro: temFiltroColuna,
         opcoes,
         dadosFiltrados: dadosColuna,
-    } = useFiltrosColuna(dadosFiltrados);
+    } = useFiltrosColuna(dadosComEscala, COLUNAS_FILTRO);
 
     const { page, setPage, pageSize, setPageSize, dadosPaginados } = usePaginacao(
         dadosColuna,
@@ -71,7 +103,7 @@ const TabPendenciasEscala = ({
                     onChange: setFiltroColuna('escala'),
                     options: opcoes.escala,
                 },
-                render: (row) => getEscala(row),
+                render: (row) => (formulariosPorId.get(row.formularioId) ?? 'Formulário Desconhecido').toLowerCase(),
                 cellClassName: 'capitalize',
             },
             {
@@ -106,11 +138,55 @@ const TabPendenciasEscala = ({
             {
                 key: 'criacao',
                 header: 'Criação',
-                render: (row) => (row.status === "APLICADO_NAO_LANCADO" ? "Retroativa" : "Automática")
+                filter: {
+                    value: colunaFiltros.criacao,
+                    onChange: setFiltroColuna('criacao'),
+                    options: opcoes.criacao
+                },
+                render: (row) => (row.tipoCriacao === "RETROATIVA" ? (
+                    <div className='flex flex-row items-center gap-2 px-2 py-0.5 rounded-full shadow-md bg-rose-100 border border-rose-300 max-w-fit text-sm text-rose-700'><FaRotateLeft className='w-3' />Retroativa</div>
+                ) : row.tipoCriacao === "MANUAL" ? (
+                    <div className='flex flex-row items-center gap-2 px-2 py-0.5 rounded-full shadow-md bg-green-100 border border-green-300 max-w-fit text-sm text-green-700'><FaPen className='w-3' />Manual</div>
+                ) : row.tipoCriacao === "AUTOMATICA" ? (
+                    <div className='flex flex-row items-center gap-2 px-2 py-0.5 rounded-full shadow-md bg-purple-100 border border-purple-300 max-w-fit text-sm text-purple-700'><FaRegPaperPlane className='w-3' />Automática</div>
+                ) : (
+                    <div className='flex flex-row items-center gap-2 px-2 py-0.5 rounded-full shadow-md bg-slate-100 border border-slate-300 max-w-fit text-sm text-slate-700'><FaRegPaperPlane className='w-3' />Desconhecida</div>
+                ))
             }
         ],
         [colunaFiltros, setFiltroColuna, opcoes]
     );
+
+    const handleRemoverSelecionados = async (rows) => {
+        const confirmado = await popup.danger({
+            title: "Remover pendências",
+            text: (
+                <div className='flex flex-col gap-2 text-sm leading-relaxed text-slate-600'>
+                    <span>Tem certeza que deseja <span className='bg-red-500 rounded px-2 text-white font-bold'>REMOVER</span> todas as <br /><span className='bg-rose-200/70 rounded px-2 text-slate-700 font-bold'>{rows.length} pendências</span> selecionadas?</span>
+                    <span className='bg-red-500/20 text-slate-700 rounded px-2 font-bold w-fit'>Essa ação é irreversível, prossiga com cuidado!</span>
+                </div>
+            ),
+            confirmLabel: "Remover",
+            canCancel: true,
+            cancelLabel: "Cancelar",
+            onConfirm: async () => {
+                const resultados = await Promise.allSettled(
+                    rows.map((row) => deletar_pendencia_admin(row?.id ?? row))
+                );
+
+                const falhas = resultados.filter((r) => r.status === 'rejected').length;
+
+                await carregarDadosAdmin(true, selectedPacienteId);
+                limparSelecao();
+
+                if (falhas > 0) {
+                    throw new Error(`${falhas} de ${rows.length} pendências não puderam ser removidas`);
+                }
+            },
+        });
+
+        return confirmado;
+    };
 
     return (
         <>
@@ -133,6 +209,7 @@ const TabPendenciasEscala = ({
                             </button>
                             <button
                                 type="button"
+                                onClick={() => handleRemoverSelecionados(selectedRows)}
                                 className="bg-linear-to-r from-purple-300 via-rose-300 to-purple-300 bg-size-[200%_auto] bg-left px-3 py-1 text-white rounded-md transition-all duration-500 hover:bg-right flex gap-3 items-center"
                             >
                                 <FaTrashAlt />
@@ -182,6 +259,8 @@ const TabPendenciasEscala = ({
                 onSubmit={handleSubmit}
                 formulariosOptions={formulariosOptions}
             />
+
+            <Popup {...popup.props} />
         </>
     );
 };

@@ -26,7 +26,7 @@ export const useAdminPendencias = ({ selectedPacienteId, accessMode, allowedPati
     }
     setLoadingAdmin(true);
     try {
-      const resposta = await buscar_todas_pendencias({ pacienteId: pacienteId });
+      const resposta = await buscar_todas_pendencias({ id_paciente: pacienteId });
       const data = resposta || [];
       setDadosAdmin(data);
       adminDataCache.current = { pacienteId, data };
@@ -34,7 +34,7 @@ export const useAdminPendencias = ({ selectedPacienteId, accessMode, allowedPati
       setEditados(new Set());
       setGrupoEdicoes({});
     } catch (error) {
-      Swal.fire('Erro', 'Falha ao carregar tabela.', 'error');
+      Swal.fire('Erro', 'Falha ao carregar tabela. Tente fazer login novamente', 'error');
       console.error('Erro ao carregar pendências admin:', error);
     } finally {
       setLoadingAdmin(false);

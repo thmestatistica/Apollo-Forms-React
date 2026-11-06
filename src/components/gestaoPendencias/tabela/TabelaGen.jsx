@@ -29,6 +29,7 @@ const TabelaGen = ({
     selectAllLabel = 'Selecionar todos',
     selectRowLabel = 'Selecionar linha',
     className,
+    firstColHasPadding = !selectable
 }) => {
     const totalColumns = columns.length + (selectable ? 1 : 0);
 
@@ -58,8 +59,8 @@ const TabelaGen = ({
                             </span>
                         </th>
                     )}
-                    {columns.map((col) => (
-                        <th key={col.key} className="py-3 pr-3">
+                    {columns.map((col, index) => (
+                        <th key={col.key} className={twMerge("py-3 pr-3", firstColHasPadding && index === 0 && "pl-6")}>
                             {col.filter ? (
                                 <HeaderSelect
                                     label={col.header}
@@ -84,7 +85,7 @@ const TabelaGen = ({
                             className={twMerge(
                                 'border-b border-slate-200 even:bg-indigo-50/60',
                                 selected &&
-                                    'bg-linear-to-r from-teal-300/50 border-white text-teal-800 to-blue-300/50 even:bg-blue-100'
+                                'bg-linear-to-r from-teal-300/50 border-white text-teal-800 to-blue-300/50 even:bg-blue-100'
                             )}
                         >
                             {selectable && (
@@ -101,8 +102,8 @@ const TabelaGen = ({
                                     </button>
                                 </td>
                             )}
-                            {columns.map((col) => (
-                                <td key={col.key} className={twMerge('py-3', col.cellClassName)}>
+                            {columns.map((col, index) => (
+                                <td key={col.key} className={twMerge('py-3', col.cellClassName, firstColHasPadding && index === 0 && "pl-6")}>
                                     {col.render ? col.render(row, index) : row[col.key]}
                                 </td>
                             ))}

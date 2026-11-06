@@ -1,4 +1,5 @@
 import axiosInstance from "../axiosInstance";
+import axiosInstanceJourney from "../journey/axiosInstanceJourney";
 import { stockcareApi } from "../stockcare/axiosInstanceStockCare";
 
 /**
@@ -45,6 +46,29 @@ export const authenticate_terapeuta = async (usuario) => {
     return null;
   }
 };
+
+export const authenticate_terapeuta_apinova = async (usuario) => {
+  try {
+    const response = await axiosInstanceJourney.post("/auth/login", usuario);
+    return response.data;
+  } catch (err) {
+    try {
+      console.error("Erro no login do terapeuta:", {
+        message: err.message,
+        code: err.code,
+        config: err.config,
+        responseStatus: err.response?.status,
+        responseData: err.response?.data,
+        request: err.request,
+        event: err.event,
+      });
+    } catch (loginError) {
+      console.error("Erro ao logar como terapeuta na api nova:", loginError);
+    }
+
+    return null;
+  }
+}
 
 /**
  * Login de medico parceiro com a API do stockcare

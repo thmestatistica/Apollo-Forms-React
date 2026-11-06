@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { mapStatus } from '../../utils/gestao/gestaoPendenciasUtils';
 import { toISODate } from '../../utils/_geral/commonUtils';
 
-export const getEscala = (row) => (row.formulario?.nomeEscala ?? '').toLowerCase();
+export const getEscala = (row) => (row.escala ?? '').toLowerCase();
 export const getData = (row) => (row.criadaEm ? toISODate(row.criadaEm) : '');
 
 export const COLUNAS_PENDENCIAS = {

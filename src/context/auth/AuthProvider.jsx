@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "./AuthContext";
-import { authenticate_terapeuta, authenticate_pacientes, authenticate_stockcare } from "../../api/auth/auth_utils";
+import { authenticate_terapeuta, authenticate_pacientes, authenticate_stockcare, authenticate_terapeuta_apinova } from "../../api/auth/auth_utils";
 
 const LS_AUTH_KEY = "userAuthData";
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem(LS_AUTH_KEY);
+        const stored = localStorage.getItem(LS_AUTH_KEY);
         return stored ? JSON.parse(stored) : null;
     });
 
@@ -30,9 +30,15 @@ export const AuthProvider = ({ children }) => {
         const { redirect = true, delayMs = 0 } = options;
         try {
             let response = null;
+            let response_nova = null;
 
             if (type === "terapeuta") {
-                response = await authenticate_terapeuta(credentials);
+                const [r1, r2] = await Promise.allSettled([
+                    authenticate_terapeuta(credentials),
+                    authenticate_terapeuta_apinova(credentials),
+                ]);
+                response = r1.status === "fulfilled" ? r1.value : null;
+                response_nova = r2.status === "fulfilled" ? r2.value : null;
             } else if (type === "medico-parceiro") {
                 response = await authenticate_stockcare(credentials);
             } else if (type === "paciente") {
@@ -43,7 +49,7 @@ export const AuthProvider = ({ children }) => {
                 throw new Error("Falha na autenticação");
             }
 
-            const authData = { ...response, role: type };
+            const authData = { ...response, role: type, tokenNova: response_nova.token, expirada: response_nova.senha_expirada ?? null };
             setUser(authData);
 
             // Redireciona SOMENTE se a autenticação teve sucesso e um token foi recebido
@@ -51,8 +57,8 @@ export const AuthProvider = ({ children }) => {
                 const destino = type === "terapeuta"
                     ? "/forms-terapeuta/tela-inicial"
                     : type === "medico-parceiro"
-                    ? "/forms-medico-parceiro/jornada" 
-                    : "/forms-paciente/tela-inicial";
+                        ? "/forms-medico-parceiro/jornada"
+                        : "/forms-paciente/tela-inicial";
                 const go = () => navigate(destino, { replace: true });
                 if (delayMs > 0) setTimeout(go, delayMs); else go();
             }
@@ -74,6 +80,7 @@ export const AuthProvider = ({ children }) => {
     const value = {
         user,
         token: user?.token || null,
+        tokenNova: user?.tokenNova || null,
         isAuthenticated: !!user,
         login,
         logout,

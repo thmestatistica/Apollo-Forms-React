@@ -13,14 +13,17 @@ const AdaptiveInput = forwardRef(function AdaptiveInput({
   className,
   maxChars = 50,
   ariaLabel,
+  multiline = false,
+  rows = 3,
 }, ref) {
   const val = value ?? "";
   const textareaRef = useRef(null);
 
   const shouldTextarea = useMemo(() => {
+    if (multiline) return true;
     if (typeof val !== "string") return false;
     return val.length > maxChars || val.includes("\n");
-  }, [val, maxChars]);
+  }, [val, maxChars, multiline]);
 
   useEffect(() => {
     if (shouldTextarea && textareaRef.current) {
@@ -53,7 +56,7 @@ const AdaptiveInput = forwardRef(function AdaptiveInput({
         }}
         disabled={disabled}
         placeholder={placeholder}
-        rows={1}
+        rows={multiline ? rows : 1}
         aria-label={ariaLabel}
         style={{ overflow: "hidden", resize: "none" }}
       />

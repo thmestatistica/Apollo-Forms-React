@@ -1,4 +1,5 @@
 import axiosInstance from "../axiosInstance";
+import axiosInstanceJourney from "../journey/axiosInstanceJourney";
 
 // Formata para 'YYYY-MM-DD HH:mm:ss.SSS' removendo 'T' e 'Z' do ISO.
 const formatDateBackend = (date) => {
@@ -21,7 +22,7 @@ const formatDateBackend = (date) => {
 // 1. LISTAR TUDO (ADMIN)
 export const buscar_todas_pendencias = async (filtros = {}) => {
   try {
-    const { data } = await axiosInstance.get('/pendencias/admin/todas', { params: filtros });
+    const { data } = await axiosInstanceJourney.get('/pendencias-escala', { params: filtros });
     return data;
   } catch (error) {
     console.error("Erro ao buscar pendências admin:", error);
@@ -296,16 +297,13 @@ export const carregar_pendencias_filtro = async (filtros = {}) => {
  * Cria uma pendência pontual manualmente.
  * Endpoint: POST /pendencias
  */
-export const criar_pendencia_manual = async (payload) => {
+export const criar_pendencia_manual = async (payload, criacao = 'RETROATIVA') => {
   try {
-    const { data } = await axiosInstance.post('/pendencias', payload);
+    const body = { ...payload, tipoCriacao: criacao };
+    const { data } = await axiosInstanceJourney.post('/pendencias-escala', body);
     return { ok: true, data };
   } catch (err) {
-    console.error("Erro ao criar pendência manual:", {
-      message: err?.message,
-      status: err?.response?.status,
-      data: err?.response?.data,
-    });
+    console.error("Erro ao criar pendência manual:", err);
     return { ok: false, error: err };
   }
 };

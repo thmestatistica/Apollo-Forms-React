@@ -2,12 +2,12 @@ import ReactSelect from "react-select";
 import { defaultSelectStyles } from "../input/selectStyles";
 import { twMerge } from "tailwind-merge";
 
-const Select = ({ key = '', label, value, onChange, options = [], placeholder = "Selecione...", className = "" }) => {
+const Select = ({ key = '', label, value, onChange, options = [], placeholder = "Selecione...", className = "", textClassName = "" }) => {
     const selectedOption = options.find((opt) => opt.value === value) || null;
 
     return (
         <div className={twMerge("flex flex-col gap-1 w-full", className)}>
-            <span className="font-semibold text-lg text-apollo-600/60">{label}</span>
+            <span className={twMerge("font-semibold text-lg text-apollo-600/60", textClassName)}>{label}</span>
             <ReactSelect
                 isMulti={false}
                 isClearable
