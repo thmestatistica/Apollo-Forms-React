@@ -42,7 +42,7 @@ import {
 } from "../../utils/form/conditionalQuestions.js";
 import { OPCOES_ESPECIALIDADES } from "../../utils/_geral/commonUtils.js";
 
-const IDS_COM_ESCORE = Object.keys(scaleProcessors).map(Number);
+const IDS_COM_ESCORE = Object.keys(scaleProcessors).map(Number).filter(id => id !== 54);
 
 const OPCOES_DIAGNOSTICOS = [
     { value: 'AVC', label: 'AVC' },
