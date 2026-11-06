@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "./AuthContext";
 import { authenticate_terapeuta, authenticate_pacientes, authenticate_stockcare, authenticate_terapeuta_apinova } from "../../api/auth/auth_utils";
@@ -18,6 +18,18 @@ export const AuthProvider = ({ children }) => {
         if (user) localStorage.setItem(LS_AUTH_KEY, JSON.stringify(user));
         else localStorage.removeItem(LS_AUTH_KEY);
     }, [user]);
+
+    /** Logout com limpeza geral */
+    const logout = useCallback(() => {
+        setUser(null);
+        localStorage.clear();
+        navigate("/", { replace: true });
+    }, [navigate]);
+
+    useEffect(() => {
+        if (user?.expirada === true) logout();
+    }, [user, logout]);
+
 
     /**
      * Realiza login e retorna objeto de resultado.
@@ -49,7 +61,19 @@ export const AuthProvider = ({ children }) => {
                 throw new Error("Falha na autenticação");
             }
 
-            const authData = { ...response, role: type, tokenNova: response_nova.token, expirada: response_nova.senha_expirada ?? null };
+            const authData = {
+                ...response,
+                role: type,
+                tokenNova: response_nova?.token ?? null,
+                expirada: response_nova?.senha_expirada ?? null,
+            };
+
+            // Senha expirada: não mantém sessão e manda para o login
+            if (authData.expirada === true) {
+                logout();
+                return { success: false, expirada: true, error: new Error("Senha expirada") };
+            }
+
             setUser(authData);
 
             // Redireciona SOMENTE se a autenticação teve sucesso e um token foi recebido
@@ -68,13 +92,6 @@ export const AuthProvider = ({ children }) => {
             console.error("Erro no login:", error);
             return { success: false, error };
         }
-    };
-
-    /** Logout com limpeza geral */
-    const logout = () => {
-        setUser(null);
-        localStorage.clear();
-        navigate("/", { replace: true });
     };
 
     const value = {
