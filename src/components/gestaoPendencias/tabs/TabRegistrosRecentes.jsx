@@ -119,7 +119,7 @@ function TabRegistrosRecentes({ selectedPacienteId, dadosSessoes, profissionaisO
                 data={dadosPaginados}
                 getRowKey={(row, index) => row.id ?? `${page}-${index}`}
                 emptyMessage="Nenhuma sessão encontrada"
-                selectable
+                selectable={false}
                 selectAllLabel="Selecionar todas as sessões"
                 selectRowLabel="Selecionar sessão"
             />
