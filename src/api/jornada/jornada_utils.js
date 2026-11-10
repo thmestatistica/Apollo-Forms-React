@@ -17,13 +17,46 @@ export const listar_pacientes = async () => {
 // Busca histórico de agendamentos
 export const listar_agendamentos_paciente = async (pacienteId) => {
     try {
-        const response = await axiosInstance.get('/agendamentos', {
-            params: {
-                pacienteId: pacienteId,
-                pageSize: 1000
+        const pageSize = 1000;
+        const agendamentos = [];
+        const paginasConhecidas = new Set();
+        let page = 1;
+
+        while (true) {
+            const response = await axiosInstance.get('/agendamentos', {
+                params: {
+                    pacienteId,
+                    page,
+                    pageSize
+                }
+            });
+            const data = response.data;
+            const pagina = Array.isArray(data) ? data : data?.agendamentos || [];
+            const assinaturaPagina = pagina.map((agendamento) => agendamento?.id).join(",");
+
+            if (paginasConhecidas.has(assinaturaPagina)) break;
+            paginasConhecidas.add(assinaturaPagina);
+            agendamentos.push(...pagina);
+
+            const totalPages = Number(
+                data?.totalPages ?? data?.total_pages ?? data?.pagination?.totalPages
+            );
+            const hasNextPage = data?.hasNextPage ?? data?.pagination?.hasNextPage;
+            const hasNext = data?.next != null || data?.pagination?.next != null;
+
+            if (
+                pagina.length === 0 ||
+                hasNextPage === false ||
+                (Number.isFinite(totalPages) && page >= totalPages) ||
+                (pagina.length < pageSize && !hasNext)
+            ) {
+                break;
             }
-        });
-        return response.data.agendamentos || [];
+
+            page += 1;
+        }
+
+        return agendamentos;
     } catch (error) {
         console.error(`Erro ao buscar histórico:`, error);
         return [];

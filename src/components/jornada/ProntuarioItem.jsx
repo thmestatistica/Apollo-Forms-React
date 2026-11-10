@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { formatarNome, formatarDataHoraBR } from "../../utils/jornada/format.js";
+import {
+    extrairAgendamentoId,
+    extrairIdAgendamento,
+    normalizarIdAgendamento,
+    formatarNome,
+    formatarDataHoraBR
+} from "../../utils/jornada/format.js";
 import { formatarData, formatarHora } from "../../utils/format/formatar_utils.js";
 import TabelaMatriz from "./TabelaMatriz.jsx";
 
@@ -124,23 +130,40 @@ const ProntuarioItem = React.memo(({ item, agendamentos, pacienteDetalhes, profi
         setStatus(item?.sessao_raw?.status_registro);
     }, [item?.sessao_raw?.status_registro]);
 
-    const agDetalhe = agendamentos.find((a) => a.id == item.agendamento_id);
+    const agendamentoId = normalizarIdAgendamento(
+        extrairAgendamentoId(item.sessao_raw) ?? item.agendamento_id
+    );
+
+    const agendamento = agendamentos.find((a) =>
+        normalizarIdAgendamento(extrairIdAgendamento(a)) === agendamentoId
+    );
     const { data: dataStr, hora: horaStr } = formatarDataHoraBR(item.data_registro);
 
     const profNomeCru =
-        agDetalhe?.profissional?.usuario?.nome ||
-        agDetalhe?.profissional?.nome ||
+        agendamento?.profissional?.usuario?.nome ||
+        agendamento?.profissional?.nome ||
         item?.profissional_nome ||
         "Profissional";
     const profNome = formatarNome(profNomeCru);
-    const slotStr = agDetalhe?.slot?.nome || "—";
-    const siglaStr = agDetalhe?.slot?.sigla || "";
-    const inicio = formatarHora(agDetalhe?.inicio);
-    const fim = formatarHora(agDetalhe?.fim);
-    const dataAg = formatarData(agDetalhe?.inicio);
+    const slot = agendamento?.slot ?? item.sessao_raw?.slot;
+    const slotStr =
+        (typeof slot === "string" ? slot : slot?.nome) ||
+        agendamento?.slot_nome ||
+        agendamento?.slot_name ||
+        item.sessao_raw?.slot_nome ||
+        item.sessao_raw?.slot_name ||
+        "—";
+    
+    const siglaStr =
+        (typeof slot === "object" ? slot?.sigla : null) ||
+        agendamento?.sigla ||
+        item.sessao_raw?.sigla ||
+        "";
+    const inicio = formatarHora(agendamento?.inicio);
+    const fim = formatarHora(agendamento?.fim);
+    const dataAg = formatarData(agendamento?.inicio);
     const horarioStr = inicio !== "—" && fim !== "—" ? `${inicio} - ${fim}` : "—";
 
-    const slotExtra = agendamentos.find(a => a.id == item.sessao_raw?.agendamento_id)?.slot?.nome;
     const sessaoRespostaId = item.sessao_raw?.sessao_resposta_id;
 
     const alterarStatus = async (novoStatus, observacao = null) => {
@@ -205,7 +228,7 @@ const ProntuarioItem = React.memo(({ item, agendamentos, pacienteDetalhes, profi
                         {!disablePDF && (
                             <div>
                                 <span className="text-gray-400">•</span>
-                                <span className="text-sm text-gray-700">🧩 {slotStr === "—" ? (slotExtra === undefined ? "Não encontrado" : slotExtra) : slotStr} {siglaStr !== "" ? `(${siglaStr})` : null}</span>
+                                <span className="text-sm text-gray-700">🧩 {slotStr} {siglaStr !== "" ? `(${siglaStr})` : null}</span>
                             </div>
                         )}
 
@@ -257,13 +280,11 @@ const ProntuarioItem = React.memo(({ item, agendamentos, pacienteDetalhes, profi
                     </span>
                 </div>
             </div>
-            {dataAg !== "—" && horarioStr !== "—" ? (
-                null
-            ) : (
+            {agendamentoId == null || agendamentoId === "" ? (
                 <div className="py-2 bg-red-50">
                     <span className="ml-3 text-[15px] text-black">⚠️ Atenção: preenchimento feito no Forms Antigo. Data acima é referente ao preenchimento do formulário. Não há informação do agendamento da sessão.</span>
                 </div>
-            )}
+            ) : null}
 
             {expanded && (
                 <div className="p-4 bg-white border-t border-gray-100 animate-fade-in">

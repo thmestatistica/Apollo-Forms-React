@@ -54,12 +54,22 @@ const extrairEspecialidade = (ag, sessao) => {
     return spec.charAt(0).toUpperCase() + spec.slice(1).toLowerCase();
 };
 
+export const extrairAgendamentoId = (sessao) => sessao?.agendamento_id ?? null;
+
+export const extrairIdAgendamento = (agendamento) => agendamento?.id ?? null;
+
+export const normalizarIdAgendamento = (id) => {
+    if (id === null || id === undefined || String(id).trim() === "") return null;
+    return String(id).trim();
+};
+
 export const processarProntuario = (dadosBrutos, agendamentos = [], criterioOrdenacao = 'agendamento') => {
     if (!dadosBrutos || !Array.isArray(dadosBrutos)) return [];
     
     const agendamentoMap = new Map();
     agendamentos.forEach(ag => {
-        if (ag.id) agendamentoMap.set(String(ag.id), ag);
+        const agendamentoId = normalizarIdAgendamento(extrairIdAgendamento(ag));
+        if (agendamentoId) agendamentoMap.set(agendamentoId, ag);
     });
 
     const mapaSessoes = {};
@@ -73,7 +83,7 @@ export const processarProntuario = (dadosBrutos, agendamentos = [], criterioOrde
         if (!mapaSessoes[id]) {
             mapaSessoes[id] = {
                 id: id,
-                agendamento_id: sessao.agendamento_id,
+                agendamento_id: extrairAgendamentoId(sessao),
                 sessao_raw: sessao,
                 data_registro: sessao.data_aplicacao_sessao,
                 profissional_nome: sessao.profissional?.nome || "—",
@@ -132,7 +142,7 @@ export const processarProntuario = (dadosBrutos, agendamentos = [], criterioOrde
     return Object.values(mapaSessoes)
         .map(s => {
             s.respostas.sort((a, b) => a.ordem - b.ordem);
-            const ag = agendamentoMap.get(String(s.agendamento_id));
+            const ag = agendamentoMap.get(normalizarIdAgendamento(s.agendamento_id));
             
             let dataBase;
             if (criterioOrdenacao === 'registro') {

@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 
 // Imports das funções utilitárias e de API
 import { listar_pacientes, listar_agendamentos_paciente, listar_respostas_prontuario, buscar_profissionais } from "../api/jornada/jornada_utils";
+import { carregar_agendamento_por_id } from "../api/agenda/agenda_utils";
 import { calcularTotaisRobotica } from "../utils/jornada/stats";
-import { formatarNome, processarProntuario } from "../utils/jornada/format";
+import { extrairAgendamentoId, extrairIdAgendamento, formatarNome, normalizarIdAgendamento, processarProntuario } from "../utils/jornada/format";
 
 // 🔥 CACHE GLOBAL (Fora do Hook): 
 // Sobrevive à desmontagem do componente visual.
@@ -118,7 +119,29 @@ export const useJornadaController = () => {
                     listar_respostas_prontuario(pacienteSelecionadoId)
                 ]);
 
-                const sortedHist = (histRaw || []).sort((a, b) => new Date(b.inicio).getTime() - new Date(a.inicio).getTime());
+                const historico = histRaw || [];
+                const idsHistorico = new Set(
+                    historico
+                        .map((agendamento) => normalizarIdAgendamento(extrairIdAgendamento(agendamento)))
+                        .filter(Boolean)
+                );
+                const idsDosFormularios = [
+                    ...new Set(
+                        (formsRaw || [])
+                            .map((resposta) => normalizarIdAgendamento(
+                                extrairAgendamentoId(resposta?.sessao_resposta)
+                            ))
+                            .filter((id) => id && !idsHistorico.has(id))
+                    )
+                ];
+                const agendamentosAusentes = await Promise.all(
+                    idsDosFormularios.map((id) => carregar_agendamento_por_id(Number(id)))
+                );
+                const agendamentosCompletos = [
+                    ...historico,
+                    ...agendamentosAusentes.filter((agendamento) => !Array.isArray(agendamento) && agendamento)
+                ];
+                const sortedHist = agendamentosCompletos.sort((a, b) => new Date(b.inicio).getTime() - new Date(a.inicio).getTime());
 
                 const processedForms = processarProntuario(formsRaw, sortedHist, tipoOrdenacao);
 
