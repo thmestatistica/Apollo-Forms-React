@@ -113,7 +113,7 @@ const TabPendenciasAvReav = ({ selectedPacienteId, dadosAgendamentos }) => {
                 data={dadosPaginados}
                 getRowKey={(row, index) => row.id ?? `${page}-${index}`}
                 emptyMessage="Nenhuma pendência encontrada"
-                selectable
+                selectable={false}
                 selectAllLabel="Selecionar todas as pendências"
                 selectRowLabel="Selecionar pendência"
             />

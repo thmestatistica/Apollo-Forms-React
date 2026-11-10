@@ -47,6 +47,7 @@ import AgendaSemanalMedico from './routes/medico_parceiro/AgendaSemanalMedico.js
 import AgendaSemanalPacienteMedico from './routes/medico_parceiro/AgendaSemanalMedico.jsx'
 import ListagemPendencias from './components/gestaoPendencias/ListagemPendencias.jsx'
 import GestaoPendencias from './routes/terapeuta/GestaoPendencias.jsx'
+import { useAuth } from './hooks/useAuth.jsx'
 
 // --- Configuração simples das Rotas com createBrowserRouter ---
 const router = createBrowserRouter([

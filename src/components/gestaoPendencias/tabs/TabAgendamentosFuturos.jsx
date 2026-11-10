@@ -159,7 +159,7 @@ const TabAgendamentosFuturos = ({ selectedPacienteId, dadosAgendamentos = [] }) 
                 data={dadosPaginados}
                 getRowKey={(row, index) => row.id ?? `${page}-${index}`}
                 emptyMessage="Nenhum agendamento futuro encontrado"
-                selectable
+                selectable={false}
                 selectAllLabel="Selecionar todos os agendamentos"
                 selectRowLabel="Selecionar agendamento"
             />
