@@ -11,6 +11,7 @@ import StatusBadge from '../tabela/StatusBadge';
 import TabelaGen from '../tabela/TabelaGen';
 import usePopup from '../../../hooks/usePopup';
 import Popup from '../../common/Popup';
+import { toISODate } from '../../../utils/_geral/commonUtils';
 
 export const MAP_CRIACAO = {
     RETROATIVA: 'Retroativa',
@@ -21,6 +22,7 @@ export const MAP_CRIACAO = {
 
 const COLUNAS_FILTRO = {
     ...COLUNAS_PENDENCIAS,
+    data_referencia: { get: (row) => (row.data_referencia ? toISODate(row.data_referencia) : ''), ordem: 'desc' },
     criacao: {
         get: (row) => row.tipoCriacao || 'DESCONHECIDA',
         ordem: 'asc',
@@ -35,6 +37,7 @@ const TabPendenciasEscala = ({
     carregarDadosAdmin,
     formulariosOptions,
 }) => {
+
     const [isEditarModalOpen, setIsEditarModalOpen] = useState(false);
     const popup = usePopup()
 
@@ -75,6 +78,28 @@ const TabPendenciasEscala = ({
         algunsSelecionados,
     } = useSelecaoLinhas(dadosColuna);
 
+    /*const gruposPendencias = useMemo(() => {
+        const MARGEM_MS = 60 * 1000;
+        const parse = (v) => (v ? new Date(String(v).replace(/(\.\d{3})\d+/, '$1')).getTime() : NaN);
+
+        const itens = dadosColuna
+            .map((row) => ({ row, t: parse(row.criadaEm ?? row.createdAt) }))
+            .filter((i) => !Number.isNaN(i.t))
+            .sort((a, b) => a.t - b.t);
+
+        const grupos = [];
+        itens.forEach((item) => {
+            const ultimo = grupos[grupos.length - 1];
+            if (ultimo && item.t - ultimo.fim <= MARGEM_MS) {
+                ultimo.fim = item.t;
+                ultimo.total += 1;
+            } else {
+                grupos.push({ inicio: item.t, fim: item.t, total: 1 });
+            }
+        });
+        return grupos;
+    }, [dadosColuna]);*/
+
     useEffect(() => {
         limparFiltrosColuna();
         limparSelecao();
@@ -105,6 +130,16 @@ const TabPendenciasEscala = ({
                 },
                 render: (row) => (formulariosPorId.get(row.formularioId) ?? 'Formulário Desconhecido').toLowerCase(),
                 cellClassName: 'capitalize',
+            },
+            {
+                key: 'data_referencia',
+                header: 'Data de referência',
+                filter: {
+                    value: colunaFiltros.data_referencia,
+                    onChange: setFiltroColuna('data_referencia'),
+                    options: opcoes.data_referencia,
+                },
+                render: (row) => COLUNAS_FILTRO.data_referencia.get(row),
             },
             {
                 key: 'criadaEm',
@@ -228,6 +263,35 @@ const TabPendenciasEscala = ({
                     </button>
                 )}
             </div>
+
+            {/*<details className={`mx-4 mt-4 text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-md px-3 py-2 w-fix max-h-100 overflow-y-scroll`}>
+                <summary className="cursor-pointer font-medium">
+                    {gruposPendencias.length} grupos de pendências
+                </summary>
+                <TabelaGen
+                    className="mx-0 mb-0 mt-2 w-full"
+                    columns={[
+                        {
+                            key: 'data',
+                            header: 'Data',
+                            render: (g) => `${toISODate(g.inicio)}`,
+                        },
+                        {
+                            key: 'hora',
+                            header: 'Hora',
+                            render: (g) => `${new Date(g.inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+                        },
+                        {
+                            key: 'total',
+                            header: 'Pendências',
+                            render: (g) => g.total,
+                        },
+                    ]}
+                    data={gruposPendencias}
+                    getRowKey={(g) => g.inicio}
+                    emptyMessage="Nenhum grupo encontrado"
+                />
+            </details>*/}
 
             <TabelaGen
                 columns={columns}
