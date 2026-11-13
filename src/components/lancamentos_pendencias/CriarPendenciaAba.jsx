@@ -311,7 +311,8 @@ const opcoesFormularios = useMemo(() => {
             resolvidaEm: null,
             data_referencia: new Date(dataReferencia).toISOString(),
             especialidade: userEspecialidade,
-            diagnosticoMacro: diagnosticoMacro
+            diagnosticoMacro: diagnosticoMacro,
+            tipoCriacao: "RETROATIVA",
         };
 
         const { ok, data, error } = await criar_pendencia_manual(payload);
