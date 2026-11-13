@@ -49,8 +49,8 @@ const TabPendenciasEscala = ({
     const dadosComEscala = useMemo(
         () => dadosFiltrados.map((row) => ({
             ...row,
-            escala: formulariosPorId.get(row.formularioId) ?? '-',
-        })),
+            escala: formulariosPorId.get(row.formularioId) ?? 'FORMULARIO DESCONHECIDO',
+        })).filter((row) => row.formularioId !== 'FORMULARIO DESCONHECIDO'),
         [dadosFiltrados, formulariosPorId]
     );
 
