@@ -37,7 +37,7 @@ function LancarPendencias({ open, onClose, pacienteId, carregarDadosAdmin }) {
 		carregarDadosPaciente();
 	}, [pacienteId]);
 
-	const buscarIdsEscalasDiagnostico = async () => {
+	const buscarEscalasDiagnostico = async () => {
 		const diagnostico = patientData?.diagnosticoMacro?.[0]
 
 		if (!diagnostico) {
@@ -53,11 +53,21 @@ function LancarPendencias({ open, onClose, pacienteId, carregarDadosAdmin }) {
 			const response = await buscar_escalas_formulario({ diagnostico })
 			const lista = Array.isArray(response) ? response : (response?.data ?? [])
 
-			const ids = lista
-				.map(e => Number(e?.formulario_id ?? e?.id ?? e))
-				.filter(Boolean)
+			// ids de formulários que realmente existem (têm nome)
+			const idsValidos = new Set(
+				(formulariosOptions ?? [])
+					.filter(opt => opt?.label && !/^Escala #/i.test(opt.label))
+					.map(opt => Number(opt.value))
+			)
 
-			if (!ids.length) {
+			const escalas = lista
+				.map(e => ({
+					id: Number(e?.formularioId),
+					especialidade: e?.especialidade?.[0] ?? '',
+				}))
+				.filter(e => e.id && idsValidos.has(e.id)) // ignora as que ficariam como "Escala #XX"
+
+			if (!escalas.length) {
 				popup.warning({
 					title: 'Nenhuma escala encontrada',
 					text: 'Não há escalas associadas ao diagnóstico deste paciente.',
@@ -66,7 +76,7 @@ function LancarPendencias({ open, onClose, pacienteId, carregarDadosAdmin }) {
 				return null
 			}
 
-			return 	ids
+			return escalas
 		} catch (error) {
 			console.error('Erro ao buscar escalas associadas ao diagnóstico: ', error)
 			popup.error({
@@ -80,21 +90,20 @@ function LancarPendencias({ open, onClose, pacienteId, carregarDadosAdmin }) {
 
 	const handleImportarPorDiagnostico = async () => {
 		setImportando(true)
-		const ids = await buscarIdsEscalasDiagnostico()
-		if (ids) p.adicionarEscalas(ids)
+		const escalas = await buscarEscalasDiagnostico()
+		if (escalas) p.adicionarEscalas(escalas)
 		setImportando(false)
 	}
 
 	const handleManterPorDiagnostico = async () => {
 		setImportando(true)
-		const ids = await buscarIdsEscalasDiagnostico()
-		if (ids) p.manterApenasEscalas(ids)
+		const escalas = await buscarEscalasDiagnostico()
+		if (escalas) p.manterApenasEscalas(escalas)
 		setImportando(false)
 	}
 
-
 	const { modelosOptions, reload: recarregarModelos } = useModelos({ ativo: true })
-	const { formulariosOptions, fetchFormularios } = useForms()
+	const { formulariosOptions, fetchFormularios, listaFormularios } = useForms()
 	const popup = usePopup()
 
 	useEffect(() => {
@@ -108,6 +117,7 @@ function LancarPendencias({ open, onClose, pacienteId, carregarDadosAdmin }) {
 		recarregarModelos()
 		onClose()
 	}
+
 
 	const handleAplicar = async () => {
 		try {
@@ -148,7 +158,7 @@ function LancarPendencias({ open, onClose, pacienteId, carregarDadosAdmin }) {
 			carregarDadosAdmin(true, pacienteId)
 		}
 	}
-	
+
 	return (
 		<>
 			<Modal isOpen={open} onClose={handleClose} bare>

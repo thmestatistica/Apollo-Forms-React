@@ -19,6 +19,6 @@ export const COLUNAS = [
 	{ titulo: '', largura: 'w-[7%]' }
 ]
 
-export const ESPECIALIDADES = ['Condicionamento Físico', 'Enfermagem', 'Fisioterapia', 'Nutrição', 'Psicologia', 'Terapia Ocupacional']
+export const ESPECIALIDADES = ['Condicionamento Físico', 'Enfermagem', 'Fisioterapia', 'Nutrição', 'Psicologia', 'Terapia Ocupacional', 'Fonoaudiologia', 'PRO', 'Terapia Ocupacional']
 
 export const especialidadesOptions = ESPECIALIDADES.map((e) => ({ value: e, label: e }))

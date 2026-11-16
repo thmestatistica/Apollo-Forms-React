@@ -25,19 +25,33 @@ export default function usePendencias({ formulariosOptions, pacienteId, onSucces
 		setEscalaSelecionada('')
 	}
 
-	const adicionarEscalas = (ids) => {
+	const normalizarEscala = (item) =>
+		typeof item === 'object' && item !== null
+			? { id: Number(item.id), especialidade: item.especialidade ?? '' }
+			: { id: Number(item), especialidade: '' }
+
+	const adicionarEscalas = (itens) => {
 		setPendencias(atual => {
 			const existentes = new Set(atual.map(p => p.escalaId))
-			const novas = ids
-				.filter(id => !existentes.has(id))
-				.map(id => criarPendencia(id))
+			const novas = itens
+				.map(normalizarEscala)
+				.filter(({ id }) => !existentes.has(id))
+				.map(({ id, especialidade }) => criarPendencia(id, especialidade))
 			return [...atual, ...novas]
 		})
 	}
 
-	const manterApenasEscalas = (ids) => {
-		const permitidos = new Set(ids)
-		setPendencias(atual => atual.filter(p => permitidos.has(p.escalaId)))
+	const manterApenasEscalas = (itens) => {
+		const mapa = new Map(itens.map(normalizarEscala).map(e => [e.id, e]))
+		setPendencias(atual =>
+			atual
+				.filter(p => mapa.has(p.escalaId))
+				.map(p => ({
+					...p,
+					// preenche a especialidade só se ainda estiver vazia
+					especialidade: p.especialidade || mapa.get(p.escalaId).especialidade,
+				}))
+		)
 	}
 
 	const handleChangeModelo = async (e) => {

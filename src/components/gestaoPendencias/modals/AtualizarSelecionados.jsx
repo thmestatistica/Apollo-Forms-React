@@ -6,6 +6,7 @@ import { Modal } from '../../modal/Modal'
 import { FaExclamationTriangle } from 'react-icons/fa'
 import { OPCOES_ESPECIALIDADES } from '../../../utils/_geral/commonUtils'
 import { STATUS_OPTIONS } from '../../../utils/gestao/gestaoPendenciasUtils'
+import CampoData from './LancarPendencias/CampoData'
 
 function AtualizarSelecionados({ open, onClose, selected, onSubmit = () => { }, formulariosOptions }) {
 
@@ -42,6 +43,7 @@ function AtualizarSelecionados({ open, onClose, selected, onSubmit = () => { }, 
                         {/*<Select key='formularioId' label="Escala" options={formulariosOptions} value={selectedOptions.formularioId} onChange={setSelectedValues('formularioId')} />*/}
                         <Select key='especialidade' label="Especialidade" options={OPCOES_ESPECIALIDADES} value={selectedOptions.especialidade} onChange={setSelectedValues('especialidade')} />
                         <Select key='status' label="Status" options={STATUS_OPTIONS} value={selectedOptions.status} onChange={setSelectedValues('status')} />
+                        <CampoData key='data_referencia' onChange={setSelectedValues('data_referencia')}/>
                     </div>
                     <div className='flex gap-3 mt-3 justify-end'>
                         <button onClick={() => onSubmit(selected, buildPayload(selectedOptions))} className="bg-linear-to-r from-blue-700 via-purple-400 to-blue-700 bg-size-[200%_auto] bg-left text-white w-fit py-2 px-5 rounded-xl transition-all duration-500 hover:bg-right hover:-translate-y-1 hover:shadow-xl">
