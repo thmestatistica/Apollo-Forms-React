@@ -1,20 +1,43 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useFiltrosColuna } from '../../../hooks/gestao/useFiltrosColuna';
 import { usePaginacao } from '../../../hooks/gestao/usePaginacao';
 import { toISODate } from '../../../utils/_geral/commonUtils';
 import Paginacao from '../tabela/Paginacao';
 import TabelaGen from '../tabela/TabelaGen';
+import { buscar_todas_pendencias } from '../../../api/pendencias/pendencias_utils';
 
 function TabRegistrosRecentes({ selectedPacienteId, dadosSessoes, profissionaisOptions }) {
+
+    const [pendenciasPaciente, setPendenciasPaciente] = useState([])
+
     const nomeProfissional = useMemo(() => {
         const mapa = new Map(profissionaisOptions.map((p) => [p.value, p.label]));
         return (id) => mapa.get(id) ?? '-';
     }, [profissionaisOptions]);
 
+    useEffect(() => {
+
+        const buscarPendenciasEscala = async () => {
+            try {
+                const result = await buscar_todas_pendencias({ id_paciente: selectedPacienteId })
+                setPendenciasPaciente(result)
+            } catch (error) {
+                console.error("Erro ao buscar pendencias para o paciente: ", error)
+            }
+        }
+
+        buscarPendenciasEscala()
+
+    }, [selectedPacienteId])
+
     const colunasFiltro = useMemo(
         () => ({
             dataAplicacao: {
                 get: (row) => (row.data_aplicacao_sessao ? toISODate(row.data_aplicacao_sessao) : ''),
+                ordem: 'desc',
+            },
+            dataReferencia: {
+                get: (row) => (row?.pendencia?.data_referencia ? toISODate(row?.pendencia?.data_referencia) : ''),
                 ordem: 'desc',
             },
             formulario: {
@@ -30,6 +53,24 @@ function TabRegistrosRecentes({ selectedPacienteId, dadosSessoes, profissionaisO
         [nomeProfissional]
     );
 
+    const chave = (agendamentoId, formularioId) => `${agendamentoId}|${formularioId}`;
+
+    const dadosEnriquecidos = useMemo(() => {
+        const indice = new Map();
+        for (const p of pendenciasPaciente ?? []) {
+            indice.set(chave(p.agendamentoId, p.formularioId), p);
+        }
+
+        return (dadosSessoes ?? []).map((s) => {
+            const pend = indice.get(chave(s.agendamento_id, s.formulario_id));
+            return {
+                ...s,
+                pendencia: pend ?? null,
+                data_referencia: pend?.data_referencia ?? null,
+            };
+        });
+    }, [dadosSessoes, pendenciasPaciente]);
+
     const {
         colunaFiltros,
         setFiltroColuna,
@@ -37,7 +78,7 @@ function TabRegistrosRecentes({ selectedPacienteId, dadosSessoes, profissionaisO
         temFiltro,
         opcoes,
         dadosFiltrados,
-    } = useFiltrosColuna(dadosSessoes, colunasFiltro);
+    } = useFiltrosColuna(dadosEnriquecidos, colunasFiltro);
 
     const { page, setPage, pageSize, setPageSize, dadosPaginados } = usePaginacao(
         dadosFiltrados,
@@ -50,6 +91,16 @@ function TabRegistrosRecentes({ selectedPacienteId, dadosSessoes, profissionaisO
 
     const columns = useMemo(
         () => [
+            {
+                key: 'pendencia.data_referencia',
+                header: 'Data de Referencia',
+                filter: {
+                    value: colunaFiltros.dataReferencia,
+                    onChange: setFiltroColuna('dataReferencia'),
+                    options: opcoes.dataReferencia,
+                },
+                render: (row) => toISODate(row?.pendencia?.data_referencia) || "Sem pendencia associada"
+            },
             {
                 key: 'dataAplicacao',
                 header: 'Data de Aplicação',

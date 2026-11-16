@@ -1,4 +1,4 @@
-import { FaEraser, FaPlus } from 'react-icons/fa'
+import { FaBriefcaseMedical, FaEraser, FaPlus, FaPumpMedical } from 'react-icons/fa'
 import { HiMiniSparkles } from 'react-icons/hi2'
 import Select from '../../Select'
 import CampoData from './CampoData'

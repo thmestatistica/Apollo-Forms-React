@@ -13,9 +13,85 @@ import BarraProgresso from './LancarPendencias/BarraProgresso'
 import usePendencias from '../../../hooks/gestao/usePendencias'
 import usePopup from '../../../hooks/usePopup'
 import Popup from '../../common/Popup'
+import { FaBriefcaseMedical } from 'react-icons/fa'
+import { buscar_escalas_formulario } from '../../../api/escalas/escalas_utils'
+import { buscar_paciente_por_id } from '../../../api/pacientes/pacientes_utils'
 
 function LancarPendencias({ open, onClose, pacienteId, carregarDadosAdmin }) {
 	const [modelosModalOpen, setModelosModalOpen] = useState(false)
+	const [importando, setImportando] = useState(false)
+	const [patientData, setPatientData] = useState({});
+
+	useEffect(() => {
+		if (!pacienteId) return;
+
+		const carregarDadosPaciente = async () => {
+			try {
+				const response = await buscar_paciente_por_id(pacienteId);
+				setPatientData(response);
+			} catch (error) {
+				console.error("Erro ao carregar dados do paciente: ", error);
+			}
+		};
+
+		carregarDadosPaciente();
+	}, [pacienteId]);
+
+	const buscarIdsEscalasDiagnostico = async () => {
+		const diagnostico = patientData?.diagnosticoMacro?.[0]
+
+		if (!diagnostico) {
+			popup.warning({
+				title: 'Sem diagnóstico',
+				text: 'Este paciente não possui diagnóstico cadastrado.',
+				confirmLabel: 'Fechar',
+			})
+			return null
+		}
+
+		try {
+			const response = await buscar_escalas_formulario({ diagnostico })
+			const lista = Array.isArray(response) ? response : (response?.data ?? [])
+
+			const ids = lista
+				.map(e => Number(e?.formulario_id ?? e?.id ?? e))
+				.filter(Boolean)
+
+			if (!ids.length) {
+				popup.warning({
+					title: 'Nenhuma escala encontrada',
+					text: 'Não há escalas associadas ao diagnóstico deste paciente.',
+					confirmLabel: 'Fechar',
+				})
+				return null
+			}
+
+			return 	ids
+		} catch (error) {
+			console.error('Erro ao buscar escalas associadas ao diagnóstico: ', error)
+			popup.error({
+				title: 'Erro ao buscar escalas',
+				text: 'Não foi possível buscar as escalas do diagnóstico.',
+				confirmLabel: 'Fechar',
+			})
+			return null
+		}
+	}
+
+	const handleImportarPorDiagnostico = async () => {
+		setImportando(true)
+		const ids = await buscarIdsEscalasDiagnostico()
+		if (ids) p.adicionarEscalas(ids)
+		setImportando(false)
+	}
+
+	const handleManterPorDiagnostico = async () => {
+		setImportando(true)
+		const ids = await buscarIdsEscalasDiagnostico()
+		if (ids) p.manterApenasEscalas(ids)
+		setImportando(false)
+	}
+
 
 	const { modelosOptions, reload: recarregarModelos } = useModelos({ ativo: true })
 	const { formulariosOptions, fetchFormularios } = useForms()
@@ -72,73 +148,86 @@ function LancarPendencias({ open, onClose, pacienteId, carregarDadosAdmin }) {
 			carregarDadosAdmin(true, pacienteId)
 		}
 	}
-
+	
 	return (
 		<>
-		<Modal isOpen={open} onClose={handleClose} bare>
-			<div className="w-full max-w-360 h-[85dvh] max-h-[850px] min-h-[600px] mx-auto bg-white rounded-2xl overflow-hidden shadow-2xl flex flex-col">
-				<Cabecalho onClose={handleClose} />
+			<Modal isOpen={open} onClose={handleClose} bare>
+				<div className="w-full max-w-360 h-[85dvh] max-h-[850px] min-h-[600px] mx-auto bg-white rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+					<Cabecalho onClose={handleClose} />
 
-				<div className="flex-1 min-h-0 overflow-y-auto md:overflow-hidden grid grid-cols-1 md:grid-cols-3 md:grid-rows-[minmax(0,1fr)] gap-4 sm:gap-6 p-4 sm:p-6">
-					<PainelAdicionarEscalas
-						modelosOptions={modelosOptions}
-						modeloSelecionado={p.modeloSelecionado}
-						onChangeModelo={p.handleChangeModelo}
-						especialidadeTodas={p.especialidadeTodas}
-						onChangeEspecialidadeTodas={p.handleChangeEspecialidadeTodas}
-						dataTodas={p.dataTodas}
-						onChangeDataTodas={p.setDataTodas}
-						onAplicarTodas={p.aplicarParaTodas}
-						onLimpar={p.limparEscalas}
-						onSalvarModelo={() => setModelosModalOpen(true)}
-						totalEscalas={p.pendencias.length}
-					/>
-
-					<section className="md:col-span-2 min-w-0 min-h-0 flex flex-col">
-						<SeletorEscalaManual
-							options={p.escalasDisponiveis}
-							value={p.escalaSelecionada}
-							onChange={p.setEscalaSelecionada}
-							onAdicionar={p.adicionarEscalaManual}
+					<div className="flex-1 min-h-0 overflow-y-auto md:overflow-hidden grid grid-cols-1 md:grid-cols-3 md:grid-rows-[minmax(0,1fr)] gap-4 sm:gap-6 p-4 sm:p-6">
+						<PainelAdicionarEscalas
+							modelosOptions={modelosOptions}
+							modeloSelecionado={p.modeloSelecionado}
+							onChangeModelo={p.handleChangeModelo}
+							especialidadeTodas={p.especialidadeTodas}
+							onChangeEspecialidadeTodas={p.handleChangeEspecialidadeTodas}
+							dataTodas={p.dataTodas}
+							onChangeDataTodas={p.setDataTodas}
+							onAplicarTodas={p.aplicarParaTodas}
+							onLimpar={p.limparEscalas}
+							onSalvarModelo={() => setModelosModalOpen(true)}
+							totalEscalas={p.pendencias.length}
 						/>
 
-						{p.pendencias.length > 0 && (
-							<BarraProgresso
-								preenchidas={p.datasPreenchidas}
-								total={p.pendencias.length}
-								percentual={p.percentual}
+						<section className="md:col-span-2 min-w-0 min-h-0 flex flex-col">
+							<SeletorEscalaManual
+								options={p.escalasDisponiveis}
+								value={p.escalaSelecionada}
+								onChange={p.setEscalaSelecionada}
+								onAdicionar={p.adicionarEscalaManual}
 							/>
-						)}
 
-						{p.pendencias.length === 0 ? (
-							<EstadoVazio />
-						) : (
-							<TabelaPendencias
-								pendencias={p.pendencias}
-								formulariosOptions={formulariosOptions}
-								onChange={p.handleChangePendencia}
-								onRemover={p.removerPendencia}
-							/>
-						)}
-					</section>
+							{p.pendencias.length > 0 && (
+								<BarraProgresso
+									preenchidas={p.datasPreenchidas}
+									total={p.pendencias.length}
+									percentual={p.percentual}
+								/>
+							)}
+
+							{p.pendencias.length === 0 ? (
+								<EstadoVazio />
+							) : (
+								<TabelaPendencias
+									pendencias={p.pendencias}
+									formulariosOptions={formulariosOptions}
+									onChange={p.handleChangePendencia}
+									onRemover={p.removerPendencia}
+								/>
+							)}
+
+							<div className='w-full grid md:grid-cols-2 sm:grid-cols-1 gap-3'>
+								<button onClick={handleImportarPorDiagnostico}
+									disabled={importando}
+									className='w-full text-[0.95rem] text-left py-2 px-4 bg-linear-to-r bg-size-[200%_auto] bg-left from-teal-400 via-blue-400 to-teal-400 hover:bg-right transition-all duration-500 text-white font-bold flex gap-3 items-center rounded-xl mt-3'>
+									<FaBriefcaseMedical /> Importar automaticamente com base no diagnostico
+								</button>
+								<button onClick={handleManterPorDiagnostico}
+									disabled={importando || p.pendencias.length === 0}
+									className='w-full text-[0.95rem] text-left py-2 px-4 bg-linear-to-r bg-size-[200%_auto] bg-left from-blue-400 via-teal-400 to-blue-400 hover:bg-right transition-all duration-500 text-white font-bold flex gap-3 items-center rounded-xl mt-3'>
+									<FaBriefcaseMedical /> Manter apenas escalas associadas ao diagnóstico
+								</button>
+							</div>
+						</section>
+					</div>
+
+					<Rodape
+						onDescartar={p.descartarAlteracoes}
+						onAplicar={handleAplicar}
+						aplicarDisabled={p.pendencias.length === 0 || p.aplicando}
+						aplicando={p.aplicando}
+					/>
 				</div>
 
-				<Rodape
-					onDescartar={p.descartarAlteracoes}
-					onAplicar={handleAplicar}
-					aplicarDisabled={p.pendencias.length === 0 || p.aplicando}
-					aplicando={p.aplicando}
+				<SalvarModelo
+					open={modelosModalOpen}
+					onClose={() => setModelosModalOpen(false)}
+					escalas={p.escalasParaModelo}
+					onSuccess={recarregarModelos}
 				/>
-			</div>
-
-			<SalvarModelo
-				open={modelosModalOpen}
-				onClose={() => setModelosModalOpen(false)}
-				escalas={p.escalasParaModelo}
-				onSuccess={recarregarModelos}
-			/>
-		</Modal>
-		<Popup {...popup.props} />
+			</Modal>
+			<Popup {...popup.props} />
 		</>
 	)
 }

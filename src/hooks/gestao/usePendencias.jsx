@@ -25,6 +25,21 @@ export default function usePendencias({ formulariosOptions, pacienteId, onSucces
 		setEscalaSelecionada('')
 	}
 
+	const adicionarEscalas = (ids) => {
+		setPendencias(atual => {
+			const existentes = new Set(atual.map(p => p.escalaId))
+			const novas = ids
+				.filter(id => !existentes.has(id))
+				.map(id => criarPendencia(id))
+			return [...atual, ...novas]
+		})
+	}
+
+	const manterApenasEscalas = (ids) => {
+		const permitidos = new Set(ids)
+		setPendencias(atual => atual.filter(p => permitidos.has(p.escalaId)))
+	}
+
 	const handleChangeModelo = async (e) => {
 		const valor = getValue(e)
 		setModeloSelecionado(valor)
@@ -147,6 +162,8 @@ export default function usePendencias({ formulariosOptions, pacienteId, onSucces
 		pendencias,
 		modeloSelecionado,
 		escalaSelecionada,
+		adicionarEscalas,
+		manterApenasEscalas,
 		setEscalaSelecionada: (e) => setEscalaSelecionada(getValue(e)),
 		dataTodas,
 		setDataTodas,

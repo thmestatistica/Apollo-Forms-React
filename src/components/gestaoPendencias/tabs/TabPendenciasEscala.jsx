@@ -59,8 +59,6 @@ const TabPendenciasEscala = ({
         [dadosComEscala]
     );
 
-    console.log(dadosDesconhecidos)
-
     const {
         colunaFiltros,
         setFiltroColuna,
