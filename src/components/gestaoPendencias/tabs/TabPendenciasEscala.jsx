@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { FaPen, FaRegPaperPlane, FaTrashAlt } from 'react-icons/fa';
 import { FaPencil, FaRotateLeft } from 'react-icons/fa6';
 import { atualizar_pendencia_admin, deletar_pendencia_admin } from '../../../api/pendencias/pendencias_utils';
-import { COLUNAS_PENDENCIAS, getData, useFiltrosColuna } from '../../../hooks/gestao/useFiltrosColuna';
+import { COLUNAS_PENDENCIAS, getData, useFiltrosColuna, useOrdenacaoColuna } from '../../../hooks/gestao/useFiltrosColuna';
 import { usePaginacao } from '../../../hooks/gestao/usePaginacao';
 import { useSelecaoLinhas } from '../../../hooks/gestao/useSelecaoLinhas';
 import AtualizarSelecionados from '../modals/AtualizarSelecionados';
@@ -68,9 +68,11 @@ const TabPendenciasEscala = ({
         dadosFiltrados: dadosColuna,
     } = useFiltrosColuna(dadosComEscala, COLUNAS_FILTRO);
 
+    const { ordenacao, alternarOrdenacao, dadosOrdenados } = useOrdenacaoColuna(dadosColuna, COLUNAS_FILTRO);
+
     const { page, setPage, pageSize, setPageSize, dadosPaginados } = usePaginacao(
-        dadosColuna,
-        [selectedPacienteId, filtros, colunaFiltros]
+        dadosOrdenados,
+        [selectedPacienteId, filtros, colunaFiltros, ordenacao]
     );
 
     const {
@@ -82,28 +84,6 @@ const TabPendenciasEscala = ({
         todosSelecionados,
         algunsSelecionados,
     } = useSelecaoLinhas(dadosColuna);
-
-    /*const gruposPendencias = useMemo(() => {
-        const MARGEM_MS = 60 * 1000;
-        const parse = (v) => (v ? new Date(String(v).replace(/(\.\d{3})\d+/, '$1')).getTime() : NaN);
-
-        const itens = dadosColuna
-            .map((row) => ({ row, t: parse(row.criadaEm ?? row.createdAt) }))
-            .filter((i) => !Number.isNaN(i.t))
-            .sort((a, b) => a.t - b.t);
-
-        const grupos = [];
-        itens.forEach((item) => {
-            const ultimo = grupos[grupos.length - 1];
-            if (ultimo && item.t - ultimo.fim <= MARGEM_MS) {
-                ultimo.fim = item.t;
-                ultimo.total += 1;
-            } else {
-                grupos.push({ inicio: item.t, fim: item.t, total: 1 });
-            }
-        });
-        return grupos;
-    }, [dadosColuna]);*/
 
     useEffect(() => {
         limparFiltrosColuna();
@@ -128,6 +108,7 @@ const TabPendenciasEscala = ({
             {
                 key: 'escala',
                 header: 'Escala',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.escala,
                     onChange: setFiltroColuna('escala'),
@@ -139,6 +120,7 @@ const TabPendenciasEscala = ({
             {
                 key: 'data_referencia',
                 header: 'Data de referência',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.data_referencia,
                     onChange: setFiltroColuna('data_referencia'),
@@ -149,6 +131,7 @@ const TabPendenciasEscala = ({
             {
                 key: 'criadaEm',
                 header: 'Criada em',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.criadaEm,
                     onChange: setFiltroColuna('criadaEm'),
@@ -159,6 +142,7 @@ const TabPendenciasEscala = ({
             {
                 key: 'especialidade',
                 header: 'Especialidade',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.especialidade,
                     onChange: setFiltroColuna('especialidade'),
@@ -168,6 +152,7 @@ const TabPendenciasEscala = ({
             {
                 key: 'status',
                 header: 'Status',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.status,
                     onChange: setFiltroColuna('status'),
@@ -178,6 +163,7 @@ const TabPendenciasEscala = ({
             {
                 key: 'criacao',
                 header: 'Criação',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.criacao,
                     onChange: setFiltroColuna('criacao'),
@@ -311,6 +297,7 @@ const TabPendenciasEscala = ({
                 someSelected={algunsSelecionados}
                 selectAllLabel="Selecionar todas as pendências"
                 selectRowLabel="Selecionar pendência"
+                    sort={{ ...ordenacao, onToggle: alternarOrdenacao }}
             />
 
             <Paginacao

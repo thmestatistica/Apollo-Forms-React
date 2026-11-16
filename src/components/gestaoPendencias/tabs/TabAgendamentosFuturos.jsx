@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { FaBan } from 'react-icons/fa';
-import { useFiltrosColuna } from '../../../hooks/gestao/useFiltrosColuna';
+import { useFiltrosColuna, useOrdenacaoColuna } from '../../../hooks/gestao/useFiltrosColuna';
 import { usePaginacao } from '../../../hooks/gestao/usePaginacao';
 import { toISODate } from '../../../utils/_geral/commonUtils';
 import Paginacao from '../tabela/Paginacao';
@@ -41,9 +41,11 @@ const TabAgendamentosFuturos = ({ selectedPacienteId, dadosAgendamentos = [] }) 
         dadosFiltrados,
     } = useFiltrosColuna(agendamentosFuturos, COLUNAS_FILTRO);
 
+    const { ordenacao, alternarOrdenacao, dadosOrdenados } = useOrdenacaoColuna(dadosFiltrados, COLUNAS_FILTRO);
+
     const { page, setPage, pageSize, setPageSize, dadosPaginados } = usePaginacao(
-        dadosFiltrados,
-        [selectedPacienteId, colunaFiltros]
+        dadosOrdenados,
+        [selectedPacienteId, colunaFiltros, ordenacao]
     );
 
     useEffect(() => {
@@ -55,6 +57,7 @@ const TabAgendamentosFuturos = ({ selectedPacienteId, dadosAgendamentos = [] }) 
             {
                 key: 'data',
                 header: 'Data',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.data,
                     onChange: setFiltroColuna('data'),
@@ -65,6 +68,7 @@ const TabAgendamentosFuturos = ({ selectedPacienteId, dadosAgendamentos = [] }) 
             {
                 key: 'horario',
                 header: 'Horário',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.horario,
                     onChange: setFiltroColuna('horario'),
@@ -75,6 +79,7 @@ const TabAgendamentosFuturos = ({ selectedPacienteId, dadosAgendamentos = [] }) 
             {
                 key: 'profissional',
                 header: 'Profissional',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.profissional,
                     onChange: setFiltroColuna('profissional'),
@@ -86,6 +91,7 @@ const TabAgendamentosFuturos = ({ selectedPacienteId, dadosAgendamentos = [] }) 
             {
                 key: 'slot',
                 header: 'Equipamento / Sala',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.slot,
                     onChange: setFiltroColuna('slot'),
@@ -96,6 +102,7 @@ const TabAgendamentosFuturos = ({ selectedPacienteId, dadosAgendamentos = [] }) 
             {
                 key: 'tipo',
                 header: 'Tipo',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.tipo,
                     onChange: setFiltroColuna('tipo'),
@@ -106,6 +113,7 @@ const TabAgendamentosFuturos = ({ selectedPacienteId, dadosAgendamentos = [] }) 
             {
                 key: 'recorrencia',
                 header: 'Recorrente',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.recorrencia,
                     onChange: setFiltroColuna('recorrencia'),
@@ -116,6 +124,7 @@ const TabAgendamentosFuturos = ({ selectedPacienteId, dadosAgendamentos = [] }) 
             {
                 key: 'presenca',
                 header: 'Status',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.presenca,
                     onChange: setFiltroColuna('presenca'),
@@ -158,6 +167,7 @@ const TabAgendamentosFuturos = ({ selectedPacienteId, dadosAgendamentos = [] }) 
                 selectable={false}
                 selectAllLabel="Selecionar todos os agendamentos"
                 selectRowLabel="Selecionar agendamento"
+                sort={{ ...ordenacao, onToggle: alternarOrdenacao }}
             />
 
             <Paginacao

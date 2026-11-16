@@ -55,3 +55,49 @@ export function useFiltrosColuna(dados, colunas = COLUNAS_PENDENCIAS) {
 
     return { colunaFiltros, setFiltroColuna, limpar, temFiltro, opcoes, dadosFiltrados };
 }
+
+export function useOrdenacaoColuna(dados, colunas = COLUNAS_PENDENCIAS) {
+    const [ordenacao, setOrdenacao] = useState({ chave: null, direcao: null });
+
+    const alternarOrdenacao = useCallback((chave) => {
+        setOrdenacao((prev) => {
+            if (prev.chave !== chave) return { chave, direcao: 'asc' };
+            if (prev.direcao === 'asc') return { chave, direcao: 'desc' };
+            return { chave: null, direcao: null };
+        });
+    }, []);
+
+    const dadosOrdenados = useMemo(() => {
+        const { chave, direcao } = ordenacao;
+        const col = colunas[chave];
+        if (!col) return dados;
+
+        const valorDe = (row) => {
+            const v = col.get(row);
+            return col.label && v ? col.label(v) : v;
+        };
+        const vazio = (v) => v == null || v === '';
+        const fator = direcao === 'desc' ? -1 : 1;
+
+        return [...dados].sort((a, b) => {
+            const va = valorDe(a);
+            const vb = valorDe(b);
+
+            if (vazio(va) && vazio(vb)) return 0;
+            if (vazio(va)) return 1;   // vazios sempre no fim
+            if (vazio(vb)) return -1;
+
+            const cmp =
+                typeof va === 'number' && typeof vb === 'number'
+                    ? va - vb
+                    : String(va).localeCompare(String(vb), 'pt-BR', {
+                          numeric: true,
+                          sensitivity: 'base',
+                      });
+
+            return cmp * fator;
+        });
+    }, [dados, colunas, ordenacao]);
+
+    return { ordenacao, alternarOrdenacao, dadosOrdenados };
+}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaCheckSquare, FaRegSquare, FaMinusSquare } from 'react-icons/fa';
+import { FaCheckSquare, FaRegSquare, FaMinusSquare, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { twMerge } from 'tailwind-merge';
 import HeaderSelect from './HeaderSelect';
 
@@ -29,7 +29,8 @@ const TabelaGen = ({
     selectAllLabel = 'Selecionar todos',
     selectRowLabel = 'Selecionar linha',
     className,
-    firstColHasPadding = !selectable
+    firstColHasPadding = !selectable,
+    sort
 }) => {
     const totalColumns = columns.length + (selectable ? 1 : 0);
 
@@ -59,20 +60,51 @@ const TabelaGen = ({
                             </span>
                         </th>
                     )}
-                    {columns.map((col, index) => (
-                        <th key={col.key} className={twMerge("py-3 pr-3", firstColHasPadding && index === 0 && "pl-6")}>
-                            {col.filter ? (
-                                <HeaderSelect
-                                    label={col.header}
-                                    value={col.filter.value}
-                                    onChange={col.filter.onChange}
-                                    options={col.filter.options}
-                                />
-                            ) : (
-                                col.header
-                            )}
-                        </th>
-                    ))}
+                    {columns.map((col, index) => {
+                        const sortable = Boolean(col.sortable && sort);
+                        const direcao = sortable && sort.chave === col.key ? sort.direcao : null;
+                        const SortIcon = direcao === 'asc' ? FaSortUp : direcao === 'desc' ? FaSortDown : FaSort;
+
+                        return (
+                            <th
+                                key={col.key}
+                                aria-sort={
+                                    direcao === 'asc' ? 'ascending'
+                                        : direcao === 'desc' ? 'descending'
+                                            : sortable ? 'none'
+                                                : undefined
+                                }
+                                className={twMerge("py-3 pr-3", firstColHasPadding && index === 0 && "pl-6")}
+                            >
+                                <div className="flex items-center gap-2">
+                                    {col.filter ? (
+                                        <HeaderSelect
+                                            label={col.header}
+                                            value={col.filter.value}
+                                            onChange={col.filter.onChange}
+                                            options={col.filter.options}
+                                        />
+                                    ) : (
+                                        col.header
+                                    )}
+                                    {sortable && (
+                                        <button
+                                            type="button"
+                                            onClick={() => sort.onToggle(col.key)}
+                                            aria-label={`Ordenar por ${col.header.toLowerCase()}`}
+                                            className={twMerge(
+                                                'cursor-pointer rounded p-1 text-sm transition-colors hover:bg-white/20',
+                                                'focus-visible:outline-2 focus-visible:outline-white',
+                                                direcao ? 'text-white' : 'text-white/60'
+                                            )}
+                                        >
+                                            <SortIcon aria-hidden="true" />
+                                        </button>
+                                    )}
+                                </div>
+                            </th>
+                        );
+                    })}
                 </tr>
             </thead>
             <tbody>

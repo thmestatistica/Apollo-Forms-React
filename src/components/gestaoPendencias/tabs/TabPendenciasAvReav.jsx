@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { FaBan } from 'react-icons/fa';
-import { useFiltrosColuna } from '../../../hooks/gestao/useFiltrosColuna';
+import { useFiltrosColuna, useOrdenacaoColuna } from '../../../hooks/gestao/useFiltrosColuna';
 import { usePaginacao } from '../../../hooks/gestao/usePaginacao';
 import { toISODate } from '../../../utils/_geral/commonUtils';
 import Paginacao from '../tabela/Paginacao';
@@ -29,9 +29,11 @@ const TabPendenciasAvReav = ({ selectedPacienteId, dadosAgendamentos }) => {
         dadosFiltrados,
     } = useFiltrosColuna(dadosAgendamentos, COLUNAS_FILTRO);
 
+    const { ordenacao, alternarOrdenacao, dadosOrdenados } = useOrdenacaoColuna(dadosFiltrados, COLUNAS_FILTRO);
+
     const { page, setPage, pageSize, setPageSize, dadosPaginados } = usePaginacao(
-        dadosFiltrados,
-        [selectedPacienteId, colunaFiltros]
+        dadosOrdenados,
+        [selectedPacienteId, colunaFiltros, ordenacao]
     );
 
     useEffect(() => {
@@ -43,6 +45,7 @@ const TabPendenciasAvReav = ({ selectedPacienteId, dadosAgendamentos }) => {
             {
                 key: 'profissional',
                 header: 'Atribuído a',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.profissional,
                     onChange: setFiltroColuna('profissional'),
@@ -54,6 +57,7 @@ const TabPendenciasAvReav = ({ selectedPacienteId, dadosAgendamentos }) => {
             {
                 key: 'data',
                 header: 'Data',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.data,
                     onChange: setFiltroColuna('data'),
@@ -64,6 +68,7 @@ const TabPendenciasAvReav = ({ selectedPacienteId, dadosAgendamentos }) => {
             {
                 key: 'tipo',
                 header: 'Tipo',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.tipo,
                     onChange: setFiltroColuna('tipo'),
@@ -74,6 +79,7 @@ const TabPendenciasAvReav = ({ selectedPacienteId, dadosAgendamentos }) => {
             {
                 key: 'presenca',
                 header: 'Status',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.presenca,
                     onChange: setFiltroColuna('presenca'),
@@ -116,6 +122,7 @@ const TabPendenciasAvReav = ({ selectedPacienteId, dadosAgendamentos }) => {
                 selectable={false}
                 selectAllLabel="Selecionar todas as pendências"
                 selectRowLabel="Selecionar pendência"
+                sort={{ ...ordenacao, onToggle: alternarOrdenacao }}
             />
 
             <Paginacao

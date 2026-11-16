@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useFiltrosColuna } from '../../../hooks/gestao/useFiltrosColuna';
+import { useFiltrosColuna, useOrdenacaoColuna } from '../../../hooks/gestao/useFiltrosColuna';
 import { usePaginacao } from '../../../hooks/gestao/usePaginacao';
 import { toISODate } from '../../../utils/_geral/commonUtils';
 import Paginacao from '../tabela/Paginacao';
@@ -80,9 +80,11 @@ function TabRegistrosRecentes({ selectedPacienteId, dadosSessoes, profissionaisO
         dadosFiltrados,
     } = useFiltrosColuna(dadosEnriquecidos, colunasFiltro);
 
+    const { ordenacao, alternarOrdenacao, dadosOrdenados } = useOrdenacaoColuna(dadosFiltrados, colunasFiltro);
+
     const { page, setPage, pageSize, setPageSize, dadosPaginados } = usePaginacao(
-        dadosFiltrados,
-        [selectedPacienteId, colunaFiltros]
+        dadosOrdenados,
+        [selectedPacienteId, colunaFiltros, ordenacao]
     );
 
     useEffect(() => {
@@ -92,8 +94,9 @@ function TabRegistrosRecentes({ selectedPacienteId, dadosSessoes, profissionaisO
     const columns = useMemo(
         () => [
             {
-                key: 'pendencia.data_referencia',
+                key: 'data_referencia',
                 header: 'Data de Referencia',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.dataReferencia,
                     onChange: setFiltroColuna('dataReferencia'),
@@ -104,6 +107,7 @@ function TabRegistrosRecentes({ selectedPacienteId, dadosSessoes, profissionaisO
             {
                 key: 'dataAplicacao',
                 header: 'Data de Aplicação',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.dataAplicacao,
                     onChange: setFiltroColuna('dataAplicacao'),
@@ -114,6 +118,7 @@ function TabRegistrosRecentes({ selectedPacienteId, dadosSessoes, profissionaisO
             {
                 key: 'formulario',
                 header: 'Formulário',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.formulario,
                     onChange: setFiltroColuna('formulario'),
@@ -125,6 +130,7 @@ function TabRegistrosRecentes({ selectedPacienteId, dadosSessoes, profissionaisO
             {
                 key: 'profissional',
                 header: 'Profissional',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.profissional,
                     onChange: setFiltroColuna('profissional'),
@@ -135,6 +141,7 @@ function TabRegistrosRecentes({ selectedPacienteId, dadosSessoes, profissionaisO
             {
                 key: 'status',
                 header: 'Status',
+                sortable: true,
                 filter: {
                     value: colunaFiltros.status,
                     onChange: setFiltroColuna('status'),
@@ -173,6 +180,7 @@ function TabRegistrosRecentes({ selectedPacienteId, dadosSessoes, profissionaisO
                 selectable={false}
                 selectAllLabel="Selecionar todas as sessões"
                 selectRowLabel="Selecionar sessão"
+                sort={{ ...ordenacao, onToggle: alternarOrdenacao }}
             />
 
             <Paginacao
