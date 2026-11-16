@@ -22,6 +22,7 @@ export const MAP_CRIACAO = {
 
 const COLUNAS_FILTRO = {
     ...COLUNAS_PENDENCIAS,
+    profissionalNome: { get: (row) => (row.profissionalNome), ordem: 'asc'},
     data_referencia: { get: (row) => (row.data_referencia ? toISODate(row.data_referencia) : ''), ordem: 'desc' },
     criacao: {
         get: (row) => row.tipoCriacao || 'DESCONHECIDA',
@@ -138,6 +139,17 @@ const TabPendenciasEscala = ({
                     options: opcoes.criadaEm,
                 },
                 render: (row) => getData(row),
+            },
+            {
+                key: 'profissional',
+                header: 'Profissional',
+                sortable: true,
+                filter: {
+                    value: colunaFiltros.profissionalNome,
+                    onChange: setFiltroColuna('profissionalNome'),
+                    options: opcoes.profissionalNome
+                },
+                render: (row) => row?.profissionalNome ?? '-'
             },
             {
                 key: 'especialidade',
