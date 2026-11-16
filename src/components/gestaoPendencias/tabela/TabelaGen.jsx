@@ -36,7 +36,7 @@ const TabelaGen = ({
 
     return (
         <div className='m-4 overflow-x-auto rounded-xl'>
-        <table className={twMerge('m-4 overflow-hidden rounded-xl', className)}>
+        <table className={twMerge('w-full m-4 overflow-hidden rounded-xl', className)}>
             <thead>
                 <tr className="bg-linear-to-r from-blue-700 to-purple-300 text-white text-left">
                     {selectable && (
