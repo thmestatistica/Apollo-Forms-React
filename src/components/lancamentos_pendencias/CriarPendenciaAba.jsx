@@ -314,7 +314,7 @@ const opcoesFormularios = useMemo(() => {
             diagnosticoMacro: diagnosticoMacro
         };
 
-        const { ok, data, error } = await criar_pendencia_manual(payload);
+        const { ok, data, error } = await criar_pendencia_manual(payload, "RETROATIVA");
 
         if (!ok) throw error;
 

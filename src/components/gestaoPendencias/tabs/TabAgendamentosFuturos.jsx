@@ -5,6 +5,7 @@ import { usePaginacao } from '../../../hooks/gestao/usePaginacao';
 import { toISODate } from '../../../utils/_geral/commonUtils';
 import Paginacao from '../tabela/Paginacao';
 import TabelaGen from '../tabela/TabelaGen';
+import { formatarHora } from '../../../utils/format/formatar_utils';
 
 const TIPOS = {
     SESSAO: 'Sessão',
@@ -12,15 +13,10 @@ const TIPOS = {
     REAVALIACAO: 'Reavaliação',
 };
 
-const formatHora = (iso) =>
-    iso
-        ? new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-        : '';
-
 const COLUNAS_FILTRO = {
     profissional: { get: (row) => row.profissional?.usuario?.nome ?? '', ordem: 'asc' },
     data: { get: (row) => (row.inicio ? toISODate(row.inicio) : ''), ordem: 'asc' },
-    horario: { get: (row) => formatHora(row.inicio), ordem: 'asc' },
+    horario: { get: (row) => formatarHora(row.inicio), ordem: 'asc' },
     slot: { get: (row) => row.slot?.nome ?? '', ordem: 'asc' },
     tipo: { get: (row) => row.tipo, label: (v) => TIPOS[v] ?? v },
     recorrencia: { get: (row) => (row.recorrencia ? 'Sim' : 'Não') },
@@ -74,7 +70,7 @@ const TabAgendamentosFuturos = ({ selectedPacienteId, dadosAgendamentos = [] }) 
                     onChange: setFiltroColuna('horario'),
                     options: opcoes.horario,
                 },
-                render: (row) => `${formatHora(row.inicio)} - ${formatHora(row.fim)}`,
+                render: (row) => `${formatarHora(row.inicio)} - ${formatarHora(row.fim)}`,
             },
             {
                 key: 'profissional',

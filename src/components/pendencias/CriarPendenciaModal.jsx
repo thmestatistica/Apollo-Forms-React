@@ -242,12 +242,12 @@ const CriarPendenciaModal = ({ isOpen, onClose, pacienteId, pacienteNome }) => {
         resolvidaEm: null,
         data_referencia: dataRefIso,
         especialidade: userEspecialidade, // Usa a especialidade do usuário
-        diagnosticoMacro: diagnosticoMacro
+        diagnosticoMacro: diagnosticoMacro,
       };
 
       // console.log("Payload enviado:", payload);
 
-      const result = await criar_pendencia_manual(payload);
+      const result = await criar_pendencia_manual(payload, "MANUAL");
 
       if (result.ok) {
         await Swal.fire({
