@@ -10,7 +10,7 @@ export const processarGRBASI = (respostas) => {
         "nome_curto": "GRBASI",
         "calculo": "Escore = p1 + p2 + p3 + p4 + p5 + p6",
         "calculo_processado": "Padronização Radar = (base / 18) × 10",
-        "interpretacao": "O escore bruto é o resultado da pergunta. Valor mínimo = 0; Valor máximo = 18. O escore padronizado lineariza a relação de tal que forma que uma resposta máxima (18 no escore bruto) seja um valor no radar igual a 10. O valor mínimo fica com 0 e qualquer outra pontuação está interpolada linearmente"
+        "interpretacao": "O escore bruto é o resultado da pergunta. Valor mínimo = 0; Valor máximo = 18. O escore padronizado lineariza a relação de tal que forma que uma resposta mínima (0 no escore bruto) seja um valor no radar igual a 10. O valor máximo fica com 0 e qualquer outra pontuação está interpolada linearmente"
     };
 }
 
