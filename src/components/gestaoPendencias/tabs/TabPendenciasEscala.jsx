@@ -22,7 +22,7 @@ export const MAP_CRIACAO = {
 
 const COLUNAS_FILTRO = {
     ...COLUNAS_PENDENCIAS,
-    profissionalNome: { get: (row) => (row.profissionalNome), ordem: 'asc'},
+    profissionalNome: { get: (row) => (row.profissionalNome), ordem: 'asc' },
     data_referencia: { get: (row) => (row.data_referencia ? toISODate(row.data_referencia) : ''), ordem: 'desc' },
     criacao: {
         get: (row) => row.tipoCriacao || 'DESCONHECIDA',
@@ -229,72 +229,50 @@ const TabPendenciasEscala = ({
     return (
         <>
             <div className="mx-4 mt-4 flex items-center justify-between text-sm text-slate-600">
-                <div className="flex gap-6 items-center">
-                    <span>
-                        {temFiltroColuna &&
-                            `${dadosColuna.length} de ${dadosFiltrados.length} pendências com os filtros`}{' '}
-                        {selectedRows.length > 0 && `(${selectedRows.length} selecionadas)`}
-                    </span>
-                    {selectedRows.length > 0 && (
-                        <div className="flex gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setIsEditarModalOpen(true)}
-                                className="bg-linear-to-r from-blue-700 via-purple-300 to-blue-700 bg-size-[200%_auto] bg-left px-3 py-1 text-white rounded-md transition-all duration-500 hover:bg-right flex gap-3 items-center"
-                            >
-                                <FaPencil />
-                                Atualizar selecionados
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => handleRemoverSelecionados(selectedRows)}
-                                className="bg-linear-to-r from-purple-300 via-rose-300 to-purple-300 bg-size-[200%_auto] bg-left px-3 py-1 text-white rounded-md transition-all duration-500 hover:bg-right flex gap-3 items-center"
-                            >
-                                <FaTrashAlt />
-                                Remover selecionados
-                            </button>
-                        </div>
+                <div className='w-full'>
+                    <div className="flex gap-6 items-center">
+                        <span>
+                            {temFiltroColuna &&
+                                `${dadosColuna.length} de ${dadosFiltrados.length} pendências com os filtros`}{' '}
+                            {selectedRows.length > 0 && `(${selectedRows.length} selecionadas)`}
+                        </span>
+                        {selectedRows.length > 0 && (
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditarModalOpen(true)}
+                                    className="bg-linear-to-r from-blue-700 via-purple-300 to-blue-700 bg-size-[200%_auto] bg-left px-3 py-1 text-white rounded-md transition-all duration-500 hover:bg-right flex gap-3 items-center"
+                                >
+                                    <FaPencil />
+                                    Atualizar selecionados
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleRemoverSelecionados(selectedRows)}
+                                    className="bg-linear-to-r from-purple-300 via-rose-300 to-purple-300 bg-size-[200%_auto] bg-left px-3 py-1 text-white rounded-md transition-all duration-500 hover:bg-right flex gap-3 items-center"
+                                >
+                                    <FaTrashAlt />
+                                    Remover selecionados
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                    {temFiltroColuna && (
+                        <button
+                            type="button"
+                            onClick={limparFiltrosColuna}
+                            className="font-medium bg-blue-700 text-white py-3 px-6 rounded-xl"
+                        >
+                            Limpar filtros das colunas
+                        </button>
                     )}
                 </div>
-                {temFiltroColuna && (
-                    <button
-                        type="button"
-                        onClick={limparFiltrosColuna}
-                        className="font-medium bg-blue-700 text-white py-3 px-6 rounded-xl"
-                    >
-                        Limpar filtros das colunas
+                <div className='w-full justify-end items-center flex px-4'>
+                    <button className='bg-linear-to-r from-blue-300 to-teal-500 py-2 px-6 rounded-lg font-semibold text-white opacity-50 cursor-not-allowed'>
+                        Exibir blocos de pendências
                     </button>
-                )}
+                </div>
             </div>
-
-            {/*<details className={`mx-4 mt-4 text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-md px-3 py-2 w-fix max-h-100 overflow-y-scroll`}>
-                <summary className="cursor-pointer font-medium">
-                    {gruposPendencias.length} grupos de pendências
-                </summary>
-                <TabelaGen
-                    className="mx-0 mb-0 mt-2 w-full"
-                    columns={[
-                        {
-                            key: 'data',
-                            header: 'Data',
-                            render: (g) => `${toISODate(g.inicio)}`,
-                        },
-                        {
-                            key: 'hora',
-                            header: 'Hora',
-                            render: (g) => `${new Date(g.inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
-                        },
-                        {
-                            key: 'total',
-                            header: 'Pendências',
-                            render: (g) => g.total,
-                        },
-                    ]}
-                    data={gruposPendencias}
-                    getRowKey={(g) => g.inicio}
-                    emptyMessage="Nenhum grupo encontrado"
-                />
-            </details>*/}
 
             <TabelaGen
                 columns={columns}
@@ -309,7 +287,7 @@ const TabPendenciasEscala = ({
                 someSelected={algunsSelecionados}
                 selectAllLabel="Selecionar todas as pendências"
                 selectRowLabel="Selecionar pendência"
-                    sort={{ ...ordenacao, onToggle: alternarOrdenacao }}
+                sort={{ ...ordenacao, onToggle: alternarOrdenacao }}
             />
 
             <Paginacao

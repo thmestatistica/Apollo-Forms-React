@@ -131,6 +131,7 @@ const ListagemPendencias = ({ accessMode, allowedPatientIds }) => {
                                 selectedPacienteId={selectedPacienteId}
                                 dadosSessoes={answeredLast}
                                 profissionaisOptions={profissionaisOptions}
+                                agendamentos={agendamentos}
                             />
                         )}
 

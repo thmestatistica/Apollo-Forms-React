@@ -10,6 +10,26 @@ export const OPCOES_ESPECIALIDADES = [
   { value: 'Teste', label: 'Teste' }
 ];
 
+export function toTimeValue(date, { segundos = false, corrigirTimezone = true } = {}) {
+  let parsedDate = date instanceof Date ? date : new Date(date);
+
+  if (!date || Number.isNaN(parsedDate.getTime())) {
+    return '';
+  }
+
+  if (corrigirTimezone) {
+    parsedDate = new Date(parsedDate.getTime() + 3 * 60 * 60 * 1000);
+  }
+
+  const h = String(parsedDate.getHours()).padStart(2, '0');
+  const min = String(parsedDate.getMinutes()).padStart(2, '0');
+
+  if (!segundos) return `${h}:${min}`;
+
+  const s = String(parsedDate.getSeconds()).padStart(2, '0');
+  return `${h}:${min}:${s}`;
+}
+
 export const formatDateValue = (date) => {
   if (!date) return '';
   return String(date).slice(0, 10);

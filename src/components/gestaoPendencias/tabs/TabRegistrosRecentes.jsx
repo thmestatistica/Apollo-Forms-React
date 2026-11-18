@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useFiltrosColuna, useOrdenacaoColuna } from '../../../hooks/gestao/useFiltrosColuna';
 import { usePaginacao } from '../../../hooks/gestao/usePaginacao';
-import { toISODate } from '../../../utils/_geral/commonUtils';
+import { toISODate, toTimeValue } from '../../../utils/_geral/commonUtils';
 import Paginacao from '../tabela/Paginacao';
 import TabelaGen from '../tabela/TabelaGen';
 import { buscar_todas_pendencias } from '../../../api/pendencias/pendencias_utils';
 
-function TabRegistrosRecentes({ selectedPacienteId, dadosSessoes, profissionaisOptions }) {
+function TabRegistrosRecentes({ selectedPacienteId, dadosSessoes, profissionaisOptions, agendamentos }) {
 
     const [pendenciasPaciente, setPendenciasPaciente] = useState([])
 
@@ -40,6 +40,22 @@ function TabRegistrosRecentes({ selectedPacienteId, dadosSessoes, profissionaisO
                 get: (row) => (row?.pendencia?.data_referencia ? toISODate(row?.pendencia?.data_referencia) : ''),
                 ordem: 'desc',
             },
+            dataAgendamento: {
+                get: (row) => (row?.agendamento?.inicio ? toISODate(row?.agendamento?.inicio) : ''),
+                ordem: 'desc',
+            },
+            horaInicio: {
+                get: (row) => (row?.agendamento?.inicio ? toTimeValue(row?.agendamento?.inicio) : ''),
+                ordem: 'desc',
+            },
+            horaFim: {
+                get: (row) => (row?.agendamento?.inicio ? toTimeValue(row?.agendamento?.fim) : ''),
+                ordem: 'desc',
+            },
+            slotNome: {
+                get: (row) => row?.agendamento?.slot?.nome.toLowerCase() ?? '',
+                ordem: 'asc',
+            },
             formulario: {
                 get: (row) => row.formulario?.nome_formulario?.toLowerCase() ?? '',
                 ordem: 'asc',
@@ -56,20 +72,29 @@ function TabRegistrosRecentes({ selectedPacienteId, dadosSessoes, profissionaisO
     const chave = (agendamentoId, formularioId) => `${agendamentoId}|${formularioId}`;
 
     const dadosEnriquecidos = useMemo(() => {
-        const indice = new Map();
+        const indicePendencias = new Map();
         for (const p of pendenciasPaciente ?? []) {
-            indice.set(chave(p.agendamentoId, p.formularioId), p);
+            indicePendencias.set(chave(p.agendamentoId, p.formularioId), p);
+        }
+
+        const indiceAgendamentos = new Map();
+        for (const a of agendamentos ?? []) {
+            indiceAgendamentos.set(a.id, a);
         }
 
         return (dadosSessoes ?? []).map((s) => {
-            const pend = indice.get(chave(s.agendamento_id, s.formulario_id));
+            const pend = indicePendencias.get(chave(s.agendamento_id, s.formulario_id));
+            const agend = indiceAgendamentos.get(s.agendamento_id);
+
             return {
                 ...s,
                 pendencia: pend ?? null,
                 data_referencia: pend?.data_referencia ?? null,
+                agendamento: agend ?? null,
+                data_agendamento: agend?.inicio ?? null, // atalho opcional
             };
         });
-    }, [dadosSessoes, pendenciasPaciente]);
+    }, [dadosSessoes, pendenciasPaciente, agendamentos]);
 
     const {
         colunaFiltros,
@@ -94,7 +119,7 @@ function TabRegistrosRecentes({ selectedPacienteId, dadosSessoes, profissionaisO
     const columns = useMemo(
         () => [
             {
-                key: 'data_referencia',
+                key: 'dataReferencia',
                 header: 'Data de Referencia',
                 sortable: true,
                 filter: {
@@ -103,6 +128,17 @@ function TabRegistrosRecentes({ selectedPacienteId, dadosSessoes, profissionaisO
                     options: opcoes.dataReferencia,
                 },
                 render: (row) => toISODate(row?.pendencia?.data_referencia) || "Sem pendencia associada"
+            },
+            {
+                key: 'dataAgendamento',
+                header: 'Data de agendamento',
+                sortable: true,
+                filter: {
+                    value: colunaFiltros.dataAgendamento,
+                    onChange: setFiltroColuna('dataAgendamento'),
+                    options: opcoes.dataAgendamento,
+                },
+                render: (row) => toISODate(row?.agendamento?.inicio) || "-"
             },
             {
                 key: 'dataAplicacao',
@@ -114,6 +150,40 @@ function TabRegistrosRecentes({ selectedPacienteId, dadosSessoes, profissionaisO
                     options: opcoes.dataAplicacao,
                 },
                 render: (row) => toISODate(row.data_aplicacao_sessao),
+            },
+            {
+                key: 'horaInicio',
+                header: 'Hora inicial',
+                sortable: true,
+                filter: {
+                    value: colunaFiltros.horaInicio,
+                    onChange: setFiltroColuna('horaInicio'),
+                    options: opcoes.horaInicio,
+                },
+                render: (row) =>  toTimeValue(row.agendamento?.inicio) || "-"
+            },
+            {
+                key: 'horaFim',
+                header: 'Hora final',
+                sortable: true,
+                filter: {
+                    value: colunaFiltros.horaFim,
+                    onChange: setFiltroColuna('horaFim'),
+                    options: opcoes.horaFim,
+                },
+                render: (row) =>  toTimeValue(row.agendamento?.fim) || "-"
+            },
+            {
+                key: 'slotNome',
+                header: 'Slot',
+                sortable: true,
+                filter: {
+                    value: colunaFiltros.slotNome,
+                    onChange: setFiltroColuna('slotNome'),
+                    options: opcoes.slotNome
+                },
+                render: (row) => row?.agendamento?.slot?.nome || '-',
+                cellClassName: 'capitalize'
             },
             {
                 key: 'formulario',
