@@ -159,7 +159,7 @@ function TabelaPendencias({ bloco, onVoltar, onAtualizarData, formulariosPorId }
       key: 'formularioId',
       header: 'Formulário',
       sortable: true,
-      render: (row) => formulariosPorId.get(row.formularioId).toLowerCase() || row.formularioId || '',
+      render: (row) => formulariosPorId.get(row.formularioId)?.toLowerCase() || row.formularioId || '',
       cellClassName: 'capitalize'
     },
     {
@@ -306,7 +306,7 @@ function TabelaPendencias({ bloco, onVoltar, onAtualizarData, formulariosPorId }
             ...ordenacao,
             onToggle: alternarOrdenacao,
           }}
-          className="min-w-[900px] m-0 text-sm"
+          className="min-w-[900px] m-0 text-sm mb-7"
         />
       </div>
     </>
