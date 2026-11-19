@@ -17,6 +17,7 @@ import TabAgendamentosFuturos from './tabs/TabAgendamentosFuturos';
 import { useAuth } from '../../hooks/useAuth'
 import usePopup from '../../hooks/usePopup';
 import Popup from '../common/Popup';
+import BlocosPendencias from './modals/BlocosPendencias';
 
 const TABS_PENDENCIAS = [
     { id: 'escala', label: 'Pendências de escala', icon: FaSheetPlastic },

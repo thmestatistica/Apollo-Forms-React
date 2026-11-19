@@ -10,6 +10,12 @@ export const OPCOES_ESPECIALIDADES = [
   { value: 'Teste', label: 'Teste' }
 ];
 
+function formatarData(dataISO) {
+  if (!dataISO || dataISO === 'sem-data') return 'Sem data'
+  const [ano, mes, dia] = dataISO.split('T')[0].split('-')
+  return `${dia}/${mes}/${ano}`
+}
+
 export function toTimeValue(date, { segundos = false, corrigirTimezone = true } = {}) {
   let parsedDate = date instanceof Date ? date : new Date(date);
 

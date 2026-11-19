@@ -12,6 +12,7 @@ import TabelaGen from '../tabela/TabelaGen';
 import usePopup from '../../../hooks/usePopup';
 import Popup from '../../common/Popup';
 import { toISODate } from '../../../utils/_geral/commonUtils';
+import BlocosPendencias from '../modals/BlocosPendencias';
 
 export const MAP_CRIACAO = {
     RETROATIVA: 'Retroativa',
@@ -42,6 +43,8 @@ const TabPendenciasEscala = ({
     const [isEditarModalOpen, setIsEditarModalOpen] = useState(false);
     const popup = usePopup()
 
+    const [isBlocosModalOpen, setIsBlocosModalOpen] = useState(false);
+
     const formulariosPorId = useMemo(
         () => new Map((formulariosOptions ?? []).map((f) => [f.value, f.label])),
         [formulariosOptions]
@@ -53,11 +56,6 @@ const TabPendenciasEscala = ({
             escala: formulariosPorId.get(row.formularioId) ?? 'FORMULARIO DESCONHECIDO',
         })).filter((row) => row.escala !== 'FORMULARIO DESCONHECIDO'),
         [dadosFiltrados, formulariosPorId]
-    );
-
-    const dadosDesconhecidos = useMemo(
-        () => dadosComEscala.filter((row) => row.escala === 'FORMULARIO DESCONHECIDO'),
-        [dadosComEscala]
     );
 
     const {
@@ -101,6 +99,20 @@ const TabPendenciasEscala = ({
             console.error(err);
         } finally {
             carregarDadosAdmin(true, selectedPacienteId);
+        }
+    };
+
+    const handleSubmitBloco = async (rows, payload) => {
+        const resultados = await Promise.allSettled(
+            rows.map((row) => atualizar_pendencia_admin(row?.id ?? row, payload))
+        );
+
+        const falhas = resultados.filter((r) => r.status === 'rejected').length;
+
+        await carregarDadosAdmin(true, selectedPacienteId);
+
+        if (falhas > 0) {
+            throw new Error(`${falhas} de ${rows.length} pendências não puderam ser atualizadas`);
         }
     };
 
@@ -268,7 +280,7 @@ const TabPendenciasEscala = ({
                     )}
                 </div>
                 <div className='w-full justify-end items-center flex px-4'>
-                    <button className='bg-linear-to-r from-blue-300 to-teal-500 py-2 px-6 rounded-lg font-semibold text-white opacity-50 cursor-not-allowed'>
+                    <button className='bg-linear-to-r from-blue-300 to-teal-500 py-2 px-6 rounded-lg font-semibold text-white' onClick={() => setIsBlocosModalOpen(true)}>
                         Exibir blocos de pendências
                     </button>
                 </div>
@@ -304,6 +316,14 @@ const TabPendenciasEscala = ({
                 selected={selectedRows}
                 onSubmit={handleSubmit}
                 formulariosOptions={formulariosOptions}
+            />
+
+            <BlocosPendencias
+                open={isBlocosModalOpen}
+                onClose={() => setIsBlocosModalOpen(false)}
+                dados={dadosFiltrados}
+                onSubmitBloco={handleSubmitBloco}
+                formulariosPorId={formulariosPorId}
             />
 
             <Popup {...popup.props} />
