@@ -23,44 +23,58 @@ export const coletarTC10m = (form) => {
     // 2043 - condicional (velocidade)
     // 2044 a 2046
 
-    const item = form.find((resposta) => Number(resposta.perguntaId) == 2043)
+    const itemTipo = form.find((resposta) => Number(resposta.perguntaId) === 2043);
+    const tipo = String(itemTipo?.resposta ?? "");
+
+    // extrai o primeiro número do texto (aceita vírgula ou ponto), como no backend
+    const extrairNumero = (id) => {
+        const item = form.find((resposta) => Number(resposta.perguntaId) === id);
+        const match = String(item?.resposta ?? "").match(/\d+[.,]?\d*/);
+        return match ? parseFloat(match[0].replace(",", ".")) : null;
+    };
+
+    let usarVelocidade;
+
+    if (tipo.startsWith("Velocidade")) {
+        usarVelocidade = true;
+    } else if (tipo.startsWith("Tempo")) {
+        usarVelocidade = false;
+    } else {
+        usarVelocidade = form.some((resposta) => Number(resposta.perguntaId) === 2044);
+    }
 
     let result = null;
 
-    if (item?.resposta === "Velocidade (m/s),em metros por segundo" || form.find((resposta) => Number(resposta.perguntaId) === 2044)) {
+    if (usarVelocidade) {
         for (let id = 2044; id <= 2046; id++) {
 
-            const item = form.find(
-                (resposta) => Number(resposta.perguntaId) === id
-            );
+            const velocidade = extrairNumero(id);
 
-            const valor = Number(item?.resposta);
+            if (velocidade === null) {
+                continue;
+            }
 
-            if (result === null || valor > result) {
-                result = valor;
+            if (result === null || velocidade > result) {
+                result = velocidade;
             }
         }
 
-    } else if (item?.resposta === "Tempo (s), em segundos" || form.find((resposta) => Number(resposta.perguntaId) === 625)) {
+    } else {
         for (let id = 625; id <= 627; id++) {
 
-            const item = form.find(
-                (resposta) => Number(resposta.perguntaId) === id
-            );
+            const tempo = extrairNumero(id);
 
-            const valor = 10 / Number(item?.resposta);
-
-            if (!isFinite(valor)){
+            if (tempo === null || tempo === 0) {
                 continue;
-            } 
+            }
 
-            if (result === null || valor > result) {
-                result = valor;
+            const velocidade = 10 / tempo;
+
+            if (result === null || velocidade > result) {
+                result = velocidade;
             }
         }
-
     }
 
-    return result;
-
+    return result === null ? null : Math.round(result * 100) / 100;
 };
