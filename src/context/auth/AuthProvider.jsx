@@ -13,6 +13,17 @@ export const AuthProvider = ({ children }) => {
 
     const navigate = useNavigate();
 
+    const isTokenExpired = (token) => {
+        if (!token) return true;
+
+        try {
+            const payload = JSON.parse(atob(token.split(".")[1]));
+            return payload.exp * 1000 <= Date.now();
+        } catch {
+            return true;
+        }
+    };
+
     // Sincroniza estado com localStorage
     useEffect(() => {
         if (user) localStorage.setItem(LS_AUTH_KEY, JSON.stringify(user));
@@ -27,7 +38,16 @@ export const AuthProvider = ({ children }) => {
     }, [navigate]);
 
     useEffect(() => {
-        if (user?.expirada === true) logout();
+        if (!user) return;
+
+        const tokenExpirado = isTokenExpired(user.token);
+        const tokenNovaExpirado = user.tokenNova
+            ? isTokenExpired(user.tokenNova)
+            : false;
+
+        if (user.expirada === true || tokenExpirado || tokenNovaExpirado) {
+            logout();
+        }
     }, [user, logout]);
 
 
