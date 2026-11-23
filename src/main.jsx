@@ -48,6 +48,7 @@ import AgendaSemanalPacienteMedico from './routes/medico_parceiro/AgendaSemanalM
 import ListagemPendencias from './components/gestaoPendencias/ListagemPendencias.jsx'
 import GestaoPendencias from './routes/terapeuta/GestaoPendencias.jsx'
 import { useAuth } from './hooks/useAuth.jsx'
+import GestaoEvolucao from './routes/terapeuta/GestaoEvolucao.jsx'
 
 // --- Configuração simples das Rotas com createBrowserRouter ---
 const router = createBrowserRouter([
@@ -105,6 +106,10 @@ const router = createBrowserRouter([
                         {
                             element: <GestaoPendencias />,
                             path: 'gestao-pendencias'
+                        },
+                        {
+                            element: <GestaoEvolucao />,
+                            path: 'pendencias-evolucao'
                         },
                         {
                             element: <EditTela />,

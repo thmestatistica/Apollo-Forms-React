@@ -34,6 +34,12 @@ const colorVariants = {
         iconBg: 'bg-purple-100',
         text: 'text-purple-600',
         border: 'border-purple-200'
+    },
+    rose: {
+        bg: 'bg-rose-50',
+        iconBg: 'bg-rose-100',
+        text: 'text-rose-600',
+        border: 'border-rose-200'
     }
 }
 

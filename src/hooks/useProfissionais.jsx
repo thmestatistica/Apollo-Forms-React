@@ -1,10 +1,12 @@
 import { useState, useCallback, useMemo } from 'react';
 import Swal from 'sweetalert2';
-import { listar_profissionais } from '../api/profissionais/profissionais_utils';
+import { listar_pendencias_profissionais, listar_profissionais } from '../api/profissionais/profissionais_utils';
 
 function useProfissionais() {
     const [listaProfissionais, setListaProfissionais] = useState([]);
+    const [pendenciasProfissionais, setPendenciasProfissionais] = useState([]);
     const [loadingLista, setLoadingLista] = useState(false);
+    const [loadingPendencias, setLoadingPendencias] = useState(false)
 
     const fetchProfissionais = useCallback(async () => {
         setLoadingLista(true);
@@ -17,6 +19,18 @@ function useProfissionais() {
             setLoadingLista(false);
         }
     }, []);
+
+    const fetchPendenciasProfissionais = useCallback(async () => {
+        setLoadingPendencias(true);
+        try {
+            const dados = await listar_pendencias_profissionais();
+            setPendenciasProfissionais(dados || [])
+        } catch (error) {
+            Swal.fire('Erro', 'Não foi possível carregar as pendencias dos profissionais.', 'error');
+        } finally {
+            setLoadingPendencias(false)
+        }
+    })
 
     const profissionaisOptions = useMemo(() => {
         return listaProfissionais.map((profissional) => ({
@@ -45,16 +59,21 @@ function useProfissionais() {
     }, [presencasList]);
 
     const reload = useCallback(() => {
-        return fetchProfissionais();
+        fetchProfissionais(); 
+        fetchPendenciasProfissionais()
+        return
     }, [fetchProfissionais]);
 
     return {
         listaProfissionais,
+        pendenciasProfissionais,
         profissionaisOptions,
         presencasList,
         presencasMap,
         loadingLista,
+        loadingPendencias,
         fetchProfissionais,
+        fetchPendenciasProfissionais,
         reload,
     };
 }

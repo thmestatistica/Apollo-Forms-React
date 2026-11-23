@@ -20,7 +20,7 @@ import {
 } from '@heroicons/react/24/outline';
 import ApolloLogo from '../../assets/logo_apollo.png';
 import { FaCut } from 'react-icons/fa';
-import { FaRotateRight } from "react-icons/fa6";
+import { FaRotateRight, FaSheetPlastic } from "react-icons/fa6";
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -100,6 +100,11 @@ const Navbar = () => {
                     name: "Gestão de Pendências",
                     href: '/forms-terapeuta/gestao-pendencias',
                     icon: FaRotateRight
+                },
+                {
+                    name: "Pendências de Evolução",
+                    href: '/forms-terapeuta/pendencias-evolucao',
+                    icon: FaSheetPlastic
                 }
             ]
         }] : []),
@@ -173,7 +178,7 @@ const Navbar = () => {
                             
                             {/* Submenu Dropdown */}
                             {item.children && (
-                                <div className="absolute top-[80%] left-0 w-56 bg-white border border-gray-100 rounded-xl shadow-xl opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all duration-300 transform translate-y-2 group-hover/menu:translate-y-0 z-50 overflow-hidden">
+                                <div className="absolute top-[80%] left-0 w-63 bg-white border border-gray-100 rounded-xl shadow-xl opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all duration-300 transform translate-y-2 group-hover/menu:translate-y-0 z-50 overflow-hidden">
                                     {item.children.map(sub => (
                                         <NavLink 
                                             key={sub.name}

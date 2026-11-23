@@ -56,8 +56,10 @@ export function useFiltrosColuna(dados, colunas = COLUNAS_PENDENCIAS) {
     return { colunaFiltros, setFiltroColuna, limpar, temFiltro, opcoes, dadosFiltrados };
 }
 
-export function useOrdenacaoColuna(dados, colunas = COLUNAS_PENDENCIAS) {
-    const [ordenacao, setOrdenacao] = useState({ chave: null, direcao: null });
+export function useOrdenacaoColuna(dados, colunas, inicial = null) {
+    const [ordenacao, setOrdenacao] = useState(
+        inicial ?? { chave: null, direcao: null }
+    )
 
     const alternarOrdenacao = useCallback((chave) => {
         setOrdenacao((prev) => {

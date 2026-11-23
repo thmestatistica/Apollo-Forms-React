@@ -1,4 +1,5 @@
 import axiosInstance from "../axiosInstance";
+import axiosInstanceJourney from "../journey/axiosInstanceJourney";
 
 /**
  * Remove agendamento das presenças do profissional.
@@ -33,3 +34,12 @@ export const listar_profissionais = async () => {
   }
 };
 
+export const listar_pendencias_profissionais = async () => {
+  try {
+    const { data } = await axiosInstanceJourney.get('/profissionais/pendencias-evolucoes');
+    return data;
+  } catch (error) {
+    console.error("Erro ao buscar pendencias dos profissionais: ", error);
+    throw error;
+  }
+};
