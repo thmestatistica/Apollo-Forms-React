@@ -54,9 +54,9 @@ const colunasFiltro = {
         ordem: 'asc',
     },
     horario: {
-        get: (row) => {formatarHora(row.inicioTs)},
-        label: (row) => `${formatarHora(row.inicioTs)} - ${formatarHora(row.fimTs)}`,
-        odem: 'asc'
+        get: (row) => `${formatarHora(row.inicioTs)} - ${formatarHora(row.fimTs)}`,
+        label: (valor) => valor,
+        ordem: 'asc',
     },
     diasAtraso: {
         get: (row) => paraChave(row.diasAtraso),
