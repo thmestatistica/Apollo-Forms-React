@@ -138,8 +138,6 @@ function GestaoEvolucao() {
                         </div>
                     </div>
 
-                    {console.log(dadosEnriquecidos)}
-
                     <SingleSelect
                         options={profissionaisOptions}
                         onChange={setSelectedProfessional}
